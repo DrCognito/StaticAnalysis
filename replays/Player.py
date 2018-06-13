@@ -14,7 +14,6 @@ from sqlalchemy.ext.declarative import declared_attr
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-
 class Player(Base):
     __tablename__ = "player"
     replayID = Column(BigInteger, ForeignKey("Replays.replayID"),
