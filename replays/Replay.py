@@ -52,8 +52,11 @@ class Replay(Base):
     def get_player_by_hero(self, hero, nameType=HeroIDType.NPC_NAME):
         if nameType != HeroIDType.NPC_NAME:
             convertName(hero, nameType, HeroIDType.NPC_NAME)
-
-        return next(p for p in self.players if p.hero == hero)
+        try:
+            return next(p for p in self.players if p.hero == hero)
+        except StopIteration:
+            print("Player with hero {} not found in replay.".format(hero))
+            return None
 
     def get_players(self, team=None):
         if team is None:
@@ -110,3 +113,12 @@ def populate_from_JSON_file(path, session):
 
     session.merge(newReplay)
     return newReplay
+
+
+def determine_side_byteam(team_id, replay):
+    for t in replay.teams:
+        if t.teamID == team_id:
+            return t.team
+
+    print("Failed to identify team {} in {}".format(team_id, replay.replayID))
+    return None
