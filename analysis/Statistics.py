@@ -2,14 +2,18 @@ from pandas import DataFrame, Series
 from datetime import timedelta
 
 
-# def cumulative_statistic(properties, index=None, conversion=None):
-#     '''Returns a pandas Series for the property in collection.
-#        Index is used to generate the Series index.
-#        Conversion is a function that converts property to the desired format'''
-#     output = Series()
+def cumulative_statistic(properties, index=None, conversion=None):
+    '''Returns a list for the property in collection.
+       Index is used to generate the Series index.
+       Conversion is a function that converts property to the desired format'''
+    output = list()
+    for p in properties:
+        if conversion is not None:
+            output.append(conversion(p))
+        else:
+            output.append(p)
 
-#     for p in properties:
-        
+    return output
 
 
 def x_vs_time(collection_methods, start=0, end=None, conversion=None):
