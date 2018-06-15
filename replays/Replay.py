@@ -55,7 +55,7 @@ class Replay(Base):
         try:
             return next(p for p in self.players if p.hero == hero)
         except StopIteration:
-            print("Player with hero {} not found in replay.".format(hero))
+            print("Player with hero {} not found in replay {}.".format(hero, self.replayID))
             return None
 
     def get_players(self, team=None):

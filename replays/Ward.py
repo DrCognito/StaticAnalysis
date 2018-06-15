@@ -39,7 +39,10 @@ def populate_from_JSON(json, replay_in, session):
 
         new_ward.ward_type = WardType(w['wardType'])
         new_ward.player = replay_in.get_player_by_hero(w['cName'])
-        new_ward.steamID = new_ward.player.steamID
+        if new_ward.player is None:
+            new_ward.steamID = None
+        else:
+            new_ward.steamID = new_ward.player.steamID
         new_ward.time = w['time']
         new_ward.xCoordinate = relative_coordinate(w['xPos'], w['xCellOffSet'])
         new_ward.yCoordinate = relative_coordinate(w['yPos'], w['yCellOffset'])
