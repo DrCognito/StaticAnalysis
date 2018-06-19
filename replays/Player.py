@@ -25,28 +25,29 @@ class Player(Base):
 
     # Relationships
     replay = relationship("Replay", back_populates="players", lazy="select")
-    status = relationship("PlayerStatus", back_populates="player",
+    status = relationship("PlayerStatus", #back_populates="player",
                           lazy="dynamic",
-                          cascade="all, delete-orphan", primaryjoin=
+                          cascade="all, delete-orphan",
+                          primaryjoin=
                           '''and_(PlayerStatus.steamID == Player.steamID,
-                             PlayerStatus.replayID == Player.replayID)'''
+                             PlayerStatus.replayID == Player.replayID)''',
                           )
-    kills = relationship("Kills", back_populates="player", lazy="select",
+    kills = relationship("Kills", lazy="select",
                          cascade="all, delete-orphan", primaryjoin=
                          '''and_(Kills.steam_ID == Player.steamID,
-                            Kills.replay_ID == Player.replayID)'''
+                            Kills.replay_ID == Player.replayID)''',
                          )
-    assists = relationship("Assists", back_populates="player", lazy="select",
+    assists = relationship("Assists", lazy="select",
                            cascade="all, delete-orphan", primaryjoin=
                            '''and_(Assists.steam_ID == Player.steamID,
                            Assists.replay_ID == Player.replayID)'''
                            )
-    denies = relationship("Denies", back_populates="player", lazy="select",
+    denies = relationship("Denies", lazy="select",
                           cascade="all, delete-orphan", primaryjoin=
                           '''and_(Denies.steam_ID == Player.steamID,
                           Denies.replay_ID == Player.replayID)'''
                           )
-    deaths = relationship("Deaths", back_populates="player", lazy="select",
+    deaths = relationship("Deaths", lazy="select",
                           cascade="all, delete-orphan", primaryjoin=
                           '''and_(Deaths.steam_ID == Player.steamID,
                           Deaths.replay_ID == Player.replayID)'''
@@ -108,10 +109,10 @@ class PlayerStatus(Base):
     is_alive = Column(Boolean)
 
     # Relationships
-    player = relationship(Player, back_populates="status", lazy="select")
+    # player = relationship(Player, back_populates="status", lazy="select")
 
     def __init__(self, player_in):
-        self.player = player_in
+        # self.player = player_in
         self.replayID = player_in.replayID
 
 
@@ -154,7 +155,7 @@ class Kills(CumulativePlayerStatus, Base):
     kills = Column(Integer)
 
     # Relationships
-    player = relationship(Player, back_populates="kills", lazy="select")
+    # player = relationship(Player, back_populates="kills", lazy="select",)
 
 
 class Assists(CumulativePlayerStatus, Base):
@@ -162,23 +163,23 @@ class Assists(CumulativePlayerStatus, Base):
     assists = Column(Integer)
 
     # Relationships
-    player = relationship(Player, back_populates="assists", lazy="select")
+    # player = relationship(Player, back_populates="assists", lazy="select")
 
 
 class Denies(CumulativePlayerStatus, Base):
     __tablename__ = "denies"
-    assists = Column(Integer)
+    denies = Column(Integer)
 
     # Relationships
-    player = relationship(Player, back_populates="denies", lazy="select")
+    # player = relationship(Player, back_populates="denies", lazy="select")
 
 
 class Deaths(CumulativePlayerStatus, Base):
     __tablename__ = "deaths"
-    assists = Column(Integer)
+    deaths = Column(Integer)
 
     # Relationships
-    player = relationship(Player, back_populates="deaths", lazy="select")
+    # player = relationship(Player, back_populates="deaths", lazy="select")
 
 
 def populate_from_JSON(json, replay_in, session):
@@ -201,20 +202,6 @@ def populate_from_JSON(json, replay_in, session):
 
         return status_out
 
-    # def _smokes(player, json):
-    #     smokes_out = list()
-    #     smoke_times = get_player_smoketime(player.hero, json)
-
-    #     for start, end in smoke_times:
-    #         new_smoke = PlayerSmoke(player)
-    #         new_smoke.start_time = start
-    #         new_smoke.end_time = end
-
-    #         # session.add(new_smoke)
-    #         session.flush()
-    #         smokes_out.append(new_smoke)
-
-    #     return smokes_out
     def _accumulating_stats(player, json):
         list_in = get_accumulating_lists(player.hero, json)
         assists = list()
@@ -228,6 +215,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
             new_class.assists = list_in["assists"][v]
+            # new_class.player = player
 
             assists.append(new_class)
         
@@ -237,6 +225,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
             new_class.deaths = list_in["deaths"][v]
+            # new_class.player = player
 
             deaths.append(new_class)
 
@@ -246,6 +235,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
             new_class.denies = list_in["denies"][v]
+            # new_class.player = player
 
             denies.append(new_class)
 
@@ -255,6 +245,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
             new_class.kills = list_in["kills"][v]
+            # new_class.player = player
 
             kills.append(new_class)
 

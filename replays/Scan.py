@@ -18,7 +18,9 @@ class Scan(PositionTimeBase, Base):
 
     # Relationships
     player = relationship(Player, lazy="select", primaryjoin=
-                          "and_(Scan.steamID == Player.steamID, Scan.replayID == Player.replayID)")
+                          "and_(Scan.steamID == Player.steamID, Scan.replayID == Player.replayID)",
+                          #cascade="all, delete",
+                          )
     replay = relationship("Replay", back_populates="scans", lazy="select")
 
     def __init__(self, replay_in):

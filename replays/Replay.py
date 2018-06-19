@@ -34,20 +34,32 @@ class Replay(Base):
     # Relationships
     players = relationship(Player.Player, back_populates="replay",
                            lazy="select",
-                           cascade="all, delete-orphan")
+                           cascade="all, delete, delete-orphan",
+                           )
     smoke_summary = relationship(Smoke.Smoke, back_populates="replay",
                                  lazy="select",
-                                 cascade="all, delete-orphan")
+                                 cascade="all, delete-orphan",
+                                 #single_parent=True, passive_deletes='all'
+                                 )
     teams = relationship(TeamSelections.TeamSelections,
                          back_populates="replay",
                          lazy="select",
-                         cascade="all, delete-orphan")
+                         cascade="all, delete-orphan",
+                         #order_by=TeamSelections.TeamSelections.team,
+                         #single_parent=True, passive_deletes='all'
+                         )
     wards = relationship(Ward.Ward, back_populates="replay", lazy="dynamic",
-                         cascade="all, delete-orphan")
+                         cascade="all, delete-orphan",
+                         # single_parent=True, passive_deletes=True
+                         )
     scans = relationship(Scan.Scan, back_populates="replay", lazy="dynamic",
-                         cascade="all, delete-orphan")
+                         cascade="all, delete-orphan",
+                         #single_parent=True, passive_deletes=True
+                         )
     runes = relationship(Rune.Rune, back_populates="replay", lazy="dynamic",
-                         cascade="all, delete-orphan")
+                         cascade="all, delete-orphan",
+                         #single_parent=True, passive_deletes=True
+                         )
 
     def get_player_by_hero(self, hero, nameType=HeroIDType.NPC_NAME):
         if nameType != HeroIDType.NPC_NAME:
@@ -82,37 +94,67 @@ def InitDB(path):
     return engine
 
 
-def populate_from_JSON_file(path, session):
-    newReplay = Replay()
+#https://stackoverflow.com/questions/13440905/sqlalchemy-return-existing-object-instead-of-creating-a-new-on-when-calling-con
+def get_or_create(session, **kw):
+    if len(kw) and "replayID" in kw:
+        x = session.query(Replay).filter(Replay.replayID == kw['replayID'])\
+                                 .one_or_none()
+        if x:
+            return x
+    return Replay()
+
+
+def populate_from_JSON_file(path, session, skip_existing=True):
 
     with open(path, 'r', encoding='utf8', errors="replace") as file:
         jsonFile = json.load(file)
+        replay_ID = JSONProcess.get_replay_id(jsonFile)
+        # Sometimes the replay_ID in the file is wrong and 0
+        if replay_ID == 0 or replay_ID is None:
+            print("Warning, replay {} has an invalid replay ID".format(path))
+            replay_ID = path.stem
 
-        newReplay.replayID = JSONProcess.get_replay_id(jsonFile)
-        newReplay.endTimeUTC = datetime.fromtimestamp(
+        replay_query = session.query(Replay).filter(Replay.replayID == replay_ID)
+        if replay_query.count() == 1:
+            if skip_existing:
+                return replay_query.one()
+            else:
+                #replay_query.delete()
+                session.delete(replay_query.one())
+                session.flush()
+
+        working_replay = Replay()
+        working_replay.replayID = JSONProcess.get_replay_id(jsonFile)
+        working_replay.endTimeUTC = datetime.fromtimestamp(
                                         JSONProcess.get_end_time_UTC(jsonFile))
-        newReplay.gameStart, newReplay.creepSpawn, newReplay.gameEnd =\
+        working_replay.gameStart, working_replay.creepSpawn, working_replay.gameEnd =\
             JSONProcess.get_match_times(jsonFile)
-        newReplay.winner = JSONProcess.get_winner(jsonFile)
-        newReplay.league_ID = JSONProcess.get_league_id(jsonFile)
+        working_replay.winner = JSONProcess.get_winner(jsonFile)
+        working_replay.league_ID = JSONProcess.get_league_id(jsonFile)
 
-        newReplay.players = Player.populate_from_JSON(jsonFile, newReplay,
-                                                      session)
-
-        newReplay.wards = Ward.populate_from_JSON(jsonFile, newReplay, session)
-
-        newReplay.scans = Scan.populate_from_JSON(jsonFile, newReplay, session)
-
-        newReplay.runes = Rune.populate_from_JSON(jsonFile, newReplay, session)
-
-        newReplay.smoke_summary = Smoke.populate_from_JSON(jsonFile, newReplay,
+        working_replay.players = Player.populate_from_JSON(jsonFile,
+                                                           working_replay,
                                                            session)
 
-        newReplay.teams = TeamSelections.populate_from_JSON(jsonFile,
-                                                            newReplay, session)
+        working_replay.wards = Ward.populate_from_JSON(jsonFile,
+                                                       working_replay, session)
 
-    session.merge(newReplay)
-    return newReplay
+        working_replay.scans = Scan.populate_from_JSON(jsonFile,
+                                                       working_replay, session)
+
+        working_replay.runes = Rune.populate_from_JSON(jsonFile,
+                                                       working_replay, session)
+
+        working_replay.smoke_summary = Smoke.populate_from_JSON(jsonFile,
+                                                                working_replay,
+                                                                session)
+
+        working_replay.teams = TeamSelections.populate_from_JSON(jsonFile,
+                                                                 working_replay,
+                                                                 session)
+
+    session.merge(working_replay)
+    return working_replay
 
 
 def determine_side_byteam(team_id, replay):
