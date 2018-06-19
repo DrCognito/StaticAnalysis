@@ -13,7 +13,7 @@ def get_replay_id(json_in):
         Note: there have been instances of this being wrongly set to 0
     '''
     pick_ban_object = get_pick_ban(json_in)
-    return pick_ban_object['matchID']
+    return pick_ban_object.get('matchID', None)
 
 
 def get_end_time_UTC(json_in):
