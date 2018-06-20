@@ -148,38 +148,24 @@ class CumulativePlayerStatus():
                       primary_key=True)
 
     time = Column(Integer, primary_key=True)
+    increment = Column(Integer)
 
 
 class Kills(CumulativePlayerStatus, Base):
     __tablename__ = "kills"
-    kills = Column(Integer)
-
-    # Relationships
-    # player = relationship(Player, back_populates="kills", lazy="select",)
 
 
 class Assists(CumulativePlayerStatus, Base):
     __tablename__ = "assists"
-    assists = Column(Integer)
-
-    # Relationships
-    # player = relationship(Player, back_populates="assists", lazy="select")
 
 
 class Denies(CumulativePlayerStatus, Base):
     __tablename__ = "denies"
     denies = Column(Integer)
 
-    # Relationships
-    # player = relationship(Player, back_populates="denies", lazy="select")
-
 
 class Deaths(CumulativePlayerStatus, Base):
     __tablename__ = "deaths"
-    deaths = Column(Integer)
-
-    # Relationships
-    # player = relationship(Player, back_populates="deaths", lazy="select")
 
 
 def populate_from_JSON(json, replay_in, session):
@@ -214,7 +200,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
-            new_class.assists = list_in["assists"][v]
+            new_class.increment = list_in["assists"][v]
             # new_class.player = player
 
             assists.append(new_class)
@@ -224,7 +210,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
-            new_class.deaths = list_in["deaths"][v]
+            new_class.increment = list_in["deaths"][v]
             # new_class.player = player
 
             deaths.append(new_class)
@@ -234,7 +220,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
-            new_class.denies = list_in["denies"][v]
+            new_class.increment = list_in["denies"][v]
             # new_class.player = player
 
             denies.append(new_class)
@@ -244,7 +230,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
-            new_class.kills = list_in["kills"][v]
+            new_class.increment = list_in["kills"][v]
             # new_class.player = player
 
             kills.append(new_class)
