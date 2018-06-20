@@ -20,19 +20,22 @@ class TeamInfo():
         self.player_ids = players
         self._filter = filt
         self.team_id = team_id
+        self._stack_id = None
 
         if self.team_id is None and self._filter is None:
             raise ValueError("TeamInfo class must be defined with at least a filter or team_id.")
 
     @property
     def stack_id(self):
-        ids = list()
-        for name in self.player_ids:
-            ids.append(self.player_ids[name])
+        if self._stack_id is None:
+            ids = list()
+            for name in self.player_ids:
+                ids.append(self.player_ids[name])
 
-        ids.sort()
+            ids.sort()
+            self._stack_id = ''.join(str(i) for i in ids)
 
-        return ''.join(str(i) for i in ids)
+        return self._stack_id
 
     @property
     def filter(self):
