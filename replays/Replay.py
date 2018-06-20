@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, BigInteger, DateTime, Float
-from sqlalchemy import create_engine, ForeignKey
+from sqlalchemy import create_engine, ForeignKey, or_
 from sqlalchemy.types import Enum, Integer
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship
@@ -78,6 +78,15 @@ class Replay(Base):
 
         assert(team in Team)
         yield from (p for p in self.players if p.team == team)
+
+    @staticmethod
+    def get_side_filter(team, side):
+        id_filter = Replay.teams.any((TeamSelections.TeamSelections.teamID == team.team_id) &
+                                     (TeamSelections.TeamSelections.team == side))
+        stack_filter = Replay.teams.any((TeamSelections.TeamSelections.stackID == team.stack_id) &
+                                        (TeamSelections.TeamSelections.team == side))
+
+        return or_(id_filter, stack_filter)
 
 
 def InitDB(path):
