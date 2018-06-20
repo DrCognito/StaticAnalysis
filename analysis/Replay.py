@@ -6,35 +6,30 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from replays.Replay import Replay, Team
 
 
-def win_rate_table(session, filt, team_select):
+def win_rate_table(session, team):
 
-    def _process_replays(r_in):
+    def _process_replays(r_in, side):
         total = len(r_in)
         wins = 0
 
         for game in r_in:
-            team = team_select(game)
-            if team == game.winner:
+            if side == game.winner:
                 wins += 1
 
-        return wins, total - wins, wins/total
+        return wins, total - wins
 
-    output = DataFrame(columns=['Win', 'Losses', 'Rate'])
+    output = DataFrame(columns=['Win', 'Losses'])
 
-    replays = list(session.query(Replay).filter(*filt))
-    output.loc['All'] = _process_replays(replays)
+    f_dire = Replay.get_side_filter(team, Team.DIRE)
+    r_dire = team.get_replays(session, f_dire).all()
+    output.loc['Dire'] = _process_replays(r_dire, Team.DIRE)
 
-    def _team_pred(r, t):
-        print(r,t)
-        return team_select(r) == t
+    f_radiant = Replay.get_side_filter(team, Team.RADIANT)
+    r_radiant = team.get_replays(session, f_radiant).all()
+    output.loc['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
 
-    dire = session.query(Replay).filter(*filt)
-    dire = list(filter(lambda x: team_select(x) == Team.DIRE, dire))
-    output.loc['Dire'] = _process_replays(dire)
-
-    radiant = session.query(Replay).filter(*filt)
-    radiant = list(filter(lambda x: team_select(x) == Team.RADIANT, radiant))
-    output.loc['Radiant'] = _process_replays(radiant)
+    output.loc['All'] = output.loc['Dire'] + output.loc['Radiant']
+    output['Rate'] = output['Win'] / (output['Win'] + output['Losses'])
 
     return output
 
