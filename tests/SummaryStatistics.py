@@ -3,7 +3,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from analysis.Replay import win_rate_table
-from analysis.Player import cumulative_player
+from analysis.Player import cumulative_player, player_heroes
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
@@ -24,3 +24,6 @@ print(test)
 p_filter = (Player.steamID == 76561198047004422)
 test_p = cumulative_player(session, 'last_hits', Teams['Mad Lads'], p_filter)
 print(test_p.resample('10T').sum())
+
+test_picks = player_heroes(session, Teams['Mad Lads'])
+print(test_picks)
