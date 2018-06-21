@@ -110,9 +110,11 @@ def get_accumulating_lists(hero, json_in):
                   "HeroEntity" and x['cName'] == hero)
     kills = next(x['killList'] for x in json_in if x['type'] ==
                  "HeroEntity" and x['cName'] == hero)
+    last_hits = next(x['last_hitList'] for x in json_in if x['type'] ==
+                 "HeroEntity" and x['cName'] == hero)
 
     return {'assists': assists, 'deaths': deaths, 'denies': denies,
-            'kills': kills}
+            'kills': kills, 'last_hits': last_hits}
 
 
 def get_smoke_summary(json_in, team):

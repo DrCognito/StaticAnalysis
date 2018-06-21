@@ -52,10 +52,11 @@ class Player(Base):
                           '''and_(Deaths.steam_ID == Player.steamID,
                           Deaths.replay_ID == Player.replayID)'''
                           )
-    # smokes = relationship("PlayerSmoke", lazy="dynamic",
-    #                       cascade="all, delete-orphan", primaryjoin=
-    #                       '''and_(PlayerSmoke.steamID == Player.steamID,
-    #                          PlayerSmoke.replayID == Player.replayID)''')
+    last_hits = relationship("LastHits", lazy="select",
+                             cascade="all, delete-orphan", primaryjoin=
+                             '''and_(LastHits.steam_ID == Player.steamID,
+                             LastHits.replay_ID == Player.replayID)'''
+                             )
 
     def __init__(self, replay_in):
         self.replayID = replay_in.replayID
@@ -168,6 +169,10 @@ class Deaths(CumulativePlayerStatus, Base):
     __tablename__ = "deaths"
 
 
+class LastHits(CumulativePlayerStatus, Base):
+    __tablename__ = "lasthits"
+
+
 def populate_from_JSON(json, replay_in, session):
     players_out = list()
     pick_ban = get_pick_ban(json)
@@ -194,7 +199,8 @@ def populate_from_JSON(json, replay_in, session):
         deaths = list()
         denies = list()
         kills = list()
-        
+        last_hits = list()
+
         for v in list_in["assists"]:
             new_class = Assists()
             new_class.replay_ID = player.replayID
@@ -235,8 +241,18 @@ def populate_from_JSON(json, replay_in, session):
 
             kills.append(new_class)
 
+        for v in list_in["last_hits"]:
+            new_class = LastHits()
+            new_class.replay_ID = player.replayID
+            new_class.steam_ID = player.steamID
+            new_class.time = int(v)
+            new_class.increment = list_in["last_hits"][v]
+            # new_class.player = player
+
+            last_hits.append(new_class)
+
         return {'assists': assists, 'deaths': deaths, 'denies': denies,
-                'kills': kills}
+                'kills': kills, 'last_hits': last_hits}
 
     for hero, steam_ID in zip(pick_ban['playerHero'], pick_ban['steamID']):
         new_player = Player(replay_in)
@@ -252,6 +268,7 @@ def populate_from_JSON(json, replay_in, session):
         new_player.deaths = accumulators['deaths']
         new_player.denies = accumulators['denies']
         new_player.kills = accumulators['kills']
+        new_player.last_hits = accumulators['last_hits']
 
         session.add(new_player)
         players_out.append(new_player)

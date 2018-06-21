@@ -21,6 +21,6 @@ test = win_rate_table(session, Teams['Mad Lads'])
 print(test)
 
 #Synderen
-p_filter = (Player.steamID == 76561197964547457)
-test_p = cumulative_player(session, 'kills', Teams['Mad Lads'], p_filter)
+p_filter = (Player.steamID == 76561198047004422)
+test_p = cumulative_player(session, 'last_hits', Teams['Mad Lads'], p_filter)
 print(test_p.resample('10T').sum())
