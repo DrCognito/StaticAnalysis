@@ -25,5 +25,5 @@ p_filter = (Player.steamID == 76561198047004422)
 test_p = cumulative_player(session, 'last_hits', Teams['Mad Lads'], p_filter)
 print(test_p.resample('10T').sum())
 
-test_picks = player_heroes(session, Teams['Mad Lads'])
+test_picks = player_heroes(session, Teams['Mad Lads'], summarise=10)
 print(test_picks)
