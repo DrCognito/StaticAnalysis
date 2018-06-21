@@ -13,7 +13,7 @@ def cumulative_player(session, prop_name, team, filt):
 
     players = session.query(Player).filter(filt)\
                                    .join(Replay).filter(team.filter)
-    # print(players)
+
     output = Series()
     count = team.replay_count(session)
 
