@@ -3,7 +3,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from analysis.Replay import win_rate_table
-from analysis.Player import cumulative_player, player_heroes
+from analysis.Player import cumulative_player, player_heroes, pick_context
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
@@ -27,3 +27,6 @@ print(test_p.resample('10T').sum())
 
 test_picks = player_heroes(session, Teams['Mad Lads'], summarise=10)
 print(test_picks)
+
+test_context = pick_context('npc_dota_hero_beastmaster', Teams['Mad Lads'],
+                            Teams['Mad Lads'].get_replays(session))
