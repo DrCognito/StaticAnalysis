@@ -76,45 +76,41 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
     output = DataFrame(columns=['Pick', 'Ban',
                                 'Opponent Pick', 'Opponent Ban'])
 
-    def _uprement(col, item):
-        if item in col:
-            col[item] += 1
-        else:
-            col[item] = 1
-
     def _process_context(side):
         side_filt = Replay.get_side_filter(team, side)
         replays = r_query.filter(side_filt)
 
         player_filter = TeamSelections.draft.any(and_(PickBans.hero == hero,
                                                       PickBans.team == side,
-                                                      PickBans.is_pick == True))
+                                                      PickBans.is_pick))
 
         if extra_p_filt is not None:
             player_filter = and_(player_filter, extra_p_filt)
 
-        replays.filter(player_filter)
+        replays = replays.join(TeamSelections).filter(player_filter)
+        print("Total: ", replays.count())
 
         for r in replays:
-            picks_bans = [(x.hero, x.side, x.is_pick) for t in r.teams for x in t.draft]
+            picks_bans = [(x.hero, x.team, x.is_pick) for t in r.teams for x in t.draft]
             for pick in picks_bans:
                 if pick[1] == side:
-                    if pick[2] == True:
-                        update = output['Pick']
+                    if pick[2]:
+                        update = 'Pick'
                     else:
-                        update = output['Ban']
+                        update = 'Ban'
                 else:
-                    if pick[2] == True:
-                        update = output['Opponent Pick']
+                    if pick[2]:
+                        update = 'Opponent Pick'
                     else:
-                        update = output['Opponent Ban']
+                        update = 'Opponent Ban'
 
-                if pick[0] in update:
-                    update[pick[0]] += 1
+                if pick[0] in output[update]:
+                    output.loc[pick[0], update] += 1
                 else:
-                    update[pick[0]] = 1
+                    output.loc[pick[0], update] = 1
 
     _process_context(Team.DIRE)
     _process_context(Team.RADIANT)
+    output.fillna(0, inplace=True)
 
     return output
