@@ -33,3 +33,31 @@ def win_rate_table(session, team):
 
     return output
 
+
+def hero_win_rate(r_query, team):
+    output = DataFrame(columns=['Win', 'Loss'])
+
+    def _process(side):
+        side_filt = Replay.get_side_filter(team, side)
+        replays = r_query.filter(side_filt)
+
+        for r in replays:
+            is_win = r.winner == side
+
+            picks = [p.hero for t in r.teams if t.team == side for p in t.draft]
+
+            for hero in picks:
+                column = 'Win' if is_win else 'Loss'
+
+                if hero in output[column]:
+                    output.loc[hero, column] += 1
+                else:
+                    output.loc[hero, column] = 1
+
+    _process(Team.DIRE)
+    _process(Team.RADIANT)
+    output.fillna(0, inplace=True)
+    output['Total'] = output['Win'] + ['Loss']
+    output['Rate'] = output['Win']/output['Total']
+
+    return output
