@@ -7,6 +7,8 @@ import enum
 from .Common import Team
 from .Player import Player
 from .JSONProcess import get_rune_list
+from sqlalchemy.sql import select
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class RuneID(enum.Enum):
@@ -37,6 +39,13 @@ class Rune(Base):
     def __init__(self, replay_in):
         self.replay = replay_in
         self.replayID = replay_in.replayID
+
+    @hybrid_property
+    def game_time(self):
+        from .Replay import Replay
+        creepSpawn = select([Replay.creepSpawn]).\
+            where(self.replayID == Replay.replayID).as_scalar()
+        return self.time - creepSpawn
 
 
 def populate_from_JSON(json, replay_in, session):
