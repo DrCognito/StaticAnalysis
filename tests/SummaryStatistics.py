@@ -4,9 +4,13 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from analysis.Replay import win_rate_table
 from analysis.Player import cumulative_player, player_heroes, pick_context
+from analysis.Replay import hero_win_rate, get_ptbase_tslice
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
+from replays.Ward import Ward, WardType
+from replays.Rune import Rune, RuneID
+from replays.Scan import Scan
 from lib.team_info import Teams
 
 s_maker = Setup.get_testDB()
@@ -28,5 +32,14 @@ print(test_p.resample('10T').sum())
 test_picks = player_heroes(session, Teams['Mad Lads'], summarise=10)
 print(test_picks)
 
+r_query = Teams['Mad Lads'].get_replays(session)
 test_context = pick_context('npc_dota_hero_beastmaster', Teams['Mad Lads'],
-                            Teams['Mad Lads'].get_replays(session))
+                            r_query)
+
+test_hero_pick = hero_win_rate(r_query, Teams['Mad Lads'])
+test_wards = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
+                                Type=Ward,
+                                start=-2*60, end=10*60)
+test_scans = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
+                                Type=Scan,
+                                start=-2*60, end=10*60)
