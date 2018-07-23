@@ -43,3 +43,6 @@ test_wards = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
 test_scans = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
                                 Type=Scan,
                                 start=-2*60, end=10*60)
+test_runes = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
+                                Type=Rune,
+                                start=-2*60, end=10*60)
