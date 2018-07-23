@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, BigInteger, Float
 from sqlalchemy import ForeignKey
+from sqlalchemy.sql import select
 from sqlalchemy.types import Enum, Integer
 from sqlalchemy.ext.declarative import DeclarativeMeta, declared_attr
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from .Common import Team
 from abc import ABC
@@ -25,3 +27,10 @@ class PositionTimeBase():
     team = Column(Enum(Team), primary_key=True)
     xCoordinate = Column(Float)
     yCoordinate = Column(Float)
+
+    @hybrid_property
+    def game_time(self):
+        from .Replay import Replay
+        creepSpawn = select([Replay.creepSpawn]).\
+            where(self.replayID == Replay.replayID).as_scalar()
+        return self.time - creepSpawn
