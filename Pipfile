@@ -7,8 +7,9 @@ name = "pypi"
 
 [packages]
 
-SQLAlchemy = "*"
+sqlalchemy = "*"
 pandas = "*"
+python-dotenv = "*"
 
 
 [dev-packages]
