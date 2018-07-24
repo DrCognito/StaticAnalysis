@@ -42,9 +42,9 @@ def player_heroes(session, team, summarise=10, r_filt=None, p_filt=None):
     else:
         r_filt = and_(team.filter, r_filt)
 
-    for player in team.player_ids:
+    for player in team.players:
 
-        pid = team.player_ids[player]
+        pid = player.player_id
 
         if p_filt is None:
             p_f = Player.steamID == pid
@@ -54,7 +54,7 @@ def player_heroes(session, team, summarise=10, r_filt=None, p_filt=None):
         p_picks = session.query(Player.hero).filter(p_f)\
                                             .join(Replay).filter(r_filt)
 
-        p_res = Series(name=player)
+        p_res = Series(name=player.name)
         for pick in p_picks:
             if pick[0] in p_res:
                 p_res[pick[0]] += 1
@@ -70,7 +70,7 @@ def player_heroes(session, team, summarise=10, r_filt=None, p_filt=None):
 
         player_series.append(p_res)
 
-    return concat(player_series, axis=1).fillna(0)
+    return concat(player_series, axis=1, sort=True).fillna(0)
 
 
 def pick_context(hero, team, r_query, extra_p_filt=None):
