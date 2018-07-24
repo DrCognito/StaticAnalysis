@@ -1,11 +1,12 @@
 from .Statistics import x_vs_time, xy_vs_time, cumulative_statistic
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from replays.PositionTimeBase import PositionTimeBase
 from replays.Replay import Replay, Team
 from replays.Ward import Ward, WardType
+from replays.TeamSelections import PickBans
 from lib.team_info import TeamInfo
 from sqlalchemy import and_
 
@@ -98,5 +99,37 @@ def get_ptbase_tslice(session, r_query, Type,
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
 
+
+def pair_rate(session, r_query, team):
+    output = Series()
+
+    def _process(side):
+        side_filt = Replay.get_side_filter(team, side)
+        replays = r_query.filter(side_filt)
+
+        for replay in replays:
+            pick_pair = session.query(PickBans)\
+                               .filter(PickBans.replayID == replay.replayID)\
+                               .filter(PickBans.team == side,
+                                       PickBans.is_pick == True)\
+                               .order_by(PickBans.order.desc())\
+                               .limit(2)
+
+            pick_pair = [p.hero for p in pick_pair]
+            if len(pick_pair) != 2:
+                print("Skipped invalid hero picks.")
+                continue
+            pick_pair.sort()
+            pair_str = pick_pair[0] + ", " + pick_pair[1]
+            if pair_str in output:
+                output[pair_str] += 1
+            else:
+                output[pair_str] = 1
+
+    _process(Team.DIRE)
+    _process(Team.RADIANT)
+    output.sort_values(ascending=False, inplace=True)
+
+    return output
 
 
