@@ -113,5 +113,7 @@ venv.bak/
 # Exclude all json by default
 *.json
 
-#Exclude databases
+# Exclude databases
 *.db
+# Exclude environment files
+setup.env
