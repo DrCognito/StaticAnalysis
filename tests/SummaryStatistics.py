@@ -11,10 +11,20 @@ from replays.TeamSelections import TeamSelections
 from replays.Ward import Ward, WardType
 from replays.Rune import Rune, RuneID
 from replays.Scan import Scan
-from lib.team_info import Teams
+from lib.team_info import InitTeamDB, TeamInfo
+from sqlalchemy.orm import sessionmaker
 
 s_maker = Setup.get_testDB()
 session = s_maker()
+
+team_engine = InitTeamDB()
+team_maker = sessionmaker(bind=team_engine)
+team_session = team_maker()
+
+Teams = {
+    'Mad Lads': team_session.query(TeamInfo)
+                            .filter(TeamInfo.team_id == 5229049).one()
+}
 
 team_test_id = 5229049
 #team_test_id = 1375614
