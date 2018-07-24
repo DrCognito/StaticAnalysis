@@ -8,6 +8,7 @@ from replays.Player import Player
 from replays.Replay import Replay, Team
 from replays.TeamSelections import TeamSelections, PickBans
 from sqlalchemy import and_, any_
+from lib.team_info import TeamInfo
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -114,3 +115,31 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
     output.fillna(0, inplace=True)
 
     return output
+
+
+def player_position(session, r_query, team: TeamInfo, player_slot: int,
+                    start: int, end: int):
+    assert(end > start)
+
+    def _process_side(side):
+        positions = {}
+        steam_id = team.player_ids[player_slot]
+
+        player_q = session.query(Player).filter(Player.steamID == steam_id,
+                                                Player.team == side)\
+                                        .join(r_query)
+
+        for player in player_q:
+            stat_it = player.get_position_range(start, end,
+                                                relative_to_match_time=True)
+            for status in stat_it:
+                pos = (status.xCoordinate, status.yCoordinate)
+                if pos in positions:
+                    positions[pos] += 1
+                else:
+                    positions[pos] = 1
+        
+        return positions
+
+    return {'dire': _process_side(Team.DIRE),
+            'radiant': _process_side(Team.RADIANT)}
