@@ -117,3 +117,6 @@ venv.bak/
 *.db
 # Exclude environment files
 setup.env
+# Ignore images for now
+*.png
+*.jpg
