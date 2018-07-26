@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from analysis.Replay import win_rate_table
 from analysis.Player import cumulative_player, player_heroes, pick_context
-from analysis.Replay import hero_win_rate, get_ptbase_tslice, pair_rate
+from analysis.Replay import hero_win_rate, get_ptbase_tslice, pair_rate, get_smoke
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
@@ -58,3 +58,5 @@ test_runes = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
                                 start=-2*60, end=10*60)
 
 test_pairs = pair_rate(session, r_query, Teams['Mad Lads'])
+
+smokes = get_smoke(r_query, session, Teams['Mad Lads'])
