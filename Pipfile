@@ -10,6 +10,7 @@ name = "pypi"
 sqlalchemy = "*"
 pandas = "*"
 python-dotenv = "*"
+pillow = "*"
 
 
 [dev-packages]
