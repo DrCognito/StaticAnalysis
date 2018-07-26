@@ -77,7 +77,7 @@ def populate_from_JSON(json, replay_in, session):
         # Mostly this just works, but this explicit index can raise an
         # exception.
         try:
-            new_team.firstPick = pick_ban['team'][0] == team
+            new_team.firstPick = Team(pick_ban['team'][0]) == team
         except IndexError:
             new_team.firstPick = None
 
