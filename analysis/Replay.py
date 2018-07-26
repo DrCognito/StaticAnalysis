@@ -40,17 +40,27 @@ def win_rate_table(session, team):
     return output
 
 
+def simple_side_filter(r_query, session, team: TeamInfo,
+                       Type, side: Team, extra_filter=None):
+    r_filter = Replay.get_side_filter(team, side)
+    replays = r_query.filter(r_filter)
+
+    if extra_filter is not None:
+        w_query = session.query(Type).filter(extra_filter)\
+                                     .filter(Type.team == side)\
+                                     .join(replays)
+    else:
+        w_query = session.query(Type).filter(Type.team == side)\
+                                     .join(replays)
+
+    return w_query
+
+
 def get_smoke(r_query, session, team: TeamInfo):
-    def _process_side(side):
-        r_filter = Replay.get_side_filter(team, side)
-        replays = r_query.filter(r_filter)
+    dire = simple_side_filter(r_query, session, team, Smoke, Team.DIRE)
+    radiant = simple_side_filter(r_query, session, team, Smoke, Team.RADIANT)
 
-        w_query = session.query(Smoke).filter(Smoke.team == side)\
-                                      .join(replays)
-
-        return w_query
-
-    return _process_side(Team.DIRE), _process_side(Team.RADIANT)
+    return dire, radiant
 
 
 def hero_win_rate(r_query, team):
@@ -97,6 +107,9 @@ def get_ptbase_tslice(session, r_query, Type,
     else:
         t_filter = None
 
+    dire = simple_side_filter(r_query, session, team, Type, Team.DIRE, t_filter)
+    radiant = simple_side_filter(r_query, session, team, Type, Team.RADIANT, t_filter)
+
     def _process_side(side):
         r_filter = Replay.get_side_filter(team, side)
         replays = r_query.filter(r_filter)
@@ -111,7 +124,7 @@ def get_ptbase_tslice(session, r_query, Type,
 
         return w_query
 
-    return _process_side(Team.DIRE), _process_side(Team.RADIANT)
+    return dire, radiant
 
 
 def pair_rate(session, r_query, team):
