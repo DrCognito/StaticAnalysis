@@ -1,4 +1,7 @@
 import enum
+from dotenv import load_dotenv
+from os import environ as environment
+from pathlib import Path
 
 
 class HeroIDType(enum.Enum):
@@ -16,6 +19,9 @@ def convertName(name, input_format, output_format):
     if (input_format, HeroIDType.NPC_NAME) in convDict and (HeroIDType.NPC_NAME, output_format) in convDict:
         intermediate = convDict((input_format, HeroIDType.NPC_NAME))[name]
         return convDict((HeroIDType.NPC_NAME, output_format))[intermediate]
+    elif (input_format == HeroIDType.NPC_NAME and output_format == HeroIDType.ICON_FILENAME):
+        intermediate = convDict[(HeroIDType.NPC_NAME, HeroIDType.NICK_NAME)][name]
+        return convDict[(HeroIDType.NICK_NAME, HeroIDType.ICON_FILENAME)][intermediate]
     else:
         raise ValueError("No valid conversions for {} and {}".format(input_format, output_format))
 
@@ -371,7 +377,7 @@ HeroLongName["Monkey King"] = "npc_dota_hero_monkey_king"
 HeroLongName["Pang"] = "npc_dota_hero_pangolier"
 HeroLongName["D Willow"] = "npc_dota_hero_dark_willow"
 
-HeroIconPrefix = "img/MiniHeroes/"
+HeroIconPrefix = Path(environment['ICON_PATH'])
 HeroIcon = {}
 HeroIcon["AM"] = "antimage.png"
 HeroIcon["Axe"] = "axe.png"
