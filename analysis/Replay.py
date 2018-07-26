@@ -7,6 +7,7 @@ from replays.PositionTimeBase import PositionTimeBase
 from replays.Replay import Replay, Team
 from replays.Ward import Ward, WardType
 from replays.TeamSelections import PickBans
+from replays.Smoke import Smoke
 from lib.team_info import TeamInfo
 from sqlalchemy import and_
 
@@ -37,6 +38,19 @@ def win_rate_table(session, team):
     output['Rate'] = output['Win'] / (output['Win'] + output['Losses'])
 
     return output
+
+
+def get_smoke(r_query, session, team: TeamInfo):
+    def _process_side(side):
+        r_filter = Replay.get_side_filter(team, side)
+        replays = r_query.filter(r_filter)
+
+        w_query = session.query(Smoke).filter(Smoke.team == side)\
+                                      .join(replays)
+
+        return w_query
+
+    return _process_side(Team.DIRE), _process_side(Team.RADIANT)
 
 
 def hero_win_rate(r_query, team):
