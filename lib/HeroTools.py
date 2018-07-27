@@ -142,6 +142,7 @@ heroShortName["npc_dota_hero_arc_warden"] = "Arc Warden"
 heroShortName["npc_dota_hero_monkey_king"] = "Monkey King"
 heroShortName["npc_dota_hero_pangolier"] = "Pang"
 heroShortName["npc_dota_hero_dark_willow"] = "D Willow"
+heroShortName["Other"] = "Other"
 
 heroByID = {}
 heroByID[1] = "npc_dota_hero_antimage"
@@ -376,6 +377,7 @@ HeroLongName["Arc Warden"] = "npc_dota_hero_arc_warden"
 HeroLongName["Monkey King"] = "npc_dota_hero_monkey_king"
 HeroLongName["Pang"] = "npc_dota_hero_pangolier"
 HeroLongName["D Willow"] = "npc_dota_hero_dark_willow"
+HeroLongName["Other"] = "Other"
 
 HeroIconPrefix = Path(environment['ICON_PATH'])
 HeroIcon = {}
