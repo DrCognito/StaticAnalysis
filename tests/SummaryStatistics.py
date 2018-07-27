@@ -13,7 +13,8 @@ from replays.Rune import Rune, RuneID
 from replays.Scan import Scan
 from lib.team_info import InitTeamDB, TeamInfo
 from sqlalchemy.orm import sessionmaker
-from analysis.visualisation import plot_hexbin_time
+from analysis.visualisation import plot_hexbin_time, plot_player_heroes
+import matplotlib.pyplot as plt
 
 s_maker = Setup.get_testDB()
 session = s_maker()
@@ -61,3 +62,9 @@ test_runes = get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
 test_pairs = pair_rate(session, r_query, Teams['Mad Lads'])
 
 smokes = get_smoke(r_query, session, Teams['Mad Lads'])
+
+fig, extra = plot_player_heroes(test_picks)
+fig.tight_layout(h_pad=3.0)
+fig.savefig('PlayerPicks.png',
+            bbox_extra_artists=extra,
+            bbox_inches='tight')
