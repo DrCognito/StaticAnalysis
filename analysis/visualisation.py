@@ -104,5 +104,5 @@ def plot_player_heroes(data: DataFrame):
         ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colourList[i_ax])
         extra_artists += extra
 
-    return extra_artists
+    return figure, extra_artists
 
