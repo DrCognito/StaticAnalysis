@@ -13,6 +13,7 @@ from replays.Rune import Rune, RuneID
 from replays.Scan import Scan
 from lib.team_info import InitTeamDB, TeamInfo
 from sqlalchemy.orm import sessionmaker
+from analysis.visualisation import plot_hexbin_time
 
 s_maker = Setup.get_testDB()
 session = s_maker()
