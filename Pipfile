@@ -11,6 +11,7 @@ sqlalchemy = "*"
 pandas = "*"
 python-dotenv = "*"
 pillow = "*"
+matplotlib = "*"
 
 
 [dev-packages]
