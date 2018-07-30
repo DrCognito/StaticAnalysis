@@ -2,6 +2,8 @@ from sqlalchemy import Column, BigInteger, Float, Boolean
 from sqlalchemy import create_engine, ForeignKey, String
 from sqlalchemy.types import Enum, Integer
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.sql import select
 from replays import Base
 # from .Replay import Replay, Team
 from .Common import Team
@@ -109,6 +111,12 @@ class PlayerStatus(Base):
     is_smoked = Column(Boolean)
     is_alive = Column(Boolean)
 
+    @hybrid_property
+    def game_time(self):
+        from .Replay import Replay
+        creepSpawn = select([Replay.creepSpawn]).\
+            where(self.replayID == Replay.replayID).as_scalar()
+        return self.time - creepSpawn
     # Relationships
     # player = relationship(Player, back_populates="status", lazy="select")
 
@@ -150,6 +158,13 @@ class CumulativePlayerStatus():
 
     time = Column(Integer, primary_key=True)
     increment = Column(Integer)
+
+    @hybrid_property
+    def game_time(self):
+        from .Replay import Replay
+        creepSpawn = select([Replay.creepSpawn]).\
+            where(self.replayID == Replay.replayID).as_scalar()
+        return self.time - creepSpawn
 
 
 class Kills(CumulativePlayerStatus, Base):
