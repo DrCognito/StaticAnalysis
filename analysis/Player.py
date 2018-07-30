@@ -4,7 +4,7 @@ from pandas import Series, concat, DataFrame
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from replays.Player import Player
+from replays.Player import Player, PlayerStatus
 from replays.Replay import Replay, Team
 from replays.TeamSelections import TeamSelections, PickBans
 from sqlalchemy import and_, any_
@@ -119,27 +119,25 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
 
 def player_position(session, r_query, team: TeamInfo, player_slot: int,
                     start: int, end: int):
-    assert(end > start)
+
+    t_filter = ()
+    if start is not None:
+        t_filter += (PlayerStatus.game_time >= start,)
+    if end is not None:
+        t_filter += (PlayerStatus.game_time >= end,)
 
     def _process_side(side):
-        positions = {}
-        steam_id = team.player_ids[player_slot]
+        steam_id = team.players[player_slot].player_id
 
-        player_q = session.query(Player).filter(Player.steamID == steam_id,
-                                                Player.team == side)\
-                                        .join(r_query)
-
-        for player in player_q:
-            stat_it = player.get_position_range(start, end,
-                                                relative_to_match_time=True)
-            for status in stat_it:
-                pos = (status.xCoordinate, status.yCoordinate)
-                if pos in positions:
-                    positions[pos] += 1
-                else:
-                    positions[pos] = 1
+        r_filter = Replay.get_side_filter(team, side)
+        replays = r_query.filter(r_filter)
         
-        return positions
+        p_filter = t_filter + (PlayerStatus.steamID == steam_id,)
 
-    return {'dire': _process_side(Team.DIRE),
-            'radiant': _process_side(Team.RADIANT)}
+        player_q = session.query(PlayerStatus)\
+                          .filter(*p_filter)\
+                          .join(replays)
+        
+        return player_q
+
+    return _process_side(Team.DIRE), _process_side(Team.RADIANT)
