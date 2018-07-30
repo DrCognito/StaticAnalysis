@@ -19,19 +19,19 @@ Teams = {
 t_filter = Teams['Mad Lads'].filter
 r_query = Teams['Mad Lads'].get_replays(session)
 print("Total replays for team: {}".format(r_query.count()))
-r_test = session.query(Replay).filter(t_filter).outerjoin(TeamSelections).filter(TeamSelections.draft.any())
+r_drafted = session.query(Replay).filter(t_filter).outerjoin(TeamSelections).filter(TeamSelections.draft.any())
 # r_query = r_query.filter(~Replay.teams.draft.any())
-print("Total replays for team excluding missing drafts: {}".format(len(r_test.all())))
+print("Total replays for team excluding missing drafts: {}".format(len(r_drafted.all())))
 dire_filter = Replay.get_side_filter(Teams['Mad Lads'], Team.DIRE)
 radiant_filter = Replay.get_side_filter(Teams['Mad Lads'], Team.RADIANT)
 
-dire_drafts = replay_draft_image(r_test.filter(dire_filter).all(),
+dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).all(),
                                  Team.DIRE,
                                  'Mad Lads')
 
 dire_drafts.save("dire_draft.png")
 
-radiant_drafts = replay_draft_image(r_test.filter(radiant_filter).all(),
+radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
                                     Team.RADIANT,
                                     'Mad Lads')
 radiant_drafts.save("radiant_draft.png")
