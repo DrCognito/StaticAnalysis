@@ -13,10 +13,12 @@ colourList = ['cool', 'summer', 'winter', 'spring', 'copper']
 def plot_map_points(query, bins=128):
     coordinates = ((q.xCoordinate, q.yCoordinate) for q in query)
 
-    heatmap, _, _ = np.histogram2d(*coordinates, bins=bins,
-                                   range=[[0, 1], [0, 1]], normed=False)
+    x, y = zip(*coordinates)
+    heatmap, xedges, yedges = np.histogram2d(x, y, bins=bins,
+                                             range=[[0, 1], [0, 1]],
+                                             normed=False)
 
-    return heatmap
+    return heatmap, xedges, yedges
 
 
 def plot_hexbin_time(query, Type, session, bin_size=128):
