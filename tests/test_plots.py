@@ -2,8 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import SummaryStatistics as sstat
-from analysis.visualisation import (plot_hexbin_time, plot_map_points,
-                                    plot_player_heroes)
+from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
+                                    plot_map_points, plot_player_heroes,
+                                    plot_player_positioning)
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from replays.Player import PlayerStatus
+from lib.Common import (dire_ancient_cords, location_filter,
+                        radiant_ancient_cords)
+from pandas import cut as data_cut
+from os import environ as environment
 
 # picks = sstat.test_player_picks()
 # fig, extra = plot_player_heroes(picks)
@@ -13,16 +22,14 @@ from analysis.visualisation import (plot_hexbin_time, plot_map_points,
 #             bbox_inches='tight')
 
 p5_pos = sstat.test_player_position()
+# test_plot(p5_pos[0])
+# test_plot(p5_pos[1])
 
-def test_plot(query):
-    p5_heatmap, xedges, yedges = plot_map_points(query)
-    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
-    heatmap_masked = np.ma.masked_where(p5_heatmap == 0, p5_heatmap)
-    percentiles = [70, 99.9]
-    _min, _max = np.nanpercentile(heatmap_masked.filled(np.nan), percentiles)
-    #plt.imshow(heatmap_masked, extent=extent, interpolation='none', vmin=_min, vmax=_max)
-    plt.imshow(heatmap_masked, extent=extent, zorder=1, alpha=1.0,
-               vmin=_min, vmax=_max, interpolation='none')
+dire_ancient_filter = location_filter(dire_ancient_cords, PlayerStatus)
+radiant_ancient_filter = location_filter(radiant_ancient_cords, PlayerStatus)
+plot_player_positioning(dataframe_xy(p5_pos[0], PlayerStatus, sstat.session))
 
-test_plot(p5_pos[0])
-test_plot(p5_pos[1])
+p5_dire_filt = p5_pos[0].filter(dire_ancient_filter)
+p5_radiant_filt = p5_pos[1].filter(radiant_ancient_filter)
+
+plot_player_positioning(dataframe_xy(p5_dire_filt, PlayerStatus, sstat.session))
