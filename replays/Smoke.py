@@ -23,7 +23,12 @@ class Smoke(Base):
     team = Column(Enum(Team), primary_key=True)
 
     startTime = Column(Integer)
+
     @hybrid_property
+    def game_start_time(self):
+        return self.startTime - self.replay.creepSpawn
+
+    @game_start_time.expression
     def game_start_time(self):
         from .Replay import Replay
         creepSpawn = select([Replay.creepSpawn]).\
@@ -31,7 +36,12 @@ class Smoke(Base):
         return self.game_start_time - creepSpawn
 
     endTime = Column(Integer)
+
     @hybrid_property
+    def game_end_time(self):
+        return self.endTime - self.replay.creepSpawn
+
+    @game_end_time.expression
     def game_end_time(self):
         from .Replay import Replay
         creepSpawn = select([Replay.creepSpawn]).\
