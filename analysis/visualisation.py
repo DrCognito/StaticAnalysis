@@ -21,10 +21,19 @@ def plot_map_points(query, bins=128):
     return heatmap, xedges, yedges
 
 
-def plot_hexbin_time(query, Type, session, bin_size=128):
+def dataframe_xy_time(query, Type, session, bin_size=128):
     sql_query = query.with_entities(Type.xCoordinate,
                                     Type.yCoordinate,
                                     Type.time).statement
+
+    data = read_sql(sql_query, session.bind)
+
+    return data
+
+
+def dataframe_xy(query, Type, session):
+    sql_query = query.with_entities(Type.xCoordinate,
+                                    Type.yCoordinate).statement
 
     data = read_sql(sql_query, session.bind)
 
