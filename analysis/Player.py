@@ -124,7 +124,7 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
     if start is not None:
         t_filter += (PlayerStatus.game_time >= start,)
     if end is not None:
-        t_filter += (PlayerStatus.game_time >= end,)
+        t_filter += (PlayerStatus.game_time <= end,)
 
     def _process_side(side):
         steam_id = team.players[player_slot].player_id
