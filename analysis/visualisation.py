@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from pandas import DataFrame, Series, read_sql
+from pandas import DataFrame, Series, read_sql, cut
 
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
 from PIL import Image
+from os import environ as environment
 
 colourList = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -117,3 +119,34 @@ def plot_player_heroes(data: DataFrame):
 
     return figure, extra_artists
 
+
+def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999)):
+    binning = [float(x)/bins for x in range(bins)]
+    df['xBin'] = cut(df['xCoordinate'], binning)
+    df['yBin'] = cut(df['yCoordinate'], binning)
+
+    weightSeries = df.groupby(['xBin', 'yBin']).size()
+
+    return weightSeries.quantile(percentile[0]),\
+           weightSeries.quantile(percentile[1])
+
+
+def plot_player_positioning(query_data: DataFrame):
+    fig, ax1 = plt.subplots(figsize=(10, 13))
+    jet = plt.get_cmap('afmhot')
+    jet.set_under('black', alpha=0.0)
+
+    vmin, vmax = get_binning_percentile_xy(query_data)
+    plot = query_data.plot.hexbin(x='xCoordinate', y='yCoordinate',
+                                  gridsize=64, mincnt=1,
+                                  vmin=vmin, vmax=vmax,
+                                  #interpolation='none'
+                                  colormap=jet,
+                                  ax=ax1, zorder=2)
+    
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax1.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax1.axis('off')
+
+    return fig, ax1
