@@ -1,3 +1,6 @@
+from sqlalchemy import not_, and_
+
+
 def relativeCellCord(cell):
     return (cell - 64)/128
 
@@ -19,7 +22,17 @@ def average_coorinates(coordinates):
     return (tot_x/entries, tot_y/entries)
 
 
-radiant_fountain_cords = [[22/1024, 60/1024], [117/1024, 157/1024]]
+# [x0, y0], [x1, y1]
 radiant_ancient_cords = [[22/1024, 60/1024], [293/1024, 322/1024]]
-dire_fountain_cords = [[901/1024, 879/1024], [993/1024, 975/1024]]
 dire_ancient_cords = [[714/1024, 666/1024], [993/1024, 975/1024]]
+
+
+def location_filter(location, Type):
+    xmin = location[0][0]
+    xmax = location[1][0]
+
+    ymin = location[0][1]
+    ymax = location[1][1]
+
+    return not_(and_(Type.xCoordinate >= xmin, Type.xCoordinate <= xmax,
+                Type.yCoordinate >= ymin, Type.yCoordinate <= ymax))
