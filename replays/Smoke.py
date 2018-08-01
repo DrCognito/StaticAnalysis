@@ -33,7 +33,7 @@ class Smoke(Base):
         from .Replay import Replay
         creepSpawn = select([Replay.creepSpawn]).\
             where(self.replayID == Replay.replayID).as_scalar()
-        return self.game_start_time - creepSpawn
+        return self.startTime - creepSpawn
 
     endTime = Column(Integer)
 
@@ -46,7 +46,7 @@ class Smoke(Base):
         from .Replay import Replay
         creepSpawn = select([Replay.creepSpawn]).\
             where(self.replayID == Replay.replayID).as_scalar()
-        return self.game_end_time - creepSpawn
+        return self.endTime - creepSpawn
 
     averageXCoordinateStart = Column(Float)
     averageXCoordinateEnd = Column(Float)
