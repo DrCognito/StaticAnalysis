@@ -1,13 +1,15 @@
-import matplotlib.pyplot as plt
+from os import environ as environment
+
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from pandas import DataFrame, Series, read_sql, cut
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from pandas import DataFrame, Series, cut, read_sql
+from PIL import Image
 
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
-from PIL import Image
-from os import environ as environment
 
 colourList = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -23,10 +25,20 @@ def plot_map_points(query, bins=128):
     return heatmap, xedges, yedges
 
 
-def dataframe_xy_time(query, Type, session, bin_size=128):
+def dataframe_xy_time_smoke(query, Type, session):
+    sql_query = query.with_entities(Type.averageXCoordinateStart.label('xCoordinate'),
+                                    Type.averageYCoordinateStart.label('yCoordinate'),
+                                    Type.game_start_time).statement
+
+    data = read_sql(sql_query, session.bind)
+
+    return data
+
+
+def dataframe_xy_time(query, Type, session):
     sql_query = query.with_entities(Type.xCoordinate,
                                     Type.yCoordinate,
-                                    Type.time).statement
+                                    Type.game_time).statement
 
     data = read_sql(sql_query, session.bind)
 
@@ -143,10 +155,66 @@ def plot_player_positioning(query_data: DataFrame):
                                   #interpolation='none'
                                   colormap=jet,
                                   ax=ax1, zorder=2)
-    
+
     # Add map
     img = mpimg.imread(environment['MAP_PATH'])
     ax1.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax1.axis('off')
 
     return fig, ax1
+
+
+def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
+    if ax_in is None:
+        fig, ax_in = plt.subplots(figsize=(10, 13))
+
+    jet = plt.get_cmap('afmhot')
+    jet.set_under('black', alpha=0.0)
+
+    plot = ax_in.hexbin(x=query_data['xCoordinate'],
+                        y=query_data['yCoordinate'],
+                        gridsize=bins, mincnt=1,
+                        cmap=jet,
+                        zorder=2)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+
+    # Reposition colourbar
+    # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+    divider = make_axes_locatable(ax_in)
+    side_bar = divider.append_axes("right", size="5%", pad=0.05)
+    plt.colorbar(plot, cax=side_bar)
+
+    return plot
+
+
+def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
+    if ax_in is None:
+        fig, ax_in = plt.subplots(figsize=(10, 13))
+
+    jet = plt.get_cmap('afmhot')
+    jet.set_under('black', alpha=0.0)
+
+    plot = ax_in.scatter(x=query_data['xCoordinate'],
+                         y=query_data['yCoordinate'],
+                         c=query_data['game_time'],
+                         s=size,
+                         cmap='autumn_r',
+                         alpha=0.5,
+                         zorder=2)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+
+    # Reposition colourbar
+    # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+    divider = make_axes_locatable(ax_in)
+    side_bar = divider.append_axes("right", size="5%", pad=0.05)
+    plt.colorbar(plot, cax=side_bar)
+
+    return plot
