@@ -9,7 +9,8 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_object_position_scatter,
                                     plot_draft_summary,
-                                    plot_pick_pairs, plot_pick_context)
+                                    plot_pick_pairs, plot_pick_context,
+                                    plot_hero_winrates)
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -21,6 +22,7 @@ from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from pandas import cut as data_cut
 from os import environ as environment
+from lib.HeroTools import heroShortName
 
 # picks = sstat.test_player_picks()
 # fig, extra = plot_player_heroes(picks)
@@ -62,3 +64,8 @@ _, ea_pairs = plot_pick_pairs(pairs)
 plot_pick_context(draft_summary[0],
                   sstat.Teams['Mad Lads'],
                   sstat.r_query)
+
+
+hero_win_rate = sstat.test_hero_winrate()
+# Rename index to nicknames
+plot_hero_winrates(hero_win_rate)
