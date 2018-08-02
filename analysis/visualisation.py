@@ -11,7 +11,7 @@ from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
-from Player import pick_context
+from .Player import pick_context
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -242,20 +242,31 @@ def plot_pick_context(picks: DataFrame, team, r_query):
         data.plot.bar(ax=axis, width=0.9,
                       colormap=colour, grid=True,
                       fontsize=8, sharey=True)
-        extra_artists = x_label_icon(axis, y_pos=-0.15, size=0.8)
+        extra_artists = x_label_icon(axis, y_pos=-0.15, size=0.5)
 
         return extra_artists
 
     for i_pick, pick in enumerate(top_picks[:5].index):
         nick = convertName(pick, HeroIDType.NPC_NAME,
                            HeroIDType.NICK_NAME)
-        axes[0, i_pick].set_titles(nick)
+        axes[0, i_pick].set_title(nick)
+
         context = pick_context(pick, team, r_query)
-        _do_plot(axes[0, i_pick], colour_list[0], context['Pick'])
-        _do_plot(axes[1, i_pick], colour_list[1], context['Ban'])
-        _do_plot(axes[2, i_pick], colour_list[2], context['Opponent Pick'])
-        a4 = _do_plot(axes[3, i_pick], colour_list[3], context['Opponent Ban'])
+        pick = context['Pick'].sort_values(ascending=False)[:5]
+        ban = context['Ban'].sort_values(ascending=False)[:5]
+        opick = context['Opponent Pick'].sort_values(ascending=False)[:5]
+        oban = context['Opponent Ban'].sort_values(ascending=False)[:5]
+
+        _do_plot(axes[0, i_pick], colour_list[0], pick)
+        _do_plot(axes[1, i_pick], colour_list[1], ban)
+        _do_plot(axes[2, i_pick], colour_list[2], opick)
+        a4 = _do_plot(axes[3, i_pick], colour_list[3], oban)
         extra_artists.append(a4)
+
+    axes[0, 0].set_ylabel('Pick', fontsize=14)
+    axes[1, 0].set_ylabel('Ban', fontsize=14)
+    axes[2, 0].set_ylabel('Opponent Pick', fontsize=14)
+    axes[3, 0].set_ylabel('Opponent Ban', fontsize=14)
 
     return fig, axes, extra_artists
 
