@@ -13,7 +13,7 @@ from PIL import Image
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
 from Player import pick_context
 
-colourList = ['cool', 'summer', 'winter', 'spring', 'copper']
+colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
 
 def plot_map_points(query, bins=128):
@@ -128,7 +128,7 @@ def plot_player_heroes(data: DataFrame):
 
     extra_artists = []
     for i_ax, player in enumerate(data.columns):
-        ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colourList[i_ax])
+        ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colour_list[i_ax])
         extra_artists += extra
 
     return figure, extra_artists
@@ -140,8 +140,8 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame):
     '''
     fig, axes = plt.subplots(2, 3, sharey='row')
     fig.set_size_inches(8, 7)
-    pick_colour = colourList[0]
-    ban_colour = colourList[1]
+    pick_colour = colour_list[0]
+    ban_colour = colour_list[1]
     extra_artists = []
 
     def _combine_results(data: DataFrame, columns):
@@ -251,10 +251,10 @@ def plot_pick_context(picks: DataFrame, team, r_query):
                            HeroIDType.NICK_NAME)
         axes[0, i_pick].set_titles(nick)
         context = pick_context(pick, team, r_query)
-        _do_plot(axes[0, i_pick], colourList[0], context['Pick'])
-        _do_plot(axes[1, i_pick], colourList[1], context['Ban'])
-        _do_plot(axes[2, i_pick], colourList[2], context['Opponent Pick'])
-        a4 = _do_plot(axes[3, i_pick], colourList[3], context['Opponent Ban'])
+        _do_plot(axes[0, i_pick], colour_list[0], context['Pick'])
+        _do_plot(axes[1, i_pick], colour_list[1], context['Ban'])
+        _do_plot(axes[2, i_pick], colour_list[2], context['Opponent Pick'])
+        a4 = _do_plot(axes[3, i_pick], colour_list[3], context['Opponent Ban'])
         extra_artists.append(a4)
 
     return fig, axes, extra_artists
