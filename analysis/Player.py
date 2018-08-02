@@ -89,7 +89,6 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
             player_filter = and_(player_filter, extra_p_filt)
 
         replays = replays.join(TeamSelections).filter(player_filter)
-        print("Total: ", replays.count())
 
         for r in replays:
             picks_bans = [(x.hero, x.team, x.is_pick) for t in r.teams for x in t.draft]
