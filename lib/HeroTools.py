@@ -14,11 +14,11 @@ class HeroIDType(enum.Enum):
 
 def convertName(name, input_format, output_format):
     if (input_format, output_format) in convDict:
-        return convDict((input_format, output_format))[name]
+        return convDict[(input_format, output_format)][name]
     # Try to npc which is a popular option
     if (input_format, HeroIDType.NPC_NAME) in convDict and (HeroIDType.NPC_NAME, output_format) in convDict:
-        intermediate = convDict((input_format, HeroIDType.NPC_NAME))[name]
-        return convDict((HeroIDType.NPC_NAME, output_format))[intermediate]
+        intermediate = convDict[(input_format, HeroIDType.NPC_NAME)][name]
+        return convDict[(HeroIDType.NPC_NAME, output_format)][intermediate]
     elif (input_format == HeroIDType.NPC_NAME and output_format == HeroIDType.ICON_FILENAME):
         intermediate = convDict[(HeroIDType.NPC_NAME, HeroIDType.NICK_NAME)][name]
         return convDict[(HeroIDType.NICK_NAME, HeroIDType.ICON_FILENAME)][intermediate]
