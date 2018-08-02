@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
-from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
+from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 from .Player import pick_context
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
@@ -328,6 +328,21 @@ def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
     plt.colorbar(plot, cax=side_bar)
 
     return plot
+
+
+def plot_hero_winrates(data: DataFrame, mingames=3):
+    '''Plots hero win rate over all and with a minimum games required.'''
+
+    fig, axes = plt.subplots(2, figsize=(10, 5))
+    data.rename(heroShortName, inplace=True)
+    data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
+    data.loc[data['Total'] > mingames]['Rate']\
+        .sort_values(ascending=False).plot.bar(ax=axes[1])
+
+    axes[0].set_ylabel('All')
+    axes[1].set_ylabel('Min {} games'.format(mingames))
+
+    return fig, axes
 
 
 def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
