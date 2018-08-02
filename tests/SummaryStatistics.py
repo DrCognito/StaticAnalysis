@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from analysis.Replay import win_rate_table
 from analysis.Player import cumulative_player, player_heroes, pick_context, player_position
 from analysis.Replay import hero_win_rate, get_ptbase_tslice, pair_rate, get_smoke
+from analysis.Replay import draft_summary
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
@@ -88,6 +89,10 @@ def test_player_position():
                            start=-2*60, end=10*60)
 
 
+def test_draft_summary():
+    return draft_summary(session, r_query, Teams['Mad Lads'])
+
+
 if __name__ == '__main__':
     win_rate = win_rate_table(session, Teams['Mad Lads'])
     print(win_rate)
@@ -101,3 +106,4 @@ if __name__ == '__main__':
     pairs = test_pairs()
     smokes = test_smokes()
     p5_position = test_player_position()
+    draft_summary = test_draft_summary()
