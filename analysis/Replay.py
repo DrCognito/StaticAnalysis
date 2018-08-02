@@ -1,5 +1,5 @@
 from .Statistics import x_vs_time, xy_vs_time, cumulative_statistic
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, concat
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -160,3 +160,48 @@ def pair_rate(session, r_query, team):
     return output
 
 
+def draft_summary(session, r_query, team) -> (DataFrame, DataFrame):
+    '''Returns a count of picks and bans at each draft stage for team.
+       Return type is Pandas DataFrame.
+    '''
+
+    def _process(side):
+        output_pick = DataFrame()
+        output_ban = DataFrame()
+
+        side_filt = Replay.get_side_filter(team, side)
+        replays = r_query.filter(side_filt)
+
+        replay = (t.draft for r in replays for t in r.teams if t.team == side)
+        # for replay in replays:
+        #     for t in replay.team:
+        for draft in replay:
+            picks = {}
+            bans = {}
+            pick_count = 0
+            ban_count = 0
+
+            for selection in draft:
+                if selection.is_pick:
+                    column = "Pick" + str(pick_count)
+                    picks[column] = selection.hero
+                    pick_count += 1
+                else:
+                    column = "Ban" + str(ban_count)
+                    bans[column] = selection.hero
+                    ban_count += 1
+
+            output_pick = output_pick.append(picks, ignore_index=True)
+            output_ban = output_ban.append(bans, ignore_index=True)
+
+        return output_pick, output_ban
+
+    dire = _process(Team.DIRE)
+    radiant = _process(Team.RADIANT)
+
+    output_pick = concat([dire[0], radiant[0]], ignore_index=True, sort=False)
+    output_pick = output_pick.apply(Series.value_counts)
+    output_ban = concat([dire[1], radiant[1]], ignore_index=True, sort=False)
+    output_ban = output_ban.apply(Series.value_counts)
+
+    return output_pick, output_ban
