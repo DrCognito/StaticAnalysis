@@ -9,7 +9,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_object_position_scatter,
                                     plot_draft_summary,
-                                    plot_pick_pairs)
+                                    plot_pick_pairs, plot_pick_context)
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -58,3 +58,7 @@ plot_draft_summary(draft_summary[0], draft_summary[1])
 
 pairs = sstat.test_pairs()
 _, ea_pairs = plot_pick_pairs(pairs)
+
+plot_pick_context(draft_summary[0],
+                  sstat.Teams['Mad Lads'],
+                  sstat.r_query)
