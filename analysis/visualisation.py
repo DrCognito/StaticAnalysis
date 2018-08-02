@@ -5,11 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
+from Player import pick_context
 
 colourList = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -130,6 +132,132 @@ def plot_player_heroes(data: DataFrame):
         extra_artists += extra
 
     return figure, extra_artists
+
+
+def plot_draft_summary(picks: DataFrame, bans: DataFrame):
+    '''Plot an abbreviated pick and ban count for a team.
+       Stages will be combined.
+    '''
+    fig, axes = plt.subplots(2, 3, sharey='row')
+    fig.set_size_inches(8, 7)
+    pick_colour = colourList[0]
+    ban_colour = colourList[1]
+    extra_artists = []
+
+    def _combine_results(data: DataFrame, columns):
+        return data.iloc[:, columns[0]:columns[1]].sum(axis=1)\
+                   .sort_values(ascending=False)
+    # Picks
+    pick_stage = []
+    pick_stage.append(_combine_results(picks, (0, 2)))
+    pick_stage.append(_combine_results(picks, (2, 4)))
+    pick_stage.append(_combine_results(picks, (4, None)))
+
+    for i, i_ax in enumerate(axes[0]):
+        pick_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
+                                    colormap=pick_colour, grid=True,
+                                    fontsize=8, sharey=True)
+        extra_artists += x_label_icon(i_ax, y_pos=-0.1, size=0.8)
+
+    # Bans
+    ban_stage = []
+    ban_stage.append(_combine_results(bans, (0, 3)))
+    ban_stage.append(_combine_results(bans, (3, 5)))
+    ban_stage.append(_combine_results(bans, (5, None)))
+
+    for i, i_ax in enumerate(axes[1]):
+        ban_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
+                                   colormap=ban_colour, grid=True,
+                                   fontsize=8, sharey=True)
+        extra_artists += x_label_icon(i_ax, y_pos=-0.1, size=0.8)
+
+    axes[0][0].set_ylabel('Picks', fontsize=18)
+    axes[1][0].set_ylabel('Bans', fontsize=18)
+
+    return fig, extra_artists
+
+
+def plot_pick_pairs(data: DataFrame, num_heroes=10):
+    '''Plots pick pair combinations for the DataFrame data.
+       Heroes are replaced by icons.
+       num_heroes determines the number of paris to consider.
+       Returns axis and extra artists for extending bounding box.
+    '''
+    working = data[:num_heroes]
+    axis = plt.subplot()
+    working.plot.bar(ax=axis, width=0.9, grid=True)
+
+    hero_pairs = (h.split(', ') for h in working.index)
+
+    x_axis = axis.get_xaxis()
+    x_locations = x_axis.get_major_locator()
+
+    x_min, x_max = axis.get_xlim()
+    x_range = x_max - x_min
+
+    extra_artists = []
+
+    for h_pair, x_loc in zip(hero_pairs, x_locations.locs):
+        try:
+            i1 = HeroIconPrefix / convertName(h_pair[0], HeroIDType.NPC_NAME,
+                                              HeroIDType.ICON_FILENAME)
+        except ValueError:
+            print("Unable to find hero icon for: " + hero)
+            continue
+        try:
+            i2 = HeroIconPrefix / convertName(h_pair[1], HeroIDType.NPC_NAME,
+                                              HeroIDType.ICON_FILENAME)
+        except ValueError:
+            print("Unable to find hero icon for: " + hero)
+            continue
+
+        y_pos1 = -0.06
+        y_pos2 = -0.16
+        size = 1.0
+
+        x_rel = (float(x_loc) - x_min)/x_range
+        a1 = make_image_annotation(i1, axis, x_rel, y_pos1, size)
+        a2 = make_image_annotation(i2, axis, x_rel, y_pos2, size)
+        # Should only need the bottom artist
+        extra_artists.append(a2)
+
+    axis.set_xticklabels([])
+    axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    return axis, extra_artists
+
+
+def plot_pick_context(picks: DataFrame, team, r_query):
+    '''Plots the context (in picks and bans) of a teams top picks.
+       Input is a DataFrame of picks, the TeamInfo and r_query
+       context.
+    '''
+    top_picks = picks.sum(axis=1).sort_values(ascending=False)
+    fig, axes = plt.subplots(4, 5, sharey='row')
+    fig.set_size_inches(8,9)
+
+    extra_artists = []
+
+    def _do_plot(axis, colour, data):
+        data.plot.bar(ax=axis, width=0.9,
+                      colormap=colour, grid=True,
+                      fontsize=8, sharey=True)
+        extra_artists = x_label_icon(axis, y_pos=-0.15, size=0.8)
+
+        return extra_artists
+
+    for i_pick, pick in enumerate(top_picks[:5].index):
+        nick = convertName(pick, HeroIDType.NPC_NAME,
+                           HeroIDType.NICK_NAME)
+        axes[0, i_pick].set_titles(nick)
+        context = pick_context(pick, team, r_query)
+        _do_plot(axes[0, i_pick], colourList[0], context['Pick'])
+        _do_plot(axes[1, i_pick], colourList[1], context['Ban'])
+        _do_plot(axes[2, i_pick], colourList[2], context['Opponent Pick'])
+        a4 = _do_plot(axes[3, i_pick], colourList[3], context['Opponent Ban'])
+        extra_artists.append(a4)
+
+    return fig, axes, extra_artists
 
 
 def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999)):
