@@ -338,8 +338,10 @@ def plot_hero_winrates(data: DataFrame, mingames=3):
     fig, axes = plt.subplots(2, figsize=(10, 5))
     data.rename(heroShortName, inplace=True)
     data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
-    data.loc[data['Total'] > mingames]['Rate']\
-        .sort_values(ascending=False).plot.bar(ax=axes[1])
+    subset = data.loc[data['Total'] > mingames]['Rate']\
+                 .sort_values(ascending=False)
+    if not subset.empty:
+        subset.plot.bar(ax=axes[1])
 
     axes[0].set_ylabel('All')
     axes[1].set_ylabel('Min {} games'.format(mingames))
