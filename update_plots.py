@@ -5,10 +5,12 @@ from os import environ as environment
 from os import mkdir
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
+from analysis.draft_vis import replay_draft_image
 from analysis.Player import (cumulative_player, pick_context, player_heroes,
                              player_position)
 from analysis.Replay import (draft_summary, get_ptbase_tslice, get_smoke,
@@ -21,16 +23,18 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
                                     plot_player_positioning)
-from analysis.draft_vis import replay_draft_image
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from lib.important_times import ImportantTimes
 from lib.metadata import is_updated, make_meta
-from lib.team_info import TeamInfo
+from lib.team_info import InitTeamDB, TeamInfo
 from replays.Player import Player, PlayerStatus
 from replays.Replay import InitDB, Replay, Team
-from replays.Ward import Ward, WardType
+from replays.Rune import Rune
+from replays.Scan import Scan
+from replays.Smoke import Smoke
 from replays.TeamSelections import TeamSelections
+from replays.Ward import Ward, WardType
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -39,6 +43,10 @@ PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 engine = InitDB(DB_PATH)
 Session = sessionmaker(bind=engine)
 session = Session()
+
+team_engine = InitTeamDB()
+team_maker = sessionmaker(bind=team_engine)
+team_session = team_maker()
 
 TIME_CUT = ImportantTimes['2018']
 
@@ -50,7 +58,8 @@ arguments.add_argument('--using_leagues',
                        nargs='*')
 arguments.add_argument('--use_dataset',
                        help='''Use this or create a new dataset
-                               for these options.''')
+                               for these options.''',
+                       default='default')
 arguments.add_argument('--reprocess',
                        help='''Remake plots regardless of metadata''',
                        action='store_true')
@@ -63,7 +72,7 @@ arguments.add_argument('--custom_time',
 
 
 def get_create_metadata(team: TeamInfo, dataset="default"):
-    team_path = Path(PLOT_BASE_PATH) / TeamInfo.name
+    team_path = Path(PLOT_BASE_PATH) / team.name
     dataset_path = team_path / dataset
     if not team_path.exists():
         print("Adding new team {}.".format(team.name))
@@ -82,6 +91,23 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
     return make_meta(dataset)
 
 
+def store_metadata(team: TeamInfo, metadata):
+    team_path = Path(PLOT_BASE_PATH) / team.name
+    meta_json = team_path / 'meta_data.json'
+
+    if meta_json.exists():
+        with open(meta_json, 'r') as file:
+            json_file = json.load(file)
+    else:
+        json_file = {}
+
+    json_file[metadata['name']] = metadata
+    with open(meta_json, 'w') as file:
+        json.dump(json_file, file)
+
+    return meta_json
+
+
 def do_positioning(team: TeamInfo, r_query,
                    start: int, end: int,
                    metadata: dict,
@@ -91,19 +117,22 @@ def do_positioning(team: TeamInfo, r_query,
        positions in r_query.
        update_dire and update_radiant control updating specific side.
        NOTE: Positions are zero based!
-       Returns true if plots have been made and metadata updated.
     '''
     if not update_dire and not update_radiant:
         return metadata
 
-    team_path = Path(PLOT_BASE_PATH) / TeamInfo.name / metadata.name
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     for pos in positions:
+        print("Processing {} for {}".format(team.players[pos].name, team.name))
         pos_dire, pos_radiant = player_position(session, r_query, team,
                                                 player_slot=pos,
                                                 start=start, end=end)
 
         if update_dire:
-            output = team_path / 'dire' / (team.players[pos] + '.png')
+            if pos_dire.count() == 0:
+                print("No data for {} on Dire.".format(team.players[pos].name))
+                continue
+            output = team_path / 'dire' / (team.players[pos].name + '.png')
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
@@ -116,7 +145,10 @@ def do_positioning(team: TeamInfo, r_query,
                 str(output)
 
         if update_radiant:
-            output = team_path / 'radiant' / (team.players[pos] + '.png')
+            if pos_radiant.count() == 0:
+                print("No data for {} on Radiant.".format(team.players[pos].name))
+                continue
+            output = team_path / 'radiant' / (team.players[pos].name + '.png')
             ancient_filter = location_filter(radiant_ancient_cords,
                                              PlayerStatus)
             pos_radiant = pos_radiant.filter(ancient_filter)
@@ -128,7 +160,7 @@ def do_positioning(team: TeamInfo, r_query,
             metadata['plot_p{}pos_radiant'.format(str(pos))] = \
                 str(output)
 
-        return metadata
+    return metadata
 
 
 def do_draft(team: TeamInfo, metadata,
@@ -146,7 +178,7 @@ def do_draft(team: TeamInfo, metadata,
 
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
-    team_path = Path(PLOT_BASE_PATH) / TeamInfo.name / metadata.name
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
 
     if update_dire:
         output = team_path / 'dire/drafts.png'
@@ -173,10 +205,10 @@ def do_wards(team: TeamInfo, r_query,
 
     if not update_dire and not update_radiant:
         return metadata
-    team_path = Path(PLOT_BASE_PATH) / TeamInfo.name / metadata.name
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
 
-    wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team,
-                                                  Ward,
+    wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
+                                                  Type=Ward,
                                                   start=-2*60, end=10*60)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
@@ -190,13 +222,13 @@ def do_wards(team: TeamInfo, r_query,
         fig.savefig(output / 'wards_pregame.png')
         metadata['plot_ward_t1_dire'] = str(output / 'wards_pregame.png')
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) and
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &
                                                   (ward_df['game_time'] <= 4*60)])
         fig.tight_layout()
         fig.savefig(output / 'wards_0to4.png')
         metadata['plot_ward_t2_dire'] = str(output / 'wards_0to4.png')
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) and
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
                                                   (ward_df['game_time'] <= 8*60)])
         fig.tight_layout()
         fig.savefig(output / 'wards_4to8.png')
@@ -211,13 +243,13 @@ def do_wards(team: TeamInfo, r_query,
         fig.savefig(output / 'wards_pregame.png')
         metadata['plot_ward_t1_radiant'] = str(output / 'wards_pregame.png')
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) and
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &\
                                                   (ward_df['game_time'] <= 4*60)])
         fig.tight_layout()
         fig.savefig(output / 'wards_0to4.png')
         metadata['plot_ward_t2_radiant'] = str(output / 'wards_0to4.png')
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) and
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
                                                   (ward_df['game_time'] <= 8*60)])
         fig.tight_layout()
         fig.savefig(output / 'wards_4to8.png')
@@ -226,24 +258,169 @@ def do_wards(team: TeamInfo, r_query,
     return metadata
 
 
-def process_team(team: TeamInfo, metadata):
+def do_smoke(team: TeamInfo, r_query, metadata: dict,
+             update_dire=True, update_radiant=True):
+    '''Makes plots for smoke starting points in r_query.
+       Separate plots are made for a number of times.
+       update_dire and update_radiant control updating specific side.
+    '''
+    if not update_dire and not update_radiant:
+        return metadata
+
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    time_pairs = [
+        (-10*60, 10*60),
+        (10*60, 20*60),
+        (20*60, 30*60),
+        (30*60, 40*60),
+        (40*60, 500*60)
+    ]
+
+    time_titles = [
+        'Pre-Game to 10 mins',
+        '10 mins to 20 mins',
+        '20 mins to 30 mins',
+        '30 mins to 40 mins',
+        '40 mins+'
+    ]
+    s_dire, s_radiant = get_smoke(r_query, session, team)
+
+    def _plot_time_slice(times, title, data, axis):
+        data_slice = data.loc[(data['game_start_time'] > times[0]) &
+                              (data['game_start_time'] <= times[1])]
+        plot_object_position(data_slice, bins=16, ax_in=axis)
+        axis.set_title(title)
+
+    def _process_side(query, side: Team):
+        data = dataframe_xy_time_smoke(query, Smoke, session)
+
+        fig, axList = plt.subplots(3, 2, figsize=(8, 10))
+        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axList
+        _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
+        _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
+        _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
+        _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
+        _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
+        ax6.axis('off')
+
+        team_str = 'dire' if side == Team.DIRE else 'radiant'
+        output = team_path / '{}/smoke_summary.png'.format(team_str)
+        fig.savefig(output, bbox_inches='tight')
+        metadata['plot_smoke_{}'.format(team_str)] = str(output)
+
+    if update_dire:
+        _process_side(s_dire, Team.DIRE)
+    if update_radiant:
+        _process_side(s_dire, Team.RADIANT)
+
+    return metadata
+
+
+def do_scans(team: TeamInfo, r_query, metadata: dict,
+             update_dire=True, update_radiant=True):
+    '''Makes plots for the scan origin points for replays in r_query.
+       update_dire and update_radiant control updating specific sides.
+    '''
+    if not update_dire and not update_radiant:
+        return metadata
+
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+
+    s_dire, s_radiant = get_ptbase_tslice(session, r_query,
+                                          team=team, Type=Scan)
+
+    def _plot_scans(query, side: Team):
+        data = dataframe_xy_time(query, Scan, session)
+        fig, ax = plt.subplots(figsize=(10, 13))
+        plot_object_position_scatter(data, ax_in=ax)
+
+        team_str = 'dire' if side == Team.DIRE else 'radiant'
+        output = team_path / '{}/scan_summary.png'.format(team_str)
+        fig.savefig(output, bbox_inches='tight')
+        metadata['plot_scan_{}'.format(team_str)] = str(output)
+
+    if update_dire:
+        _plot_scans(s_dire, Team.DIRE)
+    if update_radiant:
+        _plot_scans(s_radiant, Team.RADIANT)
+
+    return metadata
+
+
+def do_summary(team: TeamInfo, r_query, metadata: dict):
+    '''Plots draft summary, player picks, pick pairs and hero win rates
+       for the replays in r_query.'''
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+
+    draft_summary_df = draft_summary(session, r_query, team)
+    fig, extra = plot_draft_summary(*draft_summary_df)
+    output = team_path / 'draft_summary.png'
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    metadata['plot_draft_summary'] = str(output)
+
+    pick_pair_df = pair_rate(session, r_query, team)
+    fig, extra = plot_pick_pairs(pick_pair_df)
+    output = team_path / 'pick_pairs.png'
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    metadata['plot_pair_picks'] = str(output)
+
+    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query)
+    output = team_path / 'pick_context.png'
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    metadata['plot_pick_context'] = str(output)
+
+    hero_win_rate_df = hero_win_rate(r_query, team)
+    fig, _ = plot_hero_winrates(hero_win_rate_df)
+    output = team_path / 'hero_win_rate.png'
+    fig.savefig(output, bbox_inches='tight')
+    metadata['plot_win_rate'] = str(output)
+
+    return metadata
+
+
+def process_team(team: TeamInfo, metadata, reprocess=False):
     try:
         r_query = team.get_replays(session)
     except SQLAlchemyError as e:
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
-    new_dire, new_radiant = is_updated(r_query, team, metadata)
+    new_dire, dire_list, new_radiant, radiant_list = is_updated(r_query, team, metadata)
     if not new_dire and not new_radiant:
         print("No new updates for {}".format(team.name))
+        return
 
+    metadata['replays_dire'] = list(dire_list)
+    metadata['replays_radiant'] = list(radiant_list)
+
+    print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant)
+    print("Processing positioning.")
     metadata = do_positioning(team, r_query,
                               -2*60, 10*60,
                               metadata,
                               new_dire, new_radiant
                               )
-    metadata = do_wards(team, r_query, new_dire, new_radiant)
+    print("Processing wards.")
+    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    print("Processing smoke.")
+    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    print("Processing scans.")
+    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    print("Processing summary.")
+    metadata = do_summary(team, r_query, metadata)
+
+    path = store_metadata(team, metadata)
+    print("Metadata file updated at {}".format(str(path)))
+
+    return metadata
+
+
+def get_team(name):
+    team = team_session.query(TeamInfo)\
+                       .filter(TeamInfo.name == name).one_or_none()
+
+    return team
 
 
 if __name__ == "__main__":
@@ -259,3 +436,19 @@ if __name__ == "__main__":
 
     if args.custom_time is not None:
         TIME_CUT = datetime.utcfromtimestamp(args.custom_time)
+
+    # test_team = 
+
+    # process_team(test_team)
+
+    if args.process_team is not None:
+        team = get_team(args.process_team)
+        if team is None:
+            print("Unable to find team {} in database!"
+                  .format(args.process_team))
+            quit()
+
+        metadata = get_create_metadata(team, args.use_dataset)
+        metadata['time_cut'] = str(TIME_CUT)
+        process_team(team, metadata, args.reprocess)
+
