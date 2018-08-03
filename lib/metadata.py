@@ -1,9 +1,13 @@
+from replays.Replay import Replay, Team
+from lib.team_info import TeamInfo
+
 def make_meta(dataset="default"):
     meta = {
         'name': dataset,
         'time_cut': None,
         'leagues': None,
-        'replays': None,
+        'replays_dire': None,
+        'replays_radiant': None,
 
         'plot_dire_drafts': None,
         'plot_radiant_drafts': None,
@@ -41,3 +45,21 @@ def make_meta(dataset="default"):
     }
 
     return meta
+
+
+def is_updated(r_query, team: TeamInfo, metadata)-> (bool, bool):
+    '''Check if the list of replays for a teams metadata matches
+       the list of replays in the replay query.
+       Returns result for (Dire, Radiant)
+    '''
+    def _test_side(side: Team):
+        side_filt = Replay.get_side_filter(team, side)
+        replays = r_query.filter(side_filt)
+
+        id_list = {r.replayID for r in replays}
+
+        side_str = 'replays_dire' if side == Team.DIRE else 'replays_radiant'
+
+        return id_list == set(metadata[side_str])
+
+    return _test_side(Team.DIRE), _test_side(Team.RADIANT)
