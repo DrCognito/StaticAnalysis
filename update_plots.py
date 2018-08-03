@@ -386,8 +386,12 @@ def process_team(team: TeamInfo, metadata, reprocess=False):
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
     new_dire, dire_list, new_radiant, radiant_list = is_updated(r_query, team, metadata)
+    if reprocess:
+        new_dire = True
+        new_radiant = True
     if not new_dire and not new_radiant:
         print("No new updates for {}".format(team.name))
+
         return
 
     metadata['replays_dire'] = list(dire_list)
@@ -437,10 +441,6 @@ if __name__ == "__main__":
     if args.custom_time is not None:
         TIME_CUT = datetime.utcfromtimestamp(args.custom_time)
 
-    # test_team = 
-
-    # process_team(test_team)
-
     if args.process_team is not None:
         team = get_team(args.process_team)
         if team is None:
@@ -449,6 +449,13 @@ if __name__ == "__main__":
             quit()
 
         metadata = get_create_metadata(team, args.use_dataset)
-        metadata['time_cut'] = str(TIME_CUT)
+        metadata['time_cut'] = TIME_CUT.timestamp()
+        process_team(team, metadata, args.reprocess)
+
+        exit()
+
+    for team in team_session.query(TeamInfo)[:5]:
+        metadata = get_create_metadata(team, args.use_dataset)
+        metadata['time_cut'] = TIME_CUT.timestamp()
         process_team(team, metadata, args.reprocess)
 
