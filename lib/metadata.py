@@ -1,6 +1,7 @@
 from replays.Replay import Replay, Team
 from lib.team_info import TeamInfo
 
+
 def make_meta(dataset="default"):
     meta = {
         'name': dataset,
@@ -41,7 +42,7 @@ def make_meta(dataset="default"):
         'plot_draft_summary': None,
         'plot_pair_picks': None,
         'plot_pick_context': None,
-        'plot_win_rate': None
+        'plot_win_rate': None,
     }
 
     return meta
@@ -59,7 +60,12 @@ def is_updated(r_query, team: TeamInfo, metadata)-> (bool, bool):
         id_list = {r.replayID for r in replays}
 
         side_str = 'replays_dire' if side == Team.DIRE else 'replays_radiant'
+        if metadata[side_str] is None:
+            return len(id_list) != 0, id_list
 
-        return id_list == set(metadata[side_str])
+        return id_list != set(metadata[side_str]), id_list
 
-    return _test_side(Team.DIRE), _test_side(Team.RADIANT)
+    new_dire, dire_list = _test_side(Team.DIRE)
+    new_radiant, radiant_list = _test_side(Team.RADIANT)
+
+    return new_dire, dire_list, new_radiant, radiant_list
