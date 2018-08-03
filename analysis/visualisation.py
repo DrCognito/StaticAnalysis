@@ -184,7 +184,7 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
        Returns axis and extra artists for extending bounding box.
     '''
     working = data[:num_heroes]
-    axis = plt.subplot()
+    fig, axis = plt.subplots()
     working.plot.bar(ax=axis, width=0.9, grid=True)
 
     hero_pairs = (h.split(', ') for h in working.index)
@@ -224,7 +224,7 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
     axis.set_xticklabels([])
     axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    return axis, extra_artists
+    return fig, extra_artists
 
 
 def plot_pick_context(picks: DataFrame, team, r_query):
@@ -261,7 +261,7 @@ def plot_pick_context(picks: DataFrame, team, r_query):
         _do_plot(axes[1, i_pick], colour_list[1], ban)
         _do_plot(axes[2, i_pick], colour_list[2], opick)
         a4 = _do_plot(axes[3, i_pick], colour_list[3], oban)
-        extra_artists.append(a4)
+        extra_artists += a4
 
     axes[0, 0].set_ylabel('Pick', fontsize=14)
     axes[1, 0].set_ylabel('Ban', fontsize=14)
@@ -306,6 +306,8 @@ def plot_player_positioning(query_data: DataFrame):
 def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
     if ax_in is None:
         fig, ax_in = plt.subplots(figsize=(10, 13))
+    else:
+        fig = plt.gcf()
 
     jet = plt.get_cmap('afmhot')
     jet.set_under('black', alpha=0.0)
@@ -327,7 +329,7 @@ def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
     side_bar = divider.append_axes("right", size="5%", pad=0.05)
     plt.colorbar(plot, cax=side_bar)
 
-    return plot
+    return fig, ax_in
 
 
 def plot_hero_winrates(data: DataFrame, mingames=3):
