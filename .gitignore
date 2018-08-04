@@ -120,3 +120,5 @@ setup.env
 # Ignore images for now
 *.png
 *.jpg
+# Created during ongoing db inserts.
+*.db-journal
