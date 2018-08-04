@@ -48,7 +48,7 @@ team_engine = InitTeamDB()
 team_maker = sessionmaker(bind=team_engine)
 team_session = team_maker()
 
-TIME_CUT = ImportantTimes['2018']
+TIME_CUT = ImportantTimes['PreviousTriMonth']
 
 arguments = ArgumentParser()
 arguments.add_argument('--process_team',
@@ -123,6 +123,9 @@ def do_positioning(team: TeamInfo, r_query,
 
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     for pos in positions:
+        if pos >= len(team.players):
+            print("Position {} is out of range for {}"
+                  .format(pos, team.name))
         print("Processing {} for {}".format(team.players[pos].name, team.name))
         pos_dire, pos_radiant = player_position(session, r_query, team,
                                                 player_slot=pos,
@@ -378,9 +381,9 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
-def process_team(team: TeamInfo, metadata, reprocess=False):
+def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
     try:
-        r_query = team.get_replays(session)
+        r_query = team.get_replays(session).filter(Replay.endTimeUTC >= time)
     except SQLAlchemyError as e:
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
@@ -399,20 +402,26 @@ def process_team(team: TeamInfo, metadata, reprocess=False):
 
     print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing positioning.")
     metadata = do_positioning(team, r_query,
                               -2*60, 10*60,
                               metadata,
                               new_dire, new_radiant
                               )
+    plt.close('all')
     print("Processing wards.")
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing smoke.")
     metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing scans.")
     metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata)
+    plt.close('all')
 
     path = store_metadata(team, metadata)
     print("Metadata file updated at {}".format(str(path)))
@@ -450,12 +459,12 @@ if __name__ == "__main__":
 
         metadata = get_create_metadata(team, args.use_dataset)
         metadata['time_cut'] = TIME_CUT.timestamp()
-        process_team(team, metadata, args.reprocess)
+        process_team(team, metadata, TIME_CUT, args.reprocess)
 
         exit()
 
-    for team in team_session.query(TeamInfo)[:5]:
+    for team in team_session.query(TeamInfo):
         metadata = get_create_metadata(team, args.use_dataset)
         metadata['time_cut'] = TIME_CUT.timestamp()
-        process_team(team, metadata, args.reprocess)
+        process_team(team, metadata, TIME_CUT, args.reprocess)
 
