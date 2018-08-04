@@ -8,12 +8,18 @@ def get_pick_ban(json_in):
     return [x for x in json_in if x['type'] == 'PicksAndBans'][0]
 
 
-def get_replay_id(json_in):
+def get_replay_id(json_in, path):
     ''' Returns the replayID as reported by the file.
         Note: there have been instances of this being wrongly set to 0
     '''
     pick_ban_object = get_pick_ban(json_in)
-    return pick_ban_object.get('matchID', None)
+    replay_id = pick_ban_object.get('matchID', None)
+
+    if replay_id == 0 or replay_id is None:
+            print("Warning, replay {} has an invalid replay ID".format(path))
+            replay_id = path.stem
+
+    return replay_id
 
 
 def get_end_time_UTC(json_in):

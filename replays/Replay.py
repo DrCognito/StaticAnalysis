@@ -117,13 +117,10 @@ def populate_from_JSON_file(path, session, skip_existing=True):
 
     with open(path, 'r', encoding='utf8', errors="replace") as file:
         jsonFile = json.load(file)
-        replay_ID = JSONProcess.get_replay_id(jsonFile)
+        replay_ID = JSONProcess.get_replay_id(jsonFile, path)
         # Sometimes the replay_ID in the file is wrong and 0
-        if replay_ID == 0 or replay_ID is None:
-            print("Warning, replay {} has an invalid replay ID".format(path))
-            replay_ID = path.stem
-
-        replay_query = session.query(Replay).filter(Replay.replayID == replay_ID)
+        replay_query = session.query(Replay)\
+                              .filter(Replay.replayID == replay_ID)
         if replay_query.count() == 1:
             if skip_existing:
                 return replay_query.one()
@@ -133,7 +130,7 @@ def populate_from_JSON_file(path, session, skip_existing=True):
                 session.flush()
 
         working_replay = Replay()
-        working_replay.replayID = JSONProcess.get_replay_id(jsonFile)
+        working_replay.replayID = JSONProcess.get_replay_id(jsonFile, path)
         working_replay.endTimeUTC = datetime.fromtimestamp(
                                         JSONProcess.get_end_time_UTC(jsonFile))
         working_replay.gameStart, working_replay.creepSpawn, working_replay.gameEnd =\
