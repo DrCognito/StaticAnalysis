@@ -13,6 +13,7 @@ ImportantTimes = {
     'BCampBerlin':datetime.datetime(2018, 3, 19, 0, 0, 0, 0),
     'PreviousMonth':datetime.datetime.today() - datetime.timedelta(days=30),
     'PreviousBiMonth': datetime.datetime.today() - datetime.timedelta(days=60),
+    'PreviousTriMonth': datetime.datetime.today() - datetime.timedelta(days=95),
     'PreviousFortnight':datetime.datetime.today() - datetime.timedelta(days=14),
     'PreviousTriWeek':datetime.datetime.today() - datetime.timedelta(days=21),
     'Custom': datetime.datetime(2018, 5, 1, 0, 0, 0, 0),
