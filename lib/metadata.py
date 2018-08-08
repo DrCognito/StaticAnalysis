@@ -13,25 +13,13 @@ def make_meta(dataset="default"):
         'plot_dire_drafts': None,
         'plot_radiant_drafts': None,
 
-        'plot_p1pos_dire': None,
-        'plot_p2pos_dire': None,
-        'plot_p3pos_dire': None,
-        'plot_p4pos_dire': None,
-        'plot_p5pos_dire': None,
+        'plot_pos_dire': [],
+        'plot_pos_radiant': [],
+        'player_names': [],
 
-        'plot_p1pos_radiant': None,
-        'plot_p2pos_radiant': None,
-        'plot_p3pos_radiant': None,
-        'plot_p4pos_radiant': None,
-        'plot_p5pos_radiant': None,
-
-        'plot_ward_t1_dire': None,
-        'plot_ward_t2_dire': None,
-        'plot_ward_t3_dire': None,
-
-        'plot_ward_t1_radiant': None,
-        'plot_ward_t2_radiant': None,
-        'plot_ward_t3_radiant': None,
+        'plot_ward_dire': [],
+        'plot_ward_radiant': [],
+        'plot_ward_names': [],
 
         'plot_scan_dire': None,
         'plot_scan_radiant': None,
@@ -40,6 +28,7 @@ def make_meta(dataset="default"):
         'plot_smoke_radiant': None,
 
         'plot_draft_summary': None,
+        'plot_hero_picks': None,
         'plot_pair_picks': None,
         'plot_pick_context': None,
         'plot_win_rate': None,

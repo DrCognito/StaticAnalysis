@@ -120,13 +120,20 @@ def do_positioning(team: TeamInfo, r_query,
     '''
     if not update_dire and not update_radiant:
         return metadata
+    metadata['player_names'] = []
 
+    if update_dire:
+        metadata['plot_pos_dire'] = []
+    if update_dire:
+        metadata['plot_pos_radiant'] = []
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     for pos in positions:
         if pos >= len(team.players):
             print("Position {} is out of range for {}"
                   .format(pos, team.name))
-        print("Processing {} for {}".format(team.players[pos].name, team.name))
+        p_name = team.players[pos].name
+        metadata['player_names'].append(p_name)
+        print("Processing {} for {}".format(p_name, team.name))
         pos_dire, pos_radiant = player_position(session, r_query, team,
                                                 player_slot=pos,
                                                 start=start, end=end)
@@ -135,7 +142,7 @@ def do_positioning(team: TeamInfo, r_query,
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
                 continue
-            output = team_path / 'dire' / (team.players[pos].name + '.png')
+            output = team_path / 'dire' / (p_name + '.png')
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
@@ -144,14 +151,14 @@ def do_positioning(team: TeamInfo, r_query,
                                                            session))
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            metadata['plot_p{}pos_dire'.format(str(pos))] = \
-                str(output)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_pos_dire'].append(relpath)
 
         if update_radiant:
             if pos_radiant.count() == 0:
                 print("No data for {} on Radiant.".format(team.players[pos].name))
                 continue
-            output = team_path / 'radiant' / (team.players[pos].name + '.png')
+            output = team_path / 'radiant' / (p_name + '.png')
             ancient_filter = location_filter(radiant_ancient_cords,
                                              PlayerStatus)
             pos_radiant = pos_radiant.filter(ancient_filter)
@@ -160,8 +167,8 @@ def do_positioning(team: TeamInfo, r_query,
                                                            session))
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            metadata['plot_p{}pos_radiant'.format(str(pos))] = \
-                str(output)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_pos_radiant'].append(relpath)
 
     return metadata
 
@@ -189,7 +196,8 @@ def do_draft(team: TeamInfo, metadata,
                                          Team.DIRE,
                                          team.name)
         dire_drafts.save(output)
-        metadata['plot_dire_drafts'] = str(output)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_dire_drafts'] = relpath
 
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
@@ -197,7 +205,8 @@ def do_draft(team: TeamInfo, metadata,
                                             Team.RADIANT,
                                             team.name)
         radiant_drafts.save(output)
-        metadata['plot_radiant_drafts'] = str(output)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_radiant_drafts'] = relpath
 
     return metadata
 
@@ -215,48 +224,62 @@ def do_wards(team: TeamInfo, r_query,
                                                   start=-2*60, end=10*60)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
-
+    metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins"]
     if update_dire:
+        metadata['plot_ward_dire'] = []
         output = team_path / 'dire'
         ward_df = dataframe_xy_time(wards_dire, Ward, session)
 
         fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0])
         fig.tight_layout()
-        fig.savefig(output / 'wards_pregame.png')
-        metadata['plot_ward_t1_dire'] = str(output / 'wards_pregame.png')
+        p_out = output / 'wards_pregame.png'
+        fig.savefig(p_out)
+        relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_dire'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &
                                                   (ward_df['game_time'] <= 4*60)])
         fig.tight_layout()
-        fig.savefig(output / 'wards_0to4.png')
-        metadata['plot_ward_t2_dire'] = str(output / 'wards_0to4.png')
+        p_out = output / 'wards_0to4.png'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_dire'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
                                                   (ward_df['game_time'] <= 8*60)])
         fig.tight_layout()
-        fig.savefig(output / 'wards_4to8.png')
-        metadata['plot_ward_t3_dire'] = str(output / 'wards_4to8.png')
+        p_out = output / 'wards_4to8.png'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_dire'].append(str(relpath))
 
     if update_radiant:
+        metadata['plot_ward_radiant'] = []
         output = team_path / 'radiant'
         ward_df = dataframe_xy_time(wards_radiant, Ward, session)
 
         fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0])
         fig.tight_layout()
-        fig.savefig(output / 'wards_pregame.png')
-        metadata['plot_ward_t1_radiant'] = str(output / 'wards_pregame.png')
+        p_out = output / 'wards_pregame.png'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_radiant'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &\
                                                   (ward_df['game_time'] <= 4*60)])
         fig.tight_layout()
-        fig.savefig(output / 'wards_0to4.png')
-        metadata['plot_ward_t2_radiant'] = str(output / 'wards_0to4.png')
+        p_out = output / 'wards_0to4.png'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_radiant'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
                                                   (ward_df['game_time'] <= 8*60)])
         fig.tight_layout()
-        fig.savefig(output / 'wards_4to8.png')
-        metadata['plot_ward_t3_radiant'] = str(output / 'wards_4to8.png')
+        p_out = output / 'wards_4to8.png'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_radiant'].append(str(relpath))
 
     return metadata
 
@@ -309,7 +332,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/smoke_summary.png'.format(team_str)
         fig.savefig(output, bbox_inches='tight')
-        metadata['plot_smoke_{}'.format(team_str)] = str(output)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_smoke_{}'.format(team_str)] = relpath
 
     if update_dire:
         _process_side(s_dire, Team.DIRE)
@@ -340,7 +364,8 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/scan_summary.png'.format(team_str)
         fig.savefig(output, bbox_inches='tight')
-        metadata['plot_scan_{}'.format(team_str)] = str(output)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_scan_{}'.format(team_str)] = relpath
 
     if update_dire:
         _plot_scans(s_dire, Team.DIRE)
@@ -359,24 +384,36 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     fig, extra = plot_draft_summary(*draft_summary_df)
     output = team_path / 'draft_summary.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
-    metadata['plot_draft_summary'] = str(output)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_draft_summary'] = relpath
+
+    hero_picks_df = player_heroes(session, team)
+    fig, extra = plot_player_heroes(hero_picks_df)
+    fig.tight_layout(h_pad=3.0)
+    output = team_path / 'hero_picks.png'
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_hero_picks'] = relpath
 
     pick_pair_df = pair_rate(session, r_query, team)
     fig, extra = plot_pick_pairs(pick_pair_df)
     output = team_path / 'pick_pairs.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
-    metadata['plot_pair_picks'] = str(output)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_pair_picks'] = relpath
 
     fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query)
     output = team_path / 'pick_context.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
-    metadata['plot_pick_context'] = str(output)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_pick_context'] = relpath
 
     hero_win_rate_df = hero_win_rate(r_query, team)
     fig, _ = plot_hero_winrates(hero_win_rate_df)
     output = team_path / 'hero_win_rate.png'
     fig.savefig(output, bbox_inches='tight')
-    metadata['plot_win_rate'] = str(output)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_win_rate'] = relpath
 
     return metadata
 
