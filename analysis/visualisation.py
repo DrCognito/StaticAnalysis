@@ -3,6 +3,7 @@ from os import environ as environment
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import ticker
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.ticker import MaxNLocator
@@ -122,6 +123,7 @@ def plot_player_heroes(data: DataFrame):
         column.sort_values(ascending=False, inplace=True)
         ax: Axes = column.plot.bar(ax=axis, sharey=True, colormap=colour)
         ax.set_ylabel(name)
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         extra_artists = x_label_icon(ax, y_pos=-0.2, size=0.8)
 
         return ax, extra_artists
@@ -170,6 +172,7 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame):
                                    colormap=ban_colour, grid=True,
                                    fontsize=8, sharey=True)
         extra_artists += x_label_icon(i_ax, y_pos=-0.1, size=0.8)
+        i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     axes[0][0].set_ylabel('Picks', fontsize=18)
     axes[1][0].set_ylabel('Bans', fontsize=18)
@@ -186,6 +189,7 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
     working = data[:num_heroes]
     fig, axis = plt.subplots()
     working.plot.bar(ax=axis, width=0.9, grid=True)
+    axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     hero_pairs = (h.split(', ') for h in working.index)
 
@@ -211,8 +215,8 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
             print("Unable to find hero icon for: " + hero)
             continue
 
-        y_pos1 = -0.06
-        y_pos2 = -0.16
+        y_pos1 = -0.1
+        y_pos2 = -0.22
         size = 1.0
 
         x_rel = (float(x_loc) - x_min)/x_range
@@ -243,6 +247,7 @@ def plot_pick_context(picks: DataFrame, team, r_query):
                       colormap=colour, grid=True,
                       fontsize=8, sharey=True)
         extra_artists = x_label_icon(axis, y_pos=-0.15, size=0.5)
+        axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
         return extra_artists
 
@@ -282,40 +287,75 @@ def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999)):
            weightSeries.quantile(percentile[1])
 
 
+def get_binning_max_xy(df: DataFrame, bins=64):
+    binning = [float(x)/bins for x in range(bins)]
+    working_df = DataFrame()
+    working_df['xBin'] = cut(df['xCoordinate'], binning)
+    working_df['yBin'] = cut(df['yCoordinate'], binning)
+
+    weightSeries = working_df.groupby(['xBin', 'yBin']).size()
+
+    return weightSeries.max()
+
+
 def plot_player_positioning(query_data: DataFrame):
-    fig, ax1 = plt.subplots(figsize=(10, 13))
+    fig, ax_in = plt.subplots(figsize=(10, 10))
     jet = plt.get_cmap('afmhot')
     jet.set_under('black', alpha=0.0)
 
     vmin, vmax = get_binning_percentile_xy(query_data)
-    plot = query_data.plot.hexbin(x='xCoordinate', y='yCoordinate',
-                                  gridsize=64, mincnt=1,
-                                  vmin=vmin, vmax=vmax,
-                                  #interpolation='none'
-                                  colormap=jet,
-                                  ax=ax1, zorder=2)
+    # plot = query_data.plot.hexbin(x='xCoordinate', y='yCoordinate',
+    #                               gridsize=64, mincnt=1,
+    #                               vmin=vmin, vmax=vmax,
+    #                               extent=[0, 1, 0, 1],
+    #                               #interpolation='none'
+    #                               colormap=jet,
+    #                               ax=ax1, zorder=2)
+
+    plot = ax_in.hexbin(x=query_data['xCoordinate'],
+                        y=query_data['yCoordinate'],
+                        gridsize=64, mincnt=1,
+                        vmin=vmin, vmax=vmax,
+                        extent=[0, 1, 0, 1],
+                        cmap=jet,
+                        zorder=2)
 
     # Add map
     img = mpimg.imread(environment['MAP_PATH'])
-    ax1.imshow(img, extent=[0, 1, 0, 1], zorder=0)
-    ax1.axis('off')
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+    # Reposition colourbar
+    # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+    divider = make_axes_locatable(ax_in)
+    side_bar = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar.locator = ticker.MaxNLocator(integer=True)
+    cbar.update_ticks()
+    cbar.ax.tick_params(labelsize=14)
 
-    return fig, ax1
+    return fig, ax_in
 
 
-def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
+def plot_object_position(query_data: DataFrame, bins=64,
+                         ax_in=None, vmin=None, vmax=None):
     if ax_in is None:
-        fig, ax_in = plt.subplots(figsize=(10, 13))
+        fig, ax_in = plt.subplots(figsize=(10, 10))
     else:
         fig = plt.gcf()
 
     jet = plt.get_cmap('afmhot')
     jet.set_under('black', alpha=0.0)
+    if vmax is None:
+        vmax = get_binning_max_xy(query_data, bins)
+        if vmax == 1:
+            vmax = 2
 
     plot = ax_in.hexbin(x=query_data['xCoordinate'],
                         y=query_data['yCoordinate'],
                         gridsize=bins, mincnt=1,
-                        cmap=jet,
+                        extent=[0, 1, 0, 1],
+                        cmap='rainbow',
+                        vmin=vmin - 0.5, vmax=vmax + 0.5,
                         zorder=2)
 
     # Add map
@@ -327,7 +367,10 @@ def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
     # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
     divider = make_axes_locatable(ax_in)
     side_bar = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(plot, cax=side_bar)
+    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar.locator = ticker.MaxNLocator(integer=True)
+    cbar.update_ticks()
+    cbar.ax.tick_params(labelsize=14)
 
     return fig, ax_in
 
@@ -335,7 +378,7 @@ def plot_object_position(query_data: DataFrame, bins=64, ax_in=None):
 def plot_hero_winrates(data: DataFrame, mingames=3):
     '''Plots hero win rate over all and with a minimum games required.'''
 
-    fig, axes = plt.subplots(2, figsize=(10, 5))
+    fig, axes = plt.subplots(2, figsize=(10, 10))
     data.rename(heroShortName, inplace=True)
     data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
     subset = data.loc[data['Total'] > mingames]['Rate']\
@@ -351,7 +394,7 @@ def plot_hero_winrates(data: DataFrame, mingames=3):
 
 def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
     if ax_in is None:
-        fig, ax_in = plt.subplots(figsize=(10, 13))
+        fig, ax_in = plt.subplots(figsize=(10, 10))
 
     jet = plt.get_cmap('afmhot')
     jet.set_under('black', alpha=0.0)
@@ -360,9 +403,12 @@ def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
                          y=query_data['yCoordinate'],
                          c=query_data['game_time'],
                          s=size,
+                        #  extent=[0, 1, 0, 1],
                          cmap='autumn_r',
                          alpha=0.5,
                          zorder=2)
+    ax_in.set_xlim(0, 1)
+    ax_in.set_ylim(0, 1)
 
     # Add map
     img = mpimg.imread(environment['MAP_PATH'])
@@ -373,6 +419,9 @@ def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
     # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
     divider = make_axes_locatable(ax_in)
     side_bar = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(plot, cax=side_bar)
+    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar.locator = ticker.MaxNLocator(integer=True)
+    cbar.update_ticks()
+    cbar.ax.tick_params(labelsize=14)
 
     return plot

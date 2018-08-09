@@ -218,6 +218,7 @@ def do_wards(team: TeamInfo, r_query,
     if not update_dire and not update_radiant:
         return metadata
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    vmin, vmax = (1, None)
 
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                                   Type=Ward,
@@ -230,7 +231,8 @@ def do_wards(team: TeamInfo, r_query,
         output = team_path / 'dire'
         ward_df = dataframe_xy_time(wards_dire, Ward, session)
 
-        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0])
+        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_pregame.png'
         fig.savefig(p_out)
@@ -238,7 +240,8 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_dire'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &
-                                                  (ward_df['game_time'] <= 4*60)])
+                                                  (ward_df['game_time'] <= 4*60)],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_0to4.png'
         fig.savefig(p_out)
@@ -246,7 +249,8 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_dire'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                                  (ward_df['game_time'] <= 8*60)])
+                                                  (ward_df['game_time'] <= 8*60)],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_4to8.png'
         fig.savefig(p_out)
@@ -258,7 +262,8 @@ def do_wards(team: TeamInfo, r_query,
         output = team_path / 'radiant'
         ward_df = dataframe_xy_time(wards_radiant, Ward, session)
 
-        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0])
+        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_pregame.png'
         fig.savefig(p_out)
@@ -266,7 +271,8 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_radiant'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &\
-                                                  (ward_df['game_time'] <= 4*60)])
+                                                  (ward_df['game_time'] <= 4*60)],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_0to4.png'
         fig.savefig(p_out)
@@ -274,7 +280,8 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_radiant'].append(str(relpath))
 
         fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                                  (ward_df['game_time'] <= 8*60)])
+                                                  (ward_df['game_time'] <= 8*60)],
+                                      vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_4to8.png'
         fig.savefig(p_out)
@@ -302,6 +309,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         (40*60, 500*60)
     ]
 
+    vmin, vmax = (1, None)
+
     time_titles = [
         'Pre-Game to 10 mins',
         '10 mins to 20 mins',
@@ -314,7 +323,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
     def _plot_time_slice(times, title, data, axis):
         data_slice = data.loc[(data['game_start_time'] > times[0]) &
                               (data['game_start_time'] <= times[1])]
-        plot_object_position(data_slice, bins=16, ax_in=axis)
+        plot_object_position(data_slice, bins=16, ax_in=axis,
+                             vmin=vmin, vmax=vmax)
         axis.set_title(title)
 
     def _process_side(query, side: Team):
@@ -331,7 +341,9 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
 
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/smoke_summary.png'.format(team_str)
-        fig.savefig(output, bbox_inches='tight')
+        fig.tight_layout()
+        fig.subplots_adjust(wspace=0.05)
+        fig.savefig(output)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_smoke_{}'.format(team_str)] = relpath
 
@@ -383,7 +395,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     draft_summary_df = draft_summary(session, r_query, team)
     fig, extra = plot_draft_summary(*draft_summary_df)
     output = team_path / 'draft_summary.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_draft_summary'] = relpath
 
@@ -391,27 +403,29 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     fig, extra = plot_player_heroes(hero_picks_df)
     fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_hero_picks'] = relpath
 
     pick_pair_df = pair_rate(session, r_query, team)
     fig, extra = plot_pick_pairs(pick_pair_df)
     output = team_path / 'pick_pairs.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pair_picks'] = relpath
 
     fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query)
     output = team_path / 'pick_context.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+    fig.tight_layout(h_pad=3.0)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pick_context'] = relpath
 
     hero_win_rate_df = hero_win_rate(r_query, team)
     fig, _ = plot_hero_winrates(hero_win_rate_df)
     output = team_path / 'hero_win_rate.png'
-    fig.savefig(output, bbox_inches='tight')
+    fig.tight_layout(h_pad=3.0)
+    fig.savefig(output, bbox_inches='tight', dpi=300)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_win_rate'] = relpath
 
