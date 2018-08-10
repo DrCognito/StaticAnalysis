@@ -16,18 +16,24 @@ from lib.team_info import InitTeamDB, TeamInfo
 from sqlalchemy.orm import sessionmaker
 
 s_maker = Setup.get_testDB()
-session = s_maker()
+#session = s_maker()
+session = Setup.get_fullDB()
 
 team_engine = InitTeamDB()
 team_maker = sessionmaker(bind=team_engine)
 team_session = team_maker()
 
+team_test_id = 1375614
 Teams = {
     'Mad Lads': team_session.query(TeamInfo)
-                            .filter(TeamInfo.team_id == 5229049).one()
+                            .filter(TeamInfo.name == 'Fnatic').one()
 }
+# Teams = {
+#     'Mad Lads': team_session.query(TeamInfo)
+#                             .filter(TeamInfo.team_id == 5229049).one()
+# }
 
-team_test_id = 5229049
+team_test_id = 1375614
 #team_test_id = 1375614
 
 filt = (Replay.teams.any(TeamSelections.teamID == team_test_id), )
@@ -94,7 +100,11 @@ def test_draft_summary():
 
 
 if __name__ == '__main__':
-    win_rate = win_rate_table(session, Teams['Mad Lads'])
+    win_rate = win_rate_table(r_query, Teams['Mad Lads'])
+    print(win_rate)
+    win_rate = win_rate[['First Rate', 'Second Rate', 'All Rate']]
+    win_rate = win_rate.fillna(0)
+    win_rate = win_rate.round(2)
     print(win_rate)
     last_hits = test_cummulative_stat()
     player_picks = test_player_picks()
