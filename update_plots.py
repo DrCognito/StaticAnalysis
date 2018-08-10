@@ -432,6 +432,16 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
+def do_statistics(team: TeamInfo, r_query, metadata: dict):
+    win_rate_df = win_rate_table(r_query, team)
+    win_rate_df = win_rate_df[['First Rate', 'Second Rate', 'All Rate']]
+    win_rate_df = win_rate_df.fillna(0)
+    win_rate_df = win_rate_df.round(2)
+    metadata['stat_win_rate'] = win_rate_df.to_html()
+
+    return metadata
+
+
 def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
     try:
         r_query = team.get_replays(session).filter(Replay.endTimeUTC >= time)
@@ -473,6 +483,8 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata)
     plt.close('all')
+    print("Processing statistics.")
+    metadata = do_statistics(team, r_query, metadata)
 
     path = store_metadata(team, metadata)
     print("Metadata file updated at {}".format(str(path)))
