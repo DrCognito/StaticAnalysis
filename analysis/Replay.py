@@ -12,32 +12,52 @@ from lib.team_info import TeamInfo
 from sqlalchemy import and_
 
 
-def win_rate_table(session, team):
+def win_rate_table(r_query, team):
 
     def _process_replays(r_in, side):
-        total = len(r_in)
-        wins = 0
+        firsttotal = 0
+        firstwins = 0
+        secondtotal = 0
+        secondwins = 0
 
         for game in r_in:
+            is_first = game.first_pick() == side
             if side == game.winner:
-                wins += 1
+                if is_first:
+                    firstwins += 1
+                else:
+                    secondwins += 1
+            if is_first:
+                firsttotal += 1
+            else:
+                secondtotal += 1
+        output = Series()
+        output['First Wins'] = firstwins
+        output['First Losses'] = firsttotal - firstwins
+        output['Second Wins'] = secondwins
+        output['Second Losses'] = secondtotal - secondwins
+        output['All Wins'] = output['First Wins'] + output['Second Wins']
+        output['All Losses'] = output['First Losses'] + output['Second Losses']
+        return output
 
-        return wins, total - wins
-
-    output = DataFrame(columns=['Win', 'Losses'])
+    output = DataFrame(columns=['Dire', 'Radiant'])
 
     f_dire = Replay.get_side_filter(team, Team.DIRE)
-    r_dire = team.get_replays(session, f_dire).all()
-    output.loc['Dire'] = _process_replays(r_dire, Team.DIRE)
+    r_dire = r_query.filter(f_dire)
+    output['Dire'] = _process_replays(r_dire, Team.DIRE)
 
     f_radiant = Replay.get_side_filter(team, Team.RADIANT)
-    r_radiant = team.get_replays(session, f_radiant).all()
-    output.loc['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
+    r_radiant = r_query.filter(f_radiant)
+    output['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
+    output['All'] = output['Dire'] + output['Radiant']
+    output.loc['First Rate'] = output.loc['First Wins']/\
+                               (output.loc['First Wins'] + output.loc['First Losses'] )
+    output.loc['Second Rate'] = output.loc['Second Wins']/\
+                               (output.loc['Second Wins'] + output.loc['Second Losses'] )
+    output.loc['All Rate'] = output.loc['All Wins']/\
+                               (output.loc['All Wins'] + output.loc['All Losses'] )
 
-    output.loc['All'] = output.loc['Dire'] + output.loc['Radiant']
-    output['Rate'] = output['Win'] / (output['Win'] + output['Losses'])
-
-    return output
+    return output.T
 
 
 def simple_side_filter(r_query, session, team: TeamInfo,
