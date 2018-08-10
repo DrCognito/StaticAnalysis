@@ -5,11 +5,13 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from replays.PositionTimeBase import PositionTimeBase
 from replays.Replay import Replay, Team
+from replays.Rune import RuneID
 from replays.Ward import Ward, WardType
 from replays.TeamSelections import PickBans
 from replays.Smoke import Smoke
 from lib.team_info import TeamInfo
 from sqlalchemy import and_
+from datetime import timedelta
 
 
 def win_rate_table(r_query, team):
@@ -145,6 +147,62 @@ def get_ptbase_tslice(session, r_query, Type,
         return w_query
 
     return dire, radiant
+
+
+def get_rune_control(r_query, team: TeamInfo):
+    '''Gets runes collected over time for team and opposition.'''
+    runes_bounty_opp = Series()
+    runes_power_opp = Series()
+    runes_bounty_team = Series()
+    runes_power_team = Series()
+
+    # Establish base line to help rebinning consistently
+    runes_bounty_opp[timedelta(seconds=0)] = 0
+    runes_power_opp[timedelta(seconds=0)] = 0
+    runes_bounty_team[timedelta(seconds=0)] = 0
+    runes_power_team[timedelta(seconds=0)] = 0
+
+    for match in r_query:
+        if match.teams[0].teamID == team.team_id or\
+           match.teams[0].stackID == team.stack_id:
+            team_side = match.teams[0].team
+        elif match.teams[1].teamID == team.team_id or\
+             match.teams[1].stackID == team.stack_id:
+            team_side = match.teams[1].team
+        else:
+            raise ValueError("Could not find team {} in replay {}"
+                             .format(team.name, match.replayID))
+
+        for rune in match.runes:
+            def _increment(time, series):
+                time = timedelta(seconds=time)
+                if time in series:
+                    series[time] += 1
+                else:
+                    series[time] = 1
+
+            is_bounty = rune.runeType == RuneID.Bounty
+
+            if is_bounty:
+                if rune.team == team_side:
+                    _increment(rune.game_time, runes_bounty_team)
+                else:
+                    _increment(rune.game_time, runes_bounty_opp)
+            else:
+                if rune.team == team_side:
+                    _increment(rune.game_time, runes_power_team)
+                else:
+                    _increment(rune.game_time, runes_power_opp)
+    data = [runes_bounty_team, runes_bounty_opp,
+            runes_power_team, runes_power_opp]
+    columns = ["Team Bounty", "Opposition Bounty",
+               "Team Power", "Opposition Power"]
+    output = DataFrame(columns=columns)
+    output["Team Bounty"] = runes_bounty_team
+    output["Opposition Bounty"] = runes_bounty_opp
+    output["Team Power"] = runes_power_team
+    output["Opposition Power"] = runes_power_opp
+    return output
 
 
 def pair_rate(session, r_query, team):
