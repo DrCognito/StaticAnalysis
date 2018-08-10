@@ -14,7 +14,8 @@ from analysis.draft_vis import replay_draft_image
 from analysis.Player import (cumulative_player, pick_context, player_heroes,
                              player_position)
 from analysis.Replay import (draft_summary, get_ptbase_tslice, get_smoke,
-                             hero_win_rate, pair_rate, win_rate_table)
+                             hero_win_rate, pair_rate, win_rate_table,
+                             get_rune_control)
 from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_draft_summary, plot_hero_winrates,
@@ -22,7 +23,8 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_object_position_scatter,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
-                                    plot_player_positioning)
+                                    plot_player_positioning,
+                                    plot_runes)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from lib.important_times import ImportantTimes
@@ -428,6 +430,16 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     fig.savefig(output, bbox_inches='tight', dpi=300)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_win_rate'] = relpath
+
+    rune_df = get_rune_control(r_query, team)
+    fig, _ = plot_runes(rune_df, team)
+    output = team_path / 'rune_control.png'
+    fig.tight_layout(h_pad=0)
+    fig.savefig(output, bbox_inches='tight', dpi=200)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['plot_rune_control'] = relpath
+
+
 
     return metadata
 
