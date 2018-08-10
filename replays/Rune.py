@@ -42,6 +42,10 @@ class Rune(Base):
 
     @hybrid_property
     def game_time(self):
+        return self.time - self.replay.creepSpawn
+
+    @game_time.expression
+    def game_time(self):
         from .Replay import Replay
         creepSpawn = select([Replay.creepSpawn]).\
             where(self.replayID == Replay.replayID).as_scalar()
