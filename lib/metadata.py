@@ -32,6 +32,8 @@ def make_meta(dataset="default"):
         'plot_pair_picks': None,
         'plot_pick_context': None,
         'plot_win_rate': None,
+
+        'stat_win_rate': None,
     }
 
     return meta
