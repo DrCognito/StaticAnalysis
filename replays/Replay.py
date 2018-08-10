@@ -88,6 +88,12 @@ class Replay(Base):
 
         return or_(id_filter, stack_filter)
 
+    def first_pick(self):
+        if self.teams[0].firstPick:
+            return self.teams[0].team
+        else:
+            return self.teams[1].team
+
 
 def InitDB(path):
     engine = create_engine(path, echo=False)
