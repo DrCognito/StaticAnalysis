@@ -10,7 +10,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_object_position_scatter,
                                     plot_draft_summary,
                                     plot_pick_pairs, plot_pick_context,
-                                    plot_hero_winrates)
+                                    plot_hero_winrates, plot_runes)
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -56,16 +56,19 @@ smokes_df = dataframe_xy_time_smoke(smokes[0], Smoke, sstat.session)
 # plot_object_position(smokes_df, bins=16)
 
 draft_summary = sstat.test_draft_summary()
-plot_draft_summary(draft_summary[0], draft_summary[1])
+# plot_draft_summary(draft_summary[0], draft_summary[1])
 
 pairs = sstat.test_pairs()
 _, ea_pairs = plot_pick_pairs(pairs)
 
-plot_pick_context(draft_summary[0],
-                  sstat.Teams['Mad Lads'],
-                  sstat.r_query)
+# plot_pick_context(draft_summary[0],
+#                   sstat.Teams['Mad Lads'],
+#                   sstat.r_query)
 
 
 hero_win_rate = sstat.test_hero_winrate()
 # Rename index to nicknames
 plot_hero_winrates(hero_win_rate)
+
+rune_df = sstat.test_runes()
+plot_runes(rune_df, sstat.Teams['Mad Lads'])

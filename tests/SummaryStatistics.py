@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from analysis.Replay import win_rate_table
 from analysis.Player import cumulative_player, player_heroes, pick_context, player_position
 from analysis.Replay import hero_win_rate, get_ptbase_tslice, pair_rate, get_smoke
-from analysis.Replay import draft_summary
+from analysis.Replay import draft_summary, get_rune_control
 from replays.Replay import Replay, determine_side_byteam
 from replays.Player import Player
 from replays.TeamSelections import TeamSelections
@@ -26,7 +26,7 @@ team_session = team_maker()
 team_test_id = 1375614
 Teams = {
     'Mad Lads': team_session.query(TeamInfo)
-                            .filter(TeamInfo.name == 'Fnatic').one()
+                            .filter(TeamInfo.name == 'IG').one()
 }
 # Teams = {
 #     'Mad Lads': team_session.query(TeamInfo)
@@ -99,6 +99,10 @@ def test_draft_summary():
     return draft_summary(session, r_query, Teams['Mad Lads'])
 
 
+def test_runes():
+    return get_rune_control(r_query, Teams['Mad Lads'])
+
+
 if __name__ == '__main__':
     win_rate = win_rate_table(r_query, Teams['Mad Lads'])
     print(win_rate)
@@ -117,3 +121,4 @@ if __name__ == '__main__':
     smokes = test_smokes()
     p5_position = test_player_position()
     draft_summary = test_draft_summary()
+    rune_df = test_runes()
