@@ -10,6 +10,7 @@ from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
+from lib.team_info import TeamInfo
 
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 from .Player import pick_context
@@ -425,3 +426,31 @@ def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
     cbar.ax.tick_params(labelsize=14)
 
     return plot
+
+
+def plot_runes(rune_data: DataFrame, team: TeamInfo):
+    fig, axes = plt.subplots(2, figsize=(10, 10))
+
+    bounty = rune_data[['Team Bounty', 'Opposition Bounty']]
+    power = rune_data[['Team Power', 'Opposition Power']]
+
+    def _process_runes(data: DataFrame, axis, labels):
+        data = data.resample('10T').sum()
+        data[labels[0]] = data.iloc[:, 0]/(data.iloc[:, 0] + data.iloc[:, 1])
+        data[labels[1]] = data.iloc[:, 1]/(data.iloc[:, 0] + data.iloc[:, 1])
+
+        data[[*labels]].plot.bar(stacked=True, ax=axis, sharex=True)
+
+    _process_runes(power, axes[0], [team.name, "Opposition"])
+    axes[0].set_ylabel("Power", fontsize=14)
+    _process_runes(bounty, axes[1], [team.name, "Opposition"])
+    axes[1].set_ylabel("Bounty", fontsize=14)
+
+    # Labels should be on bottom axis only with sharex
+    time_slices = len(axes[1].get_xticklabels())
+    labels = ["{} to {} min".format(x*10, (x+1)*10)
+              for x in range(time_slices)]
+    axes[1].set_xticklabels(labels)
+    axes[1].legend_.remove()
+
+    return fig, axes
