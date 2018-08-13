@@ -162,6 +162,7 @@ def get_rune_control(r_query, team: TeamInfo):
     runes_bounty_team[timedelta(seconds=0)] = 0
     runes_power_team[timedelta(seconds=0)] = 0
 
+    match: Replay
     for match in r_query:
         if match.teams[0].teamID == team.team_id or\
            match.teams[0].stackID == team.stack_id:
@@ -193,15 +194,15 @@ def get_rune_control(r_query, team: TeamInfo):
                     _increment(rune.game_time, runes_power_team)
                 else:
                     _increment(rune.game_time, runes_power_opp)
+
     data = [runes_bounty_team, runes_bounty_opp,
             runes_power_team, runes_power_opp]
     columns = ["Team Bounty", "Opposition Bounty",
                "Team Power", "Opposition Power"]
-    output = DataFrame(columns=columns)
-    output["Team Bounty"] = runes_bounty_team
-    output["Opposition Bounty"] = runes_bounty_opp
-    output["Team Power"] = runes_power_team
-    output["Opposition Power"] = runes_power_opp
+
+    output = concat(data, axis=1)
+    output.columns = columns
+
     return output
 
 
