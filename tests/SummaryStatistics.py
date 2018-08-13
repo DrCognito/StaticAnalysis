@@ -75,10 +75,10 @@ def test_scans():
                              start=-2*60, end=10*60)
 
 
-def test_runes():
-    return get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
-                             Type=Rune,
-                             start=-2*60, end=10*60)
+# def test_runes():
+#     return get_ptbase_tslice(session, r_query, team=Teams['Mad Lads'],
+#                              Type=Rune,
+#                              start=-2*60, end=10*60)
 
 
 def test_pairs():
