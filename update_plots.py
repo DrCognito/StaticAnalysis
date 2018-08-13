@@ -53,8 +53,9 @@ team_session = team_maker()
 TIME_CUT = ImportantTimes['PreviousTriMonth']
 
 arguments = ArgumentParser()
-arguments.add_argument('--process_team',
-                       help='''Process specific team.''')
+arguments.add_argument('--process_teams',
+                       help='''Process specific team.''',
+                       nargs='+')
 arguments.add_argument('--using_leagues',
                        help='''Use replays only from these league ids.''',
                        nargs='*')
@@ -525,16 +526,16 @@ if __name__ == "__main__":
     if args.custom_time is not None:
         TIME_CUT = datetime.utcfromtimestamp(args.custom_time)
 
-    if args.process_team is not None:
-        team = get_team(args.process_team)
-        if team is None:
-            print("Unable to find team {} in database!"
-                  .format(args.process_team))
-            quit()
+    if args.process_teams is not None:
+        for proc_team in args.process_teams:
+            team = get_team(proc_team)
+            if team is None:
+                print("Unable to find team {} in database!"
+                      .format(proc_team))
 
-        metadata = get_create_metadata(team, args.use_dataset)
-        metadata['time_cut'] = TIME_CUT.timestamp()
-        process_team(team, metadata, TIME_CUT, args.reprocess)
+            metadata = get_create_metadata(team, args.use_dataset)
+            metadata['time_cut'] = TIME_CUT.timestamp()
+            process_team(team, metadata, TIME_CUT, args.reprocess)
 
         exit()
 
