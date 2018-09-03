@@ -66,7 +66,6 @@ arguments.add_argument('--limit',
 
 if __name__ == '__main__':
     args = arguments.parse_args()
-    print(args)
 
     if args.reprocess_replay is not None:
         reprocess_replay(args.reprocess_replay)
