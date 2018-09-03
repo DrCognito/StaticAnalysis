@@ -142,6 +142,7 @@ heroShortName["npc_dota_hero_arc_warden"] = "Arc Warden"
 heroShortName["npc_dota_hero_monkey_king"] = "Monkey King"
 heroShortName["npc_dota_hero_pangolier"] = "Pang"
 heroShortName["npc_dota_hero_dark_willow"] = "D Willow"
+heroShortName["npc_dota_hero_grimstroke"] = "Grimstroke"
 heroShortName["Other"] = "Other"
 
 heroByID = {}
@@ -260,6 +261,7 @@ heroByID[113] = "npc_dota_hero_arc_warden"
 heroByID[114] = "npc_dota_hero_monkey_king"
 heroByID[120] = "npc_dota_hero_pangolier"
 heroByID[119] = "npc_dota_hero_dark_willow"
+heroByID[121] = "npc_dota_hero_grimstroke"
 
 HeroLongName = {}
 HeroLongName["AM"] = "npc_dota_hero_antimage"
@@ -377,6 +379,7 @@ HeroLongName["Arc Warden"] = "npc_dota_hero_arc_warden"
 HeroLongName["Monkey King"] = "npc_dota_hero_monkey_king"
 HeroLongName["Pang"] = "npc_dota_hero_pangolier"
 HeroLongName["D Willow"] = "npc_dota_hero_dark_willow"
+HeroLongName["Grimstroke"] = "npc_dota_hero_grimstroke"
 HeroLongName["Other"] = "Other"
 
 HeroIconPrefix = Path(environment['ICON_PATH'])
@@ -497,6 +500,7 @@ HeroIcon["Other"] = "other2.png"
 HeroIcon["Monkey King"] = "monkey_king.png"
 HeroIcon["Pang"] = "pangolier.png"
 HeroIcon["D Willow"] = "dark_willow.png"
+HeroIcon["Grimstroke"] = "grimstroke.png"
 
 SheetHeroMap = {
                "npc_dota_hero_abaddon": "abaddon",
@@ -614,6 +618,7 @@ SheetHeroMap = {
                "npc_dota_hero_witch_doctor": "witch_doctor",
                "npc_dota_hero_skeleton_king": "wraith_king",
                "npc_dota_hero_zuus": "zeus",
+               "npc_dota_hero_grimstroke": "grimstroke",
 }
 
 convDict = {
