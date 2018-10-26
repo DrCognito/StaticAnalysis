@@ -50,7 +50,7 @@ team_engine = InitTeamDB()
 team_maker = sessionmaker(bind=team_engine)
 team_session = team_maker()
 
-TIME_CUT = ImportantTimes['PreviousTriMonth']
+TIME_CUT = ImportantTimes['PreviousMonth']
 
 arguments = ArgumentParser()
 arguments.add_argument('--process_teams',
@@ -326,6 +326,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
     def _plot_time_slice(times, title, data, axis):
         data_slice = data.loc[(data['game_start_time'] > times[0]) &
                               (data['game_start_time'] <= times[1])]
+        if data_slice['xCoordinate'].isnull().all():
+            return
         plot_object_position(data_slice, bins=16, ax_in=axis,
                              vmin=vmin, vmax=vmax)
         axis.set_title(title)
