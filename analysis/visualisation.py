@@ -121,6 +121,13 @@ def plot_player_heroes(data: DataFrame):
     def _plot_player(column: Series, name: str, axis, colour: str):
         # This filters out zeroes in a series
         column = column.iloc[column.nonzero()]
+        if column.empty:
+            axis.text(0.5, 0.5, "No Data", fontsize=14,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+            axis.set_ylabel(name)
+            axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+            return axis, []
         column.sort_values(ascending=False, inplace=True)
         ax: Axes = column.plot.bar(ax=axis, sharey=True, colormap=colour)
         ax.set_ylabel(name)
@@ -157,6 +164,12 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame):
     pick_stage.append(_combine_results(picks, (4, None)))
 
     for i, i_ax in enumerate(axes[0]):
+        if pick_stage[i][0:5].empty:
+            i_ax.text(0.5, 0.5, "No Data", fontsize=14,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+            i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            continue
         pick_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
                                     colormap=pick_colour, grid=True,
                                     fontsize=8, sharey=True)
@@ -169,6 +182,12 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame):
     ban_stage.append(_combine_results(bans, (5, None)))
 
     for i, i_ax in enumerate(axes[1]):
+        if ban_stage[i][0:5].empty:
+            i_ax.text(0.5, 0.5, "No Data", fontsize=14,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+            i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            continue
         ban_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
                                    colormap=ban_colour, grid=True,
                                    fontsize=8, sharey=True)
@@ -189,6 +208,14 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
     '''
     working = data[:num_heroes]
     fig, axis = plt.subplots()
+
+    if working.empty:
+        axis.text(0.5, 0.5, "No Data", fontsize=14,
+                  horizontalalignment='center',
+                  verticalalignment='center')
+        axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+        return fig, []
+
     working.plot.bar(ax=axis, width=0.9, grid=True)
     axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -381,7 +408,13 @@ def plot_hero_winrates(data: DataFrame, mingames=3):
 
     fig, axes = plt.subplots(2, figsize=(10, 10))
     data.rename(heroShortName, inplace=True)
-    data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
+    if data['Rate'].empty:
+        axes[0].text(0.5, 0.5, "No Data", fontsize=14,
+                     horizontalalignment='center',
+                     verticalalignment='center')
+        axes[0].yaxis.set_major_locator(MaxNLocator(integer=True))
+    else:
+        data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
     subset = data.loc[data['Total'] > mingames]['Rate']\
                  .sort_values(ascending=False)
     if not subset.empty:
