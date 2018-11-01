@@ -7,6 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
@@ -177,15 +178,19 @@ def do_positioning(team: TeamInfo, r_query,
 
 
 def do_draft(team: TeamInfo, metadata,
-             update_dire=True, update_radiant=True):
+             update_dire=True, update_radiant=True,
+             r_filter=None):
     '''Produces draft images from the replays in r_query.
        Will only proceed for sides with update = True.
     '''
     if not update_dire and not update_radiant:
         return metadata
 
-    t_filter = team.filter
-    r_drafted = session.query(Replay).filter(t_filter)\
+    if r_filter is None:
+        r_filter = team.filter
+    else:
+        r_filter = and_(r_filter, team.filter)
+    r_drafted = session.query(Replay).filter(r_filter)\
                                      .outerjoin(TeamSelections)\
                                      .filter(TeamSelections.draft.any())
 
@@ -392,7 +397,7 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
-def do_summary(team: TeamInfo, r_query, metadata: dict):
+def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
@@ -404,7 +409,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict):
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_draft_summary'] = relpath
 
-    hero_picks_df = player_heroes(session, team)
+    hero_picks_df = player_heroes(session, team, r_filt=r_filter)
     fig, extra = plot_player_heroes(hero_picks_df)
     fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
@@ -458,8 +463,9 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
 
 
 def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
+    r_filter = Replay.endTimeUTC >= time
     try:
-        r_query = team.get_replays(session).filter(Replay.endTimeUTC >= time)
+        r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
@@ -477,7 +483,7 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
     metadata['replays_radiant'] = list(radiant_list)
 
     print("Processing drafts.")
-    metadata = do_draft(team, metadata, new_dire, new_radiant)
+    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
     plt.close('all')
     print("Processing positioning.")
     metadata = do_positioning(team, r_query,
@@ -496,7 +502,7 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
     metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
     print("Processing summary.")
-    metadata = do_summary(team, r_query, metadata)
+    metadata = do_summary(team, r_query, metadata, r_filter)
     plt.close('all')
     print("Processing statistics.")
     metadata = do_statistics(team, r_query, metadata)
