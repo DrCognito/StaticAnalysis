@@ -92,17 +92,24 @@ def make_summary(query_data, weights='mean'):
     fig, axList = plt.subplots(2,2, figsize=(8,10))
 
     data_in = summary.loc[(summary['t'] == t_binning[0]) & (summary['total'] > 10)]
-    plot_wards(data_in, weights=weights, ax_in=axList[0,0])
+    _, ax = plot_wards(data_in, weights=weights, ax_in=axList[0,0])
+    ax.set_title("0 to 10min")
 
     data_in = summary.loc[(summary['t'] == t_binning[1]) & (summary['total'] > 10)]
-    plot_wards(data_in, weights=weights, ax_in=axList[0,1])
+    _, ax = plot_wards(data_in, weights=weights, ax_in=axList[0,1])
+    ax.set_title("10 to 20min")
 
     data_in = summary.loc[(summary['t'] == t_binning[2]) & (summary['total'] > 10)]
-    plot_wards(data_in, weights=weights, ax_in=axList[1,0])
+    _, ax = plot_wards(data_in, weights=weights, ax_in=axList[1,0])
+    ax.set_title("20 to 30min")
 
     data_in = summary.loc[(summary['t'] == t_binning[3]) & (summary['total'] > 10)]
-    plot_wards(data_in, weights=weights, ax_in=axList[1,1])
+    _, ax = plot_wards(data_in, weights=weights, ax_in=axList[1,1])
+    ax.set_title("30+mins")
 
     return fig, axList
 
-make_summary(summary)
+
+fig, ax = make_summary(summary)
+fig.tight_layout()
+fig.savefig("ward_rate.png")
