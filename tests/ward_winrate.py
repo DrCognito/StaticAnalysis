@@ -16,7 +16,7 @@ session = Setup.get_fullDB()
 
 test = session.query(Ward.game_time, Ward.xCoordinate, Ward.yCoordinate,
                      Ward.winner)\
-              .filter(Ward.team == Team.DIRE, Ward.ward_type == WardType.OBSERVER)
+              .filter(Ward.team == Team.RADIANT, Ward.ward_type == WardType.OBSERVER)
 
 dire_df = read_sql(test.statement, session.bind)
 
@@ -112,4 +112,4 @@ def make_summary(query_data, weights='mean'):
 
 fig, ax = make_summary(summary)
 fig.tight_layout()
-fig.savefig("ward_rate.png")
+fig.savefig("ward_rate_radiant.png")
