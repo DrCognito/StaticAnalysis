@@ -5,8 +5,13 @@ from os import environ as environment
 from os import mkdir
 from pathlib import Path
 
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 from dotenv import load_dotenv
+from matplotlib.ticker import MaxNLocator
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -14,9 +19,9 @@ from sqlalchemy.orm import sessionmaker
 from analysis.draft_vis import replay_draft_image
 from analysis.Player import (cumulative_player, pick_context, player_heroes,
                              player_position)
-from analysis.Replay import (draft_summary, get_ptbase_tslice, get_smoke,
-                             hero_win_rate, pair_rate, win_rate_table,
-                             get_rune_control)
+from analysis.Replay import (draft_summary, get_ptbase_tslice,
+                             get_rune_control, get_smoke, hero_win_rate,
+                             pair_rate, win_rate_table)
 from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_draft_summary, plot_hero_winrates,
@@ -24,8 +29,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_object_position_scatter,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
-                                    plot_player_positioning,
-                                    plot_runes)
+                                    plot_player_positioning, plot_runes)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from lib.important_times import ImportantTimes
@@ -73,6 +77,12 @@ arguments.add_argument('--use_time',
 arguments.add_argument('--custom_time',
                        help='''Specity a unix time to over-ride time cut.''',
                        type=int)
+arguments.add_argument('--process_all',
+                       help='''Process all teams in the TeamInfo database.''',
+                       action='store_true')
+arguments.add_argument('--skip_datasummary',
+                       help='''Skip processing the data set summary plots.''',
+                       action='store_true')
 
 
 def get_create_metadata(team: TeamInfo, dataset="default"):
@@ -520,6 +530,126 @@ def get_team(name):
     return team
 
 
+def do_datasummary(r_filter=None):
+    # Wards
+    print("Processing ward win rates for dataset.")
+    w_filter = (Ward.ward_type == WardType.OBSERVER,)
+    if r_filter is not None:
+        w_filter = (*w_filter, *r_filter)
+
+    w_query = session.query(Ward.game_time, Ward.xCoordinate,
+                            Ward.yCoordinate, Ward.winner)\
+        .filter(and_(*w_filter))
+
+    time_binning = [(0, 10*60), (10*60, 20*60), (20*60, 30*60),
+                    (30*60, 400*60)]
+    #t_binning = interval_range(0, 30*60, 3)
+    time_binning = IntervalIndex.from_tuples(time_binning)
+    ward_bins = 16
+    spacial_binning = [float(x)/ward_bins for x in range(ward_bins)]
+
+    def _team_wards(ward_team: Team):
+        team_wards = w_query.filter(Ward.team == ward_team)
+        try:
+            ward_frame = read_sql(team_wards.statement, session.bind)
+        except SQLAlchemyError as e:
+            print(e)
+            print("Failed to retrieve replays for filter {}".format(w_filter))
+            quit()
+
+        ward_frame['tbin'] = IntervalIndex(cut(ward_frame['game_time'],
+                                               time_binning, right=True))
+        ward_frame['xbin'] = IntervalIndex(cut(ward_frame['xCoordinate'],
+                                               spacial_binning)).mid
+        ward_frame['ybin'] = IntervalIndex(cut(ward_frame['yCoordinate'],
+                                           spacial_binning)).mid
+        ward_count = ward_frame.groupby(['tbin', 'xbin', 'ybin'])[["winner"]]\
+                               .count()
+        ward_count = ward_count.reset_index()
+        ward_sum = ward_frame.groupby(['tbin', 'xbin', 'ybin'])[["winner"]]\
+                             .sum()
+        ward_sum = ward_sum.reset_index()
+        ward_mean = ward_frame.groupby(['tbin', 'xbin', 'ybin'])[["winner"]]\
+                              .mean()
+        ward_mean = ward_mean.reset_index()
+
+        summary = DataFrame({
+            'x': ward_count['xbin'],
+            'y': ward_count['ybin'],
+            't': ward_count['tbin'],
+            'mean': ward_mean['winner'],
+            'wins': ward_sum['winner'],
+            'total': ward_count['winner']
+        })
+
+        return summary
+
+    dire_summary = _team_wards(Team.DIRE)
+    radiant_summary = _team_wards(Team.RADIANT)
+
+    def _plot_wards_summary(query_data: DataFrame, weights: str, ax_in=None):
+        if ax_in is None:
+            fig, ax_in = plt.subplots(figsize=(10, 10))
+        else:
+            fig = plt.gcf()
+
+        plot = ax_in.hexbin(x=query_data['x'],
+                            y=query_data['y'],
+                            C=query_data[weights],
+                            gridsize=ward_bins, 
+                            #mincnt=1,
+                            #extent=[0, 1, 0, 1],
+                            cmap='cool',
+                            zorder=2)
+        ax_in.set_xlim([0,1])
+        ax_in.set_ylim([0,1])
+        # Add map
+        img = mpimg.imread(environment['MAP_PATH'])
+        ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+        ax_in.axis('off')
+
+        # Reposition colourbar
+        # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+        divider = make_axes_locatable(ax_in)
+        side_bar = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(plot, cax=side_bar)
+        cbar.locator = ticker.MaxNLocator(integer=True)
+        cbar.update_ticks()
+        cbar.ax.tick_params(labelsize=14)
+
+        return fig, ax_in
+
+    def _ward_summary(data: DataFrame, weights: str='mean'):
+        fig, axList = plt.subplots(2,2, figsize=(8,10))
+
+        data_in = data.loc[(data['t'] == time_binning[0]) & (data['total'] > 10)]
+        _, ax = _plot_wards_summary(data_in, weights=weights, ax_in=axList[0,0])
+        ax.set_title("0 to 10min")
+
+        data_in = data.loc[(data['t'] == time_binning[1]) & (data['total'] > 10)]
+        _, ax = _plot_wards_summary(data_in, weights=weights, ax_in=axList[0,1])
+        ax.set_title("10 to 20min")
+
+        data_in = data.loc[(data['t'] == time_binning[2]) & (data['total'] > 10)]
+        _, ax = _plot_wards_summary(data_in, weights=weights, ax_in=axList[1,0])
+        ax.set_title("20 to 30min")
+
+        data_in = data.loc[(data['t'] == time_binning[3]) & (data['total'] > 10)]
+        _, ax = _plot_wards_summary(data_in, weights=weights, ax_in=axList[1,1])
+        ax.set_title("30+mins")
+
+        return fig, axList
+
+    data_plot_dir = Path(environment['DATA_SUMMARY_OUTPUT'])
+    fig, ax = _ward_summary(dire_summary)
+    fig.tight_layout()
+    fig.savefig(data_plot_dir / 'wards_dire.png')
+
+    fig, ax = _ward_summary(radiant_summary)
+    fig.tight_layout()
+    fig.savefig(data_plot_dir / 'wards_radiant.png')
+
+
 if __name__ == "__main__":
     args = arguments.parse_args()
     print(args)
@@ -545,10 +675,11 @@ if __name__ == "__main__":
             metadata['time_cut'] = TIME_CUT.timestamp()
             process_team(team, metadata, TIME_CUT, args.reprocess)
 
-        exit()
+    if args.process_all:
+        for team in team_session.query(TeamInfo):
+            metadata = get_create_metadata(team, args.use_dataset)
+            metadata['time_cut'] = TIME_CUT.timestamp()
+            process_team(team, metadata, TIME_CUT, args.reprocess)
 
-    for team in team_session.query(TeamInfo):
-        metadata = get_create_metadata(team, args.use_dataset)
-        metadata['time_cut'] = TIME_CUT.timestamp()
-        process_team(team, metadata, TIME_CUT, args.reprocess)
-
+    if not args.skip_datasummary:
+        do_datasummary()
