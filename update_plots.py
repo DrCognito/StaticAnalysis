@@ -620,7 +620,7 @@ def do_datasummary(r_filter=None):
         return fig, ax_in
 
     def _ward_summary(data: DataFrame, weights: str='mean'):
-        fig, axList = plt.subplots(2,2, figsize=(8,10))
+        fig, axList = plt.subplots(2,2, figsize=(8,6))
 
         data_in = data.loc[(data['t'] == time_binning[0]) & (data['total'] > 10)]
         _, ax = _plot_wards_summary(data_in, weights=weights, ax_in=axList[0,0])
