@@ -64,6 +64,10 @@ arguments.add_argument('--process_teams',
 arguments.add_argument('--using_leagues',
                        help='''Use replays only from these league ids.''',
                        nargs='*')
+arguments.add_argument('--extra_stackid',
+                       help='''Extra stack id matching,
+                               only one team allowed.''',
+                       type=str)
 arguments.add_argument('--use_dataset',
                        help='''Use this or create a new dataset
                                for these options.''',
@@ -468,14 +472,16 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
     win_rate_df = win_rate_df.fillna(0)
     win_rate_df = win_rate_df.round(2)
     metadata['stat_win_rate'] = win_rate_df.to_html()
+    print(win_rate_df)
 
     return metadata
 
 
-def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False):
+def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
+                 extra_stackid=None):
     r_filter = Replay.endTimeUTC >= time
     try:
-        r_query = team.get_replays(session).filter(r_filter)
+        r_query = team.get_replays(session, extra_stackid).filter(r_filter)
     except SQLAlchemyError as e:
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
@@ -666,6 +672,9 @@ if __name__ == "__main__":
 
     if args.process_teams is not None:
         for proc_team in args.process_teams:
+            if args.extra_stackid is not None and len(args.process_teams) > 1:
+                print("Extra stack id only supported with one team.")
+                exit()
             team = get_team(proc_team)
             if team is None:
                 print("Unable to find team {} in database!"
@@ -673,7 +682,9 @@ if __name__ == "__main__":
 
             metadata = get_create_metadata(team, args.use_dataset)
             metadata['time_cut'] = TIME_CUT.timestamp()
-            process_team(team, metadata, TIME_CUT, args.reprocess)
+
+            process_team(team, metadata, TIME_CUT, args.reprocess,
+                         args.extra_stackid)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):

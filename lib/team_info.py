@@ -50,13 +50,17 @@ def InitTeamDB(path=None):
 # Adapt team_db class
 class TeamInfo(TeamInfo_DB):
     def __init__(self):
-        print("constructor!")
         self._filter = None
 
     @property
-    def filter(self):
+    def filter(self, extra_stackid=None):
         id_filter = Replay.teams.any(TeamSelections.teamID == self.team_id)
-        stack_filter = Replay.teams.any(TeamSelections.stackID == self.stack_id)
+        if extra_stackid is not None:
+            stack_filter = Replay.teams.any(TeamSelections.stackID.in_(
+                                            (self.stack_id, extra_stackid)))
+        else:
+            stack_filter = Replay.teams.any(TeamSelections.stackID ==
+                                            self.stack_id)
         return or_(id_filter, stack_filter)
 
     def replay_count(self, session):
