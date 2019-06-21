@@ -122,3 +122,6 @@ setup.env
 *.jpg
 # Created during ongoing db inserts.
 *.db-journal
+
+# Batch file for what im currently processing
+current_process.bat
