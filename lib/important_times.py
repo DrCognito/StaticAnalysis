@@ -19,4 +19,5 @@ ImportantTimes = {
     'Custom': datetime.datetime(2018, 5, 1, 0, 0, 0, 0),
     '2018': datetime.datetime(2018, 1, 1, 0, 0, 0, 0),
     'DreamLeague10': datetime.datetime(2018, 10, 29, 0, 0, 0, 0),
+    'EpiBuildUp': datetime.datetime(2019, 4, 22, 0, 0, 0, 0),
 }
