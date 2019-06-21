@@ -468,7 +468,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
 
 def do_statistics(team: TeamInfo, r_query, metadata: dict):
     win_rate_df = win_rate_table(r_query, team)
-    win_rate_df = win_rate_df[['First Rate', 'Second Rate', 'All Rate']]
+    win_rate_df = win_rate_df[['First Pick', 'Second Pick', 'All']]
     win_rate_df = win_rate_df.fillna(0)
     win_rate_df = win_rate_df.round(2)
     metadata['stat_win_rate'] = win_rate_df.to_html()

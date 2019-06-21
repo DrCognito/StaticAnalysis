@@ -52,11 +52,11 @@ def win_rate_table(r_query, team):
     r_radiant = r_query.filter(f_radiant)
     output['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
     output['All'] = output['Dire'] + output['Radiant']
-    output.loc['First Rate'] = output.loc['First Wins']/\
+    output.loc['First Pick'] = output.loc['First Wins']/\
                                (output.loc['First Wins'] + output.loc['First Losses'] )
-    output.loc['Second Rate'] = output.loc['Second Wins']/\
+    output.loc['Second Pick'] = output.loc['Second Wins']/\
                                (output.loc['Second Wins'] + output.loc['Second Losses'] )
-    output.loc['All Rate'] = output.loc['All Wins']/\
+    output.loc['All'] = output.loc['All Wins']/\
                                (output.loc['All Wins'] + output.loc['All Losses'] )
 
     return output.T

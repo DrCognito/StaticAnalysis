@@ -106,7 +106,7 @@ def test_runes():
 if __name__ == '__main__':
     win_rate = win_rate_table(r_query, Teams['Mad Lads'])
     print(win_rate)
-    win_rate = win_rate[['First Rate', 'Second Rate', 'All Rate']]
+    win_rate = win_rate[['First Pick', 'Second Pick', 'All']]
     win_rate = win_rate.fillna(0)
     win_rate = win_rate.round(2)
     print(win_rate)
