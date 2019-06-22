@@ -93,6 +93,8 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
         for r in replays:
             picks_bans = [(x.hero, x.team, x.is_pick) for t in r.teams for x in t.draft]
             for pick in picks_bans:
+                if pick[0] == hero:
+                    continue
                 if pick[1] == side:
                     if pick[2]:
                         update = 'Pick'
