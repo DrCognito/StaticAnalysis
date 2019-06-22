@@ -209,7 +209,8 @@ def do_draft(team: TeamInfo, metadata,
         r_filter = and_(r_filter, team.filter)
     r_drafted = session.query(Replay).filter(r_filter)\
                                      .outerjoin(TeamSelections)\
-                                     .filter(TeamSelections.draft.any())
+                                     .filter(TeamSelections.draft.any())\
+                                     .order_by(Replay.replayID.desc())
 
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
@@ -377,7 +378,7 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
     if update_dire:
         _process_side(s_dire, Team.DIRE)
     if update_radiant:
-        _process_side(s_dire, Team.RADIANT)
+        _process_side(s_radiant, Team.RADIANT)
 
     return metadata
 
