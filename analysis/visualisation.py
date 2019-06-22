@@ -279,16 +279,30 @@ def plot_pick_context(picks: DataFrame, team, r_query):
 
         return extra_artists
 
+    def _summarise(table, after: int):
+        '''Assumes table is already sorted descending.'''
+        other = table[after:].sum()
+        table['Other'] = other
+        table.sort_values(ascending=False, inplace=True)
+        return table[:after + 1]
+
     for i_pick, pick in enumerate(top_picks[:5].index):
         nick = convertName(pick, HeroIDType.NPC_NAME,
                            HeroIDType.NICK_NAME)
         axes[0, i_pick].set_title(nick)
 
         context = pick_context(pick, team, r_query)
-        pick = context['Pick'].sort_values(ascending=False)[:5]
-        ban = context['Ban'].sort_values(ascending=False)[:5]
-        opick = context['Opponent Pick'].sort_values(ascending=False)[:5]
-        oban = context['Opponent Ban'].sort_values(ascending=False)[:5]
+        pick = context['Pick'].sort_values(ascending=False)
+        pick = _summarise(pick, 5)
+
+        ban = context['Ban'].sort_values(ascending=False)
+        ban = _summarise(ban, 5)
+
+        opick = context['Opponent Pick'].sort_values(ascending=False)
+        opick = _summarise(opick, 5)
+
+        oban = context['Opponent Ban'].sort_values(ascending=False)
+        oban = _summarise(oban, 5)
 
         _do_plot(axes[0, i_pick], colour_list[0], pick)
         _do_plot(axes[1, i_pick], colour_list[1], ban)
