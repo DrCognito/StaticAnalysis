@@ -251,7 +251,8 @@ def do_wards(team: TeamInfo, r_query,
                                                   start=-2*60, end=10*60)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
-    metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins"]
+    metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins",
+                                   "8 to 12 mins"]
     if update_dire:
         metadata['plot_ward_dire'] = []
         output = team_path / 'dire'
@@ -283,6 +284,15 @@ def do_wards(team: TeamInfo, r_query,
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 8*60) &
+                                                  (ward_df['game_time'] <= 12*60)],
+                                      vmin=vmin, vmax=vmax)
+        fig.tight_layout()
+        p_out = output / 'wards_8to12.jpg'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_dire'].append(str(relpath))
+
     if update_radiant:
         metadata['plot_ward_radiant'] = []
         output = team_path / 'radiant'
@@ -310,6 +320,15 @@ def do_wards(team: TeamInfo, r_query,
                                       vmin=vmin, vmax=vmax)
         fig.tight_layout()
         p_out = output / 'wards_4to8.jpg'
+        fig.savefig(p_out)
+        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        metadata['plot_ward_radiant'].append(str(relpath))
+
+        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 8*60) &
+                                                  (ward_df['game_time'] <= 12*60)],
+                                      vmin=vmin, vmax=vmax)
+        fig.tight_layout()
+        p_out = output / 'wards_8to12.jpg'
         fig.savefig(p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
@@ -445,7 +464,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query)
     output = team_path / 'pick_context.png'
     fig.tight_layout(h_pad=3.0)
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pick_context'] = relpath
 
