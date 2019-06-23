@@ -145,7 +145,7 @@ def do_positioning(team: TeamInfo, r_query,
 
     if update_dire:
         metadata['plot_pos_dire'] = []
-    if update_dire:
+    if update_radiant:
         metadata['plot_pos_radiant'] = []
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     for pos in positions:
