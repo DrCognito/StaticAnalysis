@@ -487,6 +487,8 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo):
         data[labels[1]] = data.iloc[:, 1]/(data.iloc[:, 0] + data.iloc[:, 1])
 
         data[[*labels]].plot.bar(stacked=True, ax=axis, sharex=True)
+        xmin, xmax = axis.get_xlim()
+        axis.plot((xmin, xmax), (0.5, 0.5), linewidth=3, color='r')
 
     _process_runes(power, axes[0], [team.name, "Opposition"])
     axes[0].set_ylabel("Power", fontsize=14)
