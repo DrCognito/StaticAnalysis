@@ -98,10 +98,12 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
     if not team_path.exists():
         print("Adding new team {}.".format(team.name))
         mkdir(team_path)
+
+    if not dataset_path.exists():
         mkdir(dataset_path)
         mkdir(dataset_path / 'dire')
         mkdir(dataset_path / 'radiant')
-    
+
     meta_json = team_path / 'meta_data.json'
     if meta_json.exists():
         with open(meta_json, 'r') as file:
