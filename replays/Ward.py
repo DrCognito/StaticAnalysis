@@ -1,10 +1,11 @@
 from sqlalchemy import Column, BigInteger, ForeignKey
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.types import Enum
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from replays import Base
 from .Common import Team, WardType
-from .Player import Player
+from .Player import Player, PlayerStatus
 from .PositionTimeBase import PositionTimeBase
 from .JSONProcess import get_wards
 from datetime import timedelta
@@ -23,6 +24,20 @@ class Ward(PositionTimeBase, Base):
     player = relationship(Player, lazy="select", primaryjoin=
                           "and_(Ward.steamID == Player.steamID, Ward.replayID == Player.replayID)")
     replay = relationship("Replay", back_populates="wards", lazy="select")
+
+    @hybrid_property
+    def from_smoke(self):
+        return self.player.is_smoked_at(self.time)
+
+    @from_smoke.expression
+    def from_smoke(self):
+        is_smoked = select([PlayerStatus.is_smoked])\
+                        .where(PlayerStatus.replayID == self.replayID)\
+                        .where(PlayerStatus.steamID == self.steamID)\
+                        .where(PlayerStatus.time == self.time)\
+                        .as_scalar()
+
+        return is_smoked
 
     def __init__(self, replay_in):
         self.replay = replay_in
