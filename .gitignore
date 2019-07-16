@@ -126,3 +126,6 @@ setup.env
 # Batch file for what im currently processing
 current_process.bat
 current_process.ps1
+
+# Old Db files
+*.old
