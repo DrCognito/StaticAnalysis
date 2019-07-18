@@ -51,7 +51,7 @@ def get_winner(json_in):
 
 def get_wards(json_in):
     '''Returns all the wards for further processing. '''
-    yield from (x for x in json_in if x['type'] == 'ward')
+    yield from (x for x in json_in if x['type'] == 'ward' and x['entLeft'] == False)
 
 
 def get_player_positions(hero, json_in):
