@@ -14,7 +14,8 @@ def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
 
     text = "PICK" if isPick else "BAN"
     outline_colour = (0, 255, 0, 255) if isPick else (255, 0, 0, 255)
-    background_colour = (255, 255, 0, 0) if isWinner else (255, 255, 255, 0)
+    # background_colour = (255, 255, 0, 255) if isWinner else (255, 255, 255, 255)
+    background_colour = (255, 255, 255, 255)
 
     out_box = Image.new('RGBA', size, background_colour)
     canvas = ImageDraw.Draw(out_box)
@@ -64,7 +65,65 @@ def hero_box_image(hero, isPick, isFirst=False, isWinner=False):
                         (1+spacing, size[1]-1+spacing)],
                        fill='yellow')
 
+        # Text
+        text = "1st"
+        font_size = size[1] - size[0]
+        font = ImageFont.truetype('arialbd.ttf', font_size)
+        outline_colour = (255, 255, 255, 255)
+        w, h = font.getsize(text)
+        x, y = (0,0)
+        canvas.rectangle((x, y, x + w, y + h), fill='black')
+        canvas.text((x, y), text, fill='white',
+                    font=font)
+
     return hero_box
+
+
+def process_team(replay: Replay, team: TeamSelections, spacing=5):
+    hero_boxes = []
+    tot_width = spacing
+    team_win = team.team == replay.winner
+    prev_is_pick = team.draft[0].is_pick
+    extra_space = []
+    for selection in team.draft:
+        changed_phase = prev_is_pick != selection.is_pick
+        prev_is_pick = selection.is_pick
+        extra_space.append(changed_phase)
+        if changed_phase:
+            tot_width += spacing
+
+        draw_first = selection.order == 0 and team.firstPick
+
+        hbox = hero_box_image(selection.hero,
+                              selection.is_pick,
+                              draw_first,
+                              team_win)
+        #tot_width += hbox.size[0] + spacing
+        tot_width += hbox.size[0]
+        height = hbox.size[1] + spacing*2
+        hero_boxes.append(hbox)
+
+    tot_width += spacing
+
+    b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    out_box = Image.new('RGBA', (tot_width, height), b_colour)
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes):
+        # Initial offset starts after the border (+spacing)
+        #x_off = processed_size + i*spacing + extras
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, spacing),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    return out_box
 
 
 def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
