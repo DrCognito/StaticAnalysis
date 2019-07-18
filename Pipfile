@@ -12,6 +12,8 @@ pandas = "*"
 python-dotenv = "*"
 pillow = "*"
 matplotlib = "*"
+scikit-learn = "*"
+adjusttext = "*"
 
 
 [dev-packages]
