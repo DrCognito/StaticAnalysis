@@ -7,6 +7,8 @@ from lib.HeroTools import convertName, HeroIDType, HeroIconPrefix
 from replays.TeamSelections import TeamSelections
 from replays.Replay import Replay, Team
 from typing import List
+from matplotlib.axes import Axes
+from matplotlib.image import AxesImage
 
 
 def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
@@ -34,6 +36,35 @@ def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
     x_pos = math.floor(size[0]/2 - font.getsize(text)[0]/2)
     canvas.text((x_pos, size[0]), text, fill=outline_colour,
                 font=font)
+
+    return out_box
+
+
+def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
+    outline_colour = (255, 255, 255, 255)
+    background_colour = (0, 0, 0, 255)
+
+    out_box = Image.new('RGBA', size, background_colour)
+    canvas = ImageDraw.Draw(out_box)
+
+    canvas.rectangle([(0, 0), (size[0], size[1])], fill=None, outline=outline_colour)
+
+    # Text
+    if team.firstPick:
+        text = "First"
+        text_image = Image.new('RGBA', (size[1], size[0]), (0, 0, 0, 255))
+        text_canv = ImageDraw.Draw(text_image)
+
+        font_size = size[0]
+        font = ImageFont.truetype('arialbd.ttf', font_size)
+        offset = font.getsize(text)[0]
+        text_canv.text(((size[1] - offset)/2, 0), text=text,
+                       font=font, fill=(255, 255, 255))
+
+        text_image = text_image.rotate(90, expand=1)
+        px, py = 0, 0
+        sx, sy = text_image.size
+        out_box.paste(text_image, (px, py, px + sx, py + sy), text_image)
 
     return out_box
 
@@ -79,9 +110,44 @@ def hero_box_image(hero, isPick, isFirst=False, isWinner=False):
     return hero_box
 
 
+def add_draft_axes(draft: Image.Image, ax_in: Axes,
+                   height=0.1, origin=(0,0), origin_br=True) -> AxesImage:
+    """Adds a teams draft to bottom right or top right of an image.
+
+    Arguments:
+        draft {Image.Image} -- PIL image of draft.
+        ax_in {Axes} -- Target axes for plot.
+        origin {(float, float)} -- Origin of image in data coordinates.
+
+    Keyword Arguments:
+        height {float} -- Scale image to this height. (default: {0.1})
+        origin_br {bool} -- Image origin is bottom right.
+        Top right if False. (default: {True})
+
+    Returns:
+        AxesImage -- Generated AxesImage.
+    """
+    img_w, img_h = draft.size
+    width = height/img_h * img_w
+    if origin_br:
+        extent = (origin[0], origin[0] + width,
+                  origin[1], origin[1] + height)
+    else:
+        extent = (origin[0] - width, origin[0],
+                  origin[1] - height, origin[1])
+    box = ax_in.imshow(draft,
+                       extent=extent)
+
+    return box
+
+
 def process_team(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
+    # First pick indicator
+    pick_box = draw_firstpick_box(team)
+    tot_width += pick_box.size[0]
+
     team_win = team.team == replay.winner
     prev_is_pick = team.draft[0].is_pick
     extra_space = []
@@ -92,23 +158,27 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
         if changed_phase:
             tot_width += spacing
 
-        draw_first = selection.order == 0 and team.firstPick
+        # draw_first = selection.order == 0 and team.firstPick
+        draw_first = False
 
         hbox = hero_box_image(selection.hero,
                               selection.is_pick,
                               draw_first,
                               team_win)
-        #tot_width += hbox.size[0] + spacing
+
         tot_width += hbox.size[0]
         height = hbox.size[1] + spacing*2
         hero_boxes.append(hbox)
 
     tot_width += spacing
-
     b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     processed_size = spacing
+    out_box.paste(pick_box,
+                  (spacing, spacing),
+                  pick_box)
+    processed_size += pick_box.size[0]
     extras = 0
     for i, hbox in enumerate(hero_boxes):
         # Initial offset starts after the border (+spacing)
