@@ -129,3 +129,6 @@ current_process.ps1
 
 # Old Db files
 *.old
+
+# Some debugging files.
+*.pyx
