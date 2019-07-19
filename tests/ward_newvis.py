@@ -11,7 +11,7 @@ from replays.Smoke import Smoke
 from replays.TeamSelections import TeamSelections
 from lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
 from analysis.Replay import get_ptbase_tslice
-from pandas import DataFrame, read_sql
+from pandas import DataFrame, read_sql, Series
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.image as mpimg
@@ -23,6 +23,7 @@ from sklearn.cluster import KMeans
 from adjustText import adjust_text
 from analysis.draft_vis import hero_box_image, process_team
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from PIL import Image
 
 # DB Setups
 session = Setup.get_fullDB()
@@ -104,8 +105,9 @@ def get_player_init(names: List[str])-> List[str]:
 
 # Dire 4901517396
 # Radiant 4901403209
-team = get_team("Chaos Esports")
-r_query = team.get_replays(session).filter(Replay.replayID == 4903243468)
+teamName = "Royal Never Give Up"
+team = get_team(teamName)
+r_query = team.get_replays(session).filter(Replay.replayID == 4857623860)
 d_query = team.get_replays(session).filter(Replay.replayID == 4903243468)
 _, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                               Type=Ward,
@@ -226,8 +228,7 @@ def plot_overlayed_smokes(data: DataFrame, ax_in):
 
     smoke_data = data.loc[data["anon_1"] == True]
     normal_data = data.loc[data["anon_1"] == False]
-    # data['1dproj'] = data[['xCoordinate', 'yCoordinate']].apply(lambda x: (x[0])**2 + (1-x[1])**2, axis=1)
-    data = data.sort_values(by='yCoordinate', ascending=False)
+    data = data.sort_values(by='game_time', ascending=False)
 
     # ax_in.scatter(x=smoke_data['xCoordinate'],
     #               y=smoke_data['yCoordinate'],
@@ -267,33 +268,200 @@ def plot_overlayed_smokes(data: DataFrame, ax_in):
     data['clusters'] = get_clusters(data)
     cluster_info = data.groupby(['clusters',])['xCoordinate'].nunique()
     cluster_tots = cluster_info.to_dict()
-    deg_per_row = 360 / data.shape[0]
-    # for j, row in data.iterrows():
-    #     # deg_per_row = 360 / cluster_info.iloc[row['clusters']]
-    #     i = cluster_tots[row['clusters']]
-    #     cluster_tots[row['clusters']] += -1
-    #     x, y = pos_vector(40, deg_per_row*j)
-    #     annotate_point(row, ax_in, distx=x, disty=y)
 
     texts = []
     for j, row in data.iterrows():
         texts.append(text_point(row, ax_in))
 
-    # adjust_text(texts, ax=ax_in,
-    #             x=data['xCoordinate'], y=data['yCoordinate'],
-    #             force_points=(0.05,0.05),
-    #             expand_text=(1.1, 2),
-    #             only_move={'points':'xy', 'text':'xy'},
-    #             va='bottom',
-    #             ha='left',
-    #             arrowprops=dict(arrowstyle='->', color='r'),)
     adjust_text(texts, ax=ax_in,
                 va='bottom',
                 ha='left',
                 arrowprops=dict(arrowstyle='->', color='r', lw=2),)
 
 
-plot_overlayed_smokes(data, ax)
+def plot_adjusted_text(data: DataFrame, ax_in,
+                       text_kwargs={}, arrow_kwargs=None):
+    text_items = []
+    for i, text in data['label'].iteritems():
+        txt = ax_in.text(x=data['xCoordinate'][i], y=data['yCoordinate'][i],
+                         s=text,
+                         **text_kwargs)
+        text_items.append(txt)
+
+    if arrow_kwargs is not None:
+        adjust_text(text_items, ax=ax_in,
+                    va='bottom',
+                    ha='left',
+                    arrowprops=arrow_kwargs,)
+    else:
+        adjust_text(text_items, ax=ax_in,
+                    va='bottom',
+                    ha='left',)
+
+    return text_items
+
+
+def plot_adjusted_text_extras(data: DataFrame, ax_in,
+                              extra_ents,
+                              text_kwargs={}, arrow_kwargs=None):
+    text_items = []
+    for i, text in data['label'].iteritems():
+        txt = ax_in.text(x=data['xCoordinate'][i], y=data['yCoordinate'][i],
+                         s=text,
+                         **text_kwargs,
+                         zorder=10)
+        text_items.append(txt)
+
+    if arrow_kwargs is not None:
+        adjust_text(text_items, ax=ax_in,
+                    va='bottom',
+                    ha='left',
+                    add_objects=extra_ents,
+                    arrowprops=arrow_kwargs,)
+    else:
+        adjust_text(text_items, ax=ax_in,
+                    va='bottom',
+                    ha='left',
+                    add_objects=extra_ents,)
+
+    return text_items
+
+
+def plot_full_text(data: DataFrame, ax_in):
+    labels = []
+    for _, row in data.iterrows():
+        if row['game_time'] < 0:
+            mins, sec = divmod(-1*row['game_time'], 60)
+            if sec < 10:
+                sec = "0{}".format(sec)
+            time = "-{}:{}".format(mins, sec)
+        else:
+            mins, sec = divmod(row['game_time'], 60)
+            if sec < 10:
+                sec = "0{}".format(sec)
+            time = "{}:{}".format(mins, sec)
+        if row['anon_1']:
+            text = "(s){} {}".format(row['Name'], time)
+        else:
+            text = "{} {}".format(row['Name'], time)
+
+        labels.append(text)
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+    ax_in.set_xlim(0, 1)
+    ax_in.set_ylim(0, 1)
+    data['label'] = labels
+    text_style = {'color':'blue',
+                  'va':'bottom',
+                  'ha':'left',
+                  'path_effects':[PathEffects.withStroke(linewidth=3,
+                   foreground="w")]}
+    arrow_style = dict(arrowstyle='->', color='r', lw=2)
+    plot_adjusted_text(data, ax_in, text_style, arrow_style)
+
+
+def plot_num_table(data: DataFrame, ax_in):
+    data['label'] = [str(x + 1) for x in range(data.shape[0])]
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+    ax_in.set_xlim(0, 1)
+    ax_in.set_ylim(0, 1)
+
+    text_style = {'color':'blue',
+                  'va':'bottom',
+                  'ha':'left',
+                  'path_effects':[PathEffects.withStroke(linewidth=3,
+                   foreground="w")],
+                   'fontsize':14}
+    arrow_style = dict(arrowstyle='-', color='r', lw=2)
+    plot_adjusted_text(data, ax_in, text_style, arrow_style)
+    # Plot first 6
+    out_table = DataFrame()
+    out_table['label'] = data['label'][:6]
+    out_table['Name'] = data['Name'][:6]
+    out_table['time'] = data['time'][:6]
+    out_table['smoked'] = data['anon_1'][:6]
+    out_table['label2'] = data['label'][6:].reset_index()['label']
+    out_table['Name2'] = data['Name'][6:].reset_index()['Name']
+    out_table['time2'] = data['time'][6:].reset_index()['time']
+    out_table['smoked2'] = data['anon_1'][6:].reset_index()['anon_1']
+    out_table['smoked2'] = out_table['smoked2'].map({True: 'Y', False: 'N'})
+    out_table['smoked'] = out_table['smoked'].map({True: 'Y', False: 'N'})
+    out_table = out_table.apply(lambda x: Series(x.dropna().values))
+    out_table.fillna(value='', inplace=True)
+
+    tab = ax_in.table(cellText=out_table.values,
+                      loc='bottom',
+                      colWidths=[0.05,0.2,0.1,0.15,0.05,0.2,0.1,0.15],
+                      colLabels=["", "Name", "Time", "Smoked",
+                                 "", "Name", "Time", "Smoked"])
+
+
+def plot_eye_scatter_full(data: DataFrame, ax_in):
+    labels = []
+    for _, row in data.iterrows():
+        if row['game_time'] < 0:
+            mins, sec = divmod(-1*row['game_time'], 60)
+            if sec < 10:
+                sec = "0{}".format(sec)
+            time = "-{}:{}".format(mins, sec)
+        else:
+            mins, sec = divmod(row['game_time'], 60)
+            if sec < 10:
+                sec = "0{}".format(sec)
+            time = "{}:{}".format(mins, sec)
+        if row['anon_1']:
+            text = "(s){} {}".format(row['Name'], time)
+        else:
+            text = "{} {}".format(row['Name'], time)
+
+        labels.append(text)
+
+    data['label'] = labels
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.axis('off')
+    ax_in.set_xlim(0, 1)
+    ax_in.set_ylim(0, 1)
+
+    # Display wards
+    ward = Image.open('E:/Python/StaticAnalysis/img/Observer_Ward_minimap_icon_green.png')
+    ward.thumbnail((14, 34), Image.ANTIALIAS)
+
+    def _plot_eyes():
+        img_boxes = []
+        for _, row in data.iterrows():
+            imagebox = OffsetImage(ward)
+            imagebox.image.axes = ax_in
+            pos = (row['xCoordinate'], row['yCoordinate'])
+            ab = AnnotationBbox(imagebox, pos,
+                        xycoords='data',
+                        boxcoords="offset points",
+                        box_alignment=(0.5,0.5),
+                        pad=0,
+                        frameon=False
+                        )
+            ax_in.add_artist(ab)
+            ab.set_zorder(2)
+            img_boxes.append(ab)
+        return img_boxes
+
+    extra_ents = _plot_eyes()
+    print(extra_ents)
+    text_style = {'color':'blue',
+                  'va':'bottom',
+                  'ha':'left',
+                  'path_effects':[PathEffects.withStroke(linewidth=3,
+                   foreground="w")]}
+    arrow_style = dict(arrowstyle='-', color='black', lw=1)
+    plot_adjusted_text_extras(data, ax_in, extra_ents, text_style, arrow_style)
+
+#plot_overlayed_smokes(data, ax)
+#plot_full_text(data, ax)
+#plot_num_table(data, ax)
+plot_eye_scatter_full(data, ax)
 #plt.show()
 replay: Replay = r_query.first()
 t: TeamSelections
@@ -347,7 +515,7 @@ def add_draft2(draft, ax_in, height=0.1, origin=(0,0), origin_br=True):
 
 #add_draft(rdraft, (0,0), ax, size=0.2)
 add_draft2(rdraft, ax, height=0.075)
-ax.text(s="Chaos Esports", x=0, y=0.08,
+ax.text(s=teamName, x=0, y=0.08,
         path_effects=[PathEffects.withStroke(linewidth=3,
                       foreground="w")],
         ha='left', va='bottom')
