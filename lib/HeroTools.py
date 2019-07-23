@@ -2,6 +2,7 @@ import enum
 from dotenv import load_dotenv
 from os import environ as environment
 from pathlib import Path
+from json import load
 
 
 class HeroIDType(enum.Enum):
@@ -625,6 +626,10 @@ SheetHeroMap = {
                "npc_dota_hero_grimstroke": "grimstroke",
                "npc_dota_hero_mars": "mars",
 }
+
+hero_portrait_prefix = Path(environment['PORTRAIT_PATH'])
+with open(Path('.\lib\hero_portraits.json'), 'r') as f:
+    hero_portrait = load(f)
 
 convDict = {
     (HeroIDType.NPC_NAME, HeroIDType.NICK_NAME): heroShortName,
