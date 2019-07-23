@@ -49,15 +49,17 @@ def populate_from_JSON(json, replay_in, session):
 
         pick_ban = get_pick_ban(json)
         team_res = zip(pick_ban['cName'], pick_ban['team'], pick_ban['isPick'])
-        team_res = [x for x in team_res if x[1] == team.value]
+        # team_res = [x for x in team_res if x[1] == team.value]
 
         pick_ban_list = list()
         order = 0
-        for hero, _, is_pick in team_res:
+        for hero, t, is_pick in team_res:
+            order += 1
+            if t != team.value:
+                continue
             new_pb = PickBans()
             new_pb.replayID = replay_in.replayID
             new_pb.order = order
-            order += 1
             new_pb.hero = hero
             new_pb.is_pick = is_pick
 
