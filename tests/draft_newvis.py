@@ -4,7 +4,7 @@ import sys
 from os import environ as environment
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from dotenv import load_dotenv
-from analysis.draft_vis import hero_box_image, process_team
+from analysis.draft_vis import hero_box_image, process_team, hero_box_image_portrait
 from replays.Replay import Replay, Team
 from lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
 
@@ -35,3 +35,6 @@ for t in replay.teams:
 
 radiant.save('./rtest.png')
 dire.save('./dtest.png')
+
+test = hero_box_image_portrait("npc_dota_hero_viper", is_pick=True, pick_num=10)
+test.show()
