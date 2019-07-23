@@ -3,12 +3,14 @@ import math
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.HeroTools import convertName, HeroIDType, HeroIconPrefix
+from lib.HeroTools import (convertName, HeroIDType, HeroIconPrefix,
+                           hero_portrait, hero_portrait_prefix)
 from replays.TeamSelections import TeamSelections
 from replays.Replay import Replay, Team
 from typing import List
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
+from pathlib import Path
 
 
 def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
@@ -65,6 +67,87 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
         px, py = 0, 0
         sx, sy = text_image.size
         out_box.paste(text_image, (px, py, px + sx, py + sy), text_image)
+
+    return out_box
+
+
+def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int):
+    image: str = hero_portrait[hero]
+    if not is_pick:
+        image = image.replace(".png", "_grey.png")
+    portrait_location = hero_portrait_prefix / image
+    portrait = Image.open(portrait_location)
+
+    portrait = portrait.convert("RGBA")
+
+    # Dimensions
+    dimensions = portrait.size
+    text_box_x = dimensions[0]
+    text_box_y = dimensions[1] // 3
+    font_size = text_box_y - 2
+    y_spacing = 2
+    boarder = 2
+
+    text_off_y = boarder + dimensions[1] + y_spacing
+
+    # Build over all box
+    background_colour = (255, 255, 255, 0)
+    size = (text_box_x + 2*boarder,
+            text_box_y + dimensions[1] + 2*boarder + y_spacing)
+    out_box = Image.new('RGBA', size, background_colour)
+    canvas = ImageDraw.Draw(out_box)
+
+    if is_pick:
+        text = "PICK"
+        extra = hero_portrait_prefix.parent / "check_mark.png"
+    else:
+        text = "BAN"
+        extra = hero_portrait_prefix.parent / "x_mark.png"
+
+    extra_graphic = Image.open(extra).convert("RGBA")
+    extra_graphic = extra_graphic.resize((font_size, font_size))
+
+    # Put in the portrait
+    out_box.paste(portrait, (boarder, boarder), portrait)
+
+    # Text box
+    canvas.rectangle((boarder, text_off_y,
+                      boarder + text_box_x,
+                      text_off_y + text_box_y), fill='black')
+    font = ImageFont.truetype('arialbd.ttf', font_size)
+
+    text_size = font.getsize(text)
+    text_off = text_box_x // 2 - text_size[0] // 2 + extra_graphic.size[0] // 2
+    canvas.text((text_off, text_off_y + 1), text, fill='white',
+                font=font)
+
+    # Add the extra graphic
+    out_box.paste(extra_graphic, (text_off - font_size - 1, text_off_y + 2),
+                  extra_graphic)
+
+    # Number box, has to be drawn to temp canvas
+    tint = (0, 0, 0, 200)
+    # transparent version of the tint color.
+    tmp = Image.new('RGBA', out_box.size, (0, 0, 0, 0))
+    # Create a drawing context for it.
+    draw = ImageDraw.Draw(tmp)
+    draw.rectangle((text_box_x + boarder - 1.5*font_size,
+                    boarder,
+                    text_box_x,
+                    boarder + 1.5*font_size),
+                   fill=tint)
+    str_num = str(pick_num)
+    if len(str_num) == 1:
+        # Adjust for single didget size manually
+        factor = 1.0
+    else:
+        factor = 1.5
+    w, h = font.getsize(str(pick_num))
+
+    draw.text((text_box_x + boarder - factor*font_size, boarder + 1),
+                str_num,
+                fill='white', font=font)
+    out_box = Image.alpha_composite(out_box, tmp)
 
     return out_box
 
@@ -145,8 +228,8 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
     # First pick indicator
-    pick_box = draw_firstpick_box(team)
-    tot_width += pick_box.size[0]
+    # pick_box = draw_firstpick_box(team)
+    # tot_width += pick_box.size[0]
 
     team_win = team.team == replay.winner
     prev_is_pick = team.draft[0].is_pick
@@ -161,10 +244,14 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
         # draw_first = selection.order == 0 and team.firstPick
         draw_first = False
 
-        hbox = hero_box_image(selection.hero,
-                              selection.is_pick,
-                              draw_first,
-                              team_win)
+        # hbox = hero_box_image(selection.hero,
+        #                       selection.is_pick,
+        #                       draw_first,
+        #                       team_win)
+
+        hbox = hero_box_image_portrait(selection.hero,
+                                       selection.is_pick,
+                                       selection.order)
 
         tot_width += hbox.size[0]
         height = hbox.size[1] + spacing*2
@@ -175,10 +262,10 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     processed_size = spacing
-    out_box.paste(pick_box,
-                  (spacing, spacing),
-                  pick_box)
-    processed_size += pick_box.size[0]
+    # out_box.paste(pick_box,
+    #               (spacing, spacing),
+    #               pick_box)
+    # processed_size += pick_box.size[0]
     extras = 0
     for i, hbox in enumerate(hero_boxes):
         # Initial offset starts after the border (+spacing)
