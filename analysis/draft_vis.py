@@ -194,7 +194,7 @@ def hero_box_image(hero, isPick, isFirst=False, isWinner=False):
 
 
 def add_draft_axes(draft: Image.Image, ax_in: Axes,
-                   height=0.1, origin=(0,0), origin_br=True) -> AxesImage:
+                   height=0.1, origin=(0, 0), origin_br=True) -> AxesImage:
     """Adds a teams draft to bottom right or top right of an image.
 
     Arguments:
@@ -258,7 +258,8 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
         hero_boxes.append(hbox)
 
     tot_width += spacing
-    b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    b_colour = (255, 255, 255, 0)
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     processed_size = spacing
