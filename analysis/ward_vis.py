@@ -18,17 +18,18 @@ from PIL.Image import Image
 from PIL.Image import open as Image_open
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from analysis.draft_vis import add_draft_axes, process_team
+from analysis.visualisation import make_image_annotation2
 
 
 def build_ward_table(query: Query, session: Session,
                      team_session: Session) -> DataFrame:
     """Build a table of wards with coordinates, IDs, names and times.
-    
+
     Arguments:
         query {Query} -- Database query with Wards.
         session {Session} -- Session of the parsed DB.
         team_session {Session} -- Open session to team_info DB.
-    
+
     Returns:
         DataFrame -- Includes x, y, steamID, times, smoke status, name.
     """
@@ -74,22 +75,24 @@ def plot_labels(data: DataFrame, ax_in: Axes,
     return text_items
 
 
-def label_smoke_name_time(data: DataFrame) -> DataFrame:
+def label_smoke_name_time(data: DataFrame, number: bool = False) -> DataFrame:
     """Creates a label column with format (s) name time
 
     Arguments:
         data {DataFrame} -- DataFrame containing name, smoke status and time.
+        number {bool} -- Determines if labels are prefixed with a number.
 
     Returns:
         DataFrame -- DataFrame with the new label column added.
     """
     labels = []
 
-    for _, row in data.iterrows():
+    for i, row in data.iterrows():
+        text = "{} {}".format(row['Name'], row['time'])
         if row['anon_1']:
-            text = "(s){} {}".format(row['Name'], row['time'])
-        else:
-            text = "{} {}".format(row['Name'], row['time'])
+            text = "(s)" + text
+        if number:
+            text = "{}. ".format(i + 1) + text
 
         labels.append(text)
 
@@ -155,12 +158,12 @@ def plot_sum_table(data: DataFrame, ax_in: Axes) -> Table:
 
 def plot_image_scatter(data: DataFrame, ax_in: Axes, img: Image) -> list:
     """Creates a scatter plot using the images instead of points on ax_in.
-    
+
     Arguments:
         data {DataFrame} -- Provides xCoordinate and yCoordinate
         ax_in {Axes} -- Target axes for the plot.
         img {Image} -- PIL Image already sized to be placed on plot.
-    
+
     Returns:
         list -- List of created AnnotationBbox objects
     """
@@ -254,10 +257,10 @@ def plot_eye_scatter(data: DataFrame, ax_in: Axes,
         data {DataFrame} -- Table with xCoordinate, yCoordinate, time,
          smoke and Name
         ax_in {Axes} -- Target axes for plot
-    
+
     Keyword Arguments:
         size {[type]} -- Image size (default: {(14, 34)})
-    
+
     Returns:
         list -- Returns list of generated plot entities.
     """
@@ -265,8 +268,8 @@ def plot_eye_scatter(data: DataFrame, ax_in: Axes,
     plot_map(ax_in)
 
     # Add labels
-    #data = label_smoke_name_time(data)
-    data['label'] = [str(x + 1) for x in range(data.shape[0])]
+    data = label_smoke_name_time(data, number=True)
+    # data['label'] = [str(x + 1) for x in range(data.shape[0])]
     text_style = {'color': 'blue',
                   'va': 'bottom',
                   'ha': 'left',
@@ -283,9 +286,12 @@ def plot_eye_scatter(data: DataFrame, ax_in: Axes,
     adjust_text(text_ents, extra_ents=extra_ents, ax=ax_in)
 
     # Add summary table
+    data['label'] = [str(x + 1) for x in range(data.shape[0])]
     table = plot_sum_table(data, ax_in)
 
-    return text_ents + extra_ents
+    extra_ents += text_ents
+    extra_ents.append(table)
+    return extra_ents
 
 
 def plot_drafts(r_query: Query, ax_in: Axes,
@@ -311,17 +317,67 @@ def plot_drafts(r_query: Query, ax_in: Axes,
         else:
             ddraft = process_team(replay, t)
 
-    r_draft_box = add_draft_axes(rdraft, ax_in, height=0.075)
+    r_draft_box = add_draft_axes(rdraft, ax_in, height=0.075,
+                                 origin=(0, 1))
     r_name_box = ax_in.text(s=r_name, x=0, y=0.08,
                             path_effects=[PathEffects.withStroke(linewidth=3,
                                           foreground="w")],
                             ha='left', va='bottom')
 
     d_draft_box = add_draft_axes(ddraft, ax_in, height=0.075,
-                                 origin_br=False, origin=(1, 1))
-    d_name_box = ax_in.text(s=d_name, x=1.0, y=1.0 - 0.08,
+                                 origin=(0, 1 + 0.1))
+    d_name_box = ax_in.text(s=d_name, x=1.0, y=1.1 - 0.08,
                             path_effects=[PathEffects.withStroke(linewidth=3,
                                           foreground="w")],
                             ha='right', va='top')
+
+    return [r_draft_box, r_name_box, d_draft_box, d_name_box]
+
+
+def plot_drafts_above(r_query: Query, ax_in: Axes,
+                      r_name: str="Opposition",
+                      d_name: str="Opposition") -> list:
+    """Plot the draft lines from a replay above an axes
+
+    Arguments:
+        replay {Replay} -- Replay object containing the TeamSelections.
+        ax_in {Axes} -- Axes to plot on.
+
+    Keyword Arguments:
+        r_name {str} -- Radiant team name. (default: {"Opposition"})
+        d_name {str} -- Dire team name. (default: {"Opposition"})
+
+    Returns:
+        list -- List of generated plotted objects.
+    """
+    replay: Replay = r_query.one()
+    for t in replay.teams:
+        if t.team == Team.RADIANT:
+            rdraft = process_team(replay, t)
+        else:
+            ddraft = process_team(replay, t)
+
+    r_draft_box = make_image_annotation2(rdraft, ax_in, x=0.5, y=1.0,
+                                         size=0.78)
+    r_name_box = ax_in.text(s=r_name, x=0, y=1.0 + 0.18,
+                            path_effects=[PathEffects.withStroke(linewidth=3,
+                                          foreground="w")],
+                            ha='left', va='bottom', zorder=5,
+                            color='#598307')
+
+    d_draft_box = make_image_annotation2(ddraft, ax_in, x=0.5, y=1.1,
+                                         size=0.78)
+    d_name_box = ax_in.text(s=d_name, x=0.0, y=1.0 + 0.08,
+                            path_effects=[PathEffects.withStroke(linewidth=3,
+                                          foreground="w")],
+                            ha='left', va='bottom', zorder=5,
+                            color='#A83806')
+
+    # Simple replay text
+    ax_in.text(s=str(replay.replayID), x=0, y=0,
+               ha='left', va='bottom', zorder=5,
+               path_effects=[PathEffects.withStroke(linewidth=3,
+                             foreground="w")],
+               color='black')
 
     return [r_draft_box, r_name_box, d_draft_box, d_name_box]
