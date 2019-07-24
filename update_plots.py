@@ -20,8 +20,9 @@ from analysis.draft_vis import replay_draft_image
 from analysis.Player import (cumulative_player, pick_context, player_heroes,
                              player_position)
 from analysis.Replay import (draft_summary, get_ptbase_tslice,
+                             get_ptbase_tslice_side,
                              get_rune_control, get_smoke, hero_win_rate,
-                             pair_rate, win_rate_table)
+                             pair_rate, win_rate_table, get_side_replays)
 from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_draft_summary, plot_hero_winrates,
@@ -42,6 +43,8 @@ from replays.Scan import Scan
 from replays.Smoke import Smoke
 from replays.TeamSelections import TeamSelections
 from replays.Ward import Ward, WardType
+from analysis.ward_vis import build_ward_table
+from analysis.ward_vis import plot_eye_scatter, plot_drafts_above
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -102,7 +105,9 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
     if not dataset_path.exists():
         mkdir(dataset_path)
         mkdir(dataset_path / 'dire')
+        mkdir(dataset_path / 'dire/wards')
         mkdir(dataset_path / 'radiant')
+        mkdir(dataset_path / 'radiant/wards')
 
     meta_json = team_path / 'meta_data.json'
     if meta_json.exists():
@@ -235,6 +240,83 @@ def do_draft(team: TeamInfo, metadata,
         radiant_drafts.save(output)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_radiant_drafts'] = relpath
+
+    return metadata
+
+
+def do_wards_separate(team: TeamInfo, r_query,
+                      metadata: dict,
+                      update_dire=True, update_radiant=True,
+                      time_range=(-2*60, 20*60),
+                      limit=None):
+    """Plots per replay ward plots and returns assosciated metadata for a query.
+    
+    Arguments:
+        team {TeamInfo} -- TeamInfo object corresponding to processing team.
+        r_query {[type]} -- Fitlered query for replays containing team.
+        metadata {dict} -- Metadata dictionary to be accessed and returned.
+    
+    Keyword Arguments:
+        update_dire {bool} -- Process dire replays for team. (default: {True})
+        update_radiant {bool} -- Process radiant replays for team. (default: {True})
+    """
+    if not update_dire and not update_radiant:
+        return metadata
+    team_path: Path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    dire_loc: Path = team_path / "dire/wards"
+    radiant_loc: Path = team_path / "radiant/wards"
+
+    def _process_ward_replay(side: Team, r_query, replay_id,
+                             time_range=(-2*60, 20*60)):
+        if side == Team.DIRE:
+            outloc = dire_loc / (str(replay_id) + ".png")
+            r_name = "Opposition"
+            d_name = team.name
+        else:
+            outloc = radiant_loc / (str(replay_id) + ".png")
+            d_name = "Opposition"
+            r_name = team.name
+
+        if outloc.exists():
+            return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
+
+        r_query = r_query.filter(Replay.replayID == replay_id)
+        wards = get_ptbase_tslice_side(session, r_query, team=team,
+                                       Type=Ward,
+                                       side=side,
+                                       start=-2*60, end=20*60)
+        wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
+
+        data = build_ward_table(wards, session, team_session)
+        fig, ax = plt.subplots(figsize=(10, 13))
+        extras = plot_eye_scatter(data, ax, size=(18, 14))
+        drafts = plot_drafts_above(r_query, ax, r_name=r_name,
+                                   d_name=d_name)
+        fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras),
+                    bbox_inches='tight')
+
+        return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
+
+    def _process_side(side: Team, replays):
+        if limit is not None:
+            r_ids = replays.with_entities(Replay.replayID).limit(limit)
+        else:
+            r_ids = replays.with_entities(Replay.replayID)
+        if side == Team.DIRE:
+            out_key = "wards_dire"
+        else:
+            out_key = "wards_radiant"
+        metadata[out_key] = {}
+        r: Replay.replayID
+        for r, in r_ids:
+            new_plot = _process_ward_replay(side, r_query, r, time_range)
+            metadata[out_key][r] = new_plot
+
+    d_replays, r_replays = get_side_replays(r_query, session, team)
+    if update_dire:
+        _process_side(Team.DIRE, d_replays)
+    if update_radiant:
+        _process_side(Team.RADIANT, r_replays)
 
     return metadata
 
@@ -536,6 +618,8 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Processing wards.")
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
+    print("Processing individual ward replays.")
+    metadata = do_wards_separate(team, r_query, metadata, new_dire, new_radiant)
     print("Processing smoke.")
     metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
