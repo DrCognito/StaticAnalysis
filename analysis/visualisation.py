@@ -82,6 +82,31 @@ def make_image_annotation(icon, axes, x, y, size=1.0):
     return imagebox
 
 
+def make_image_annotation2(image, axes, x, y, size=1.0, bbox=None):
+    # mage = Image.open(image)
+    # Resize if necessary
+    if size != 1.0:
+        width, height = image.size
+        width = width*size
+        height = height*size
+        image.thumbnail((width, height))
+
+    imagebox = OffsetImage(image)
+    imagebox.image.axes = axes
+
+    ab = AnnotationBbox(imagebox, (x, y),
+                        xycoords='axes fraction',
+                        boxcoords="offset points",
+                        pad=0,
+                        frameon=False,
+                        box_alignment=(0.5, 0)
+                        )
+
+    axes.add_artist(ab)
+
+    return imagebox
+
+
 def x_label_icon(axis, y_pos=-0.15, size=1.0):
     x_axis = axis.get_xaxis()
 
