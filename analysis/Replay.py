@@ -85,6 +85,16 @@ def get_smoke(r_query, session, team: TeamInfo):
     return dire, radiant
 
 
+def get_side_replays(r_query, session, team: TeamInfo):
+    dire_filter = Replay.get_side_filter(team, Team.DIRE)
+    radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
+
+    dire = r_query.filter(dire_filter)
+    radiant = r_query.filter(radiant_filter)
+
+    return dire, radiant
+
+
 def hero_win_rate(r_query, team):
     output = DataFrame(columns=['Win', 'Loss'])
 
@@ -129,24 +139,36 @@ def get_ptbase_tslice(session, r_query, Type,
     else:
         t_filter = None
 
-    dire = simple_side_filter(r_query, session, team, Type, Team.DIRE, t_filter)
-    radiant = simple_side_filter(r_query, session, team, Type, Team.RADIANT, t_filter)
-
-    def _process_side(side):
-        r_filter = Replay.get_side_filter(team, side)
-        replays = r_query.filter(r_filter)
-
-        if t_filter is not None:
-            w_query = session.query(Type).filter(t_filter)\
-                                         .filter(Type.team == side)\
-                                         .join(replays)
-        else:
-            w_query = session.query(Type).filter(Type.team == side)\
-                                         .join(replays)
-
-        return w_query
+    dire = simple_side_filter(r_query, session, team, Type, Team.DIRE,
+                              t_filter)
+    radiant = simple_side_filter(r_query, session, team, Type, Team.RADIANT,
+                                 t_filter)
 
     return dire, radiant
+
+
+def get_ptbase_tslice_side(session, r_query, Type,
+                           team: TeamInfo,
+                           side: Team,
+                           start=None, end=None):
+    if start is not None and end is not None:
+        assert(end >= start)
+        t_filter = and_(Type.game_time > start, Type.game_time <= end)
+    elif start is not None:
+        t_filter = Type.game_time > start
+    elif end is not None:
+        t_filter = Type.game_time <= end
+    else:
+        t_filter = None
+
+    if side == Team.DIRE:
+        out = simple_side_filter(r_query, session, team, Type, Team.DIRE,
+                                 t_filter)
+    else:
+        out = simple_side_filter(r_query, session, team, Type, Team.RADIANT,
+                                 t_filter)
+
+    return out
 
 
 def get_rune_control(r_query, team: TeamInfo):
