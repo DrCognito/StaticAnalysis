@@ -21,6 +21,9 @@ def make_meta(dataset="default"):
         'plot_ward_radiant': [],
         'plot_ward_names': [],
 
+        'wards_dire': {},
+        'wards_radiant': {},
+
         'plot_scan_dire': None,
         'plot_scan_radiant': None,
 
