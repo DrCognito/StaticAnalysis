@@ -22,4 +22,5 @@ ImportantTimes = {
     'EpiBuildUp': datetime.datetime(2019, 4, 22, 0, 0, 0, 0),
     'Epi2019': datetime.datetime(2019, 6, 22, 0, 0, 0, 0),
     'TIQuals2019': datetime.datetime(2019, 7, 2, 0, 0, 0, 0),
+    'TheSummit10': datetime.datetime(2019, 7, 25, 0, 0, 0, 0),
 }
