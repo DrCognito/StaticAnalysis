@@ -76,8 +76,7 @@ arguments.add_argument('--extra_stackid',
                        type=str)
 arguments.add_argument('--use_dataset',
                        help='''Use this or create a new dataset
-                               for these options.''',
-                       default='default')
+                               for these options.''')
 arguments.add_argument('--reprocess',
                        help='''Remake plots regardless of metadata''',
                        action='store_true')
@@ -250,12 +249,12 @@ def do_wards_separate(team: TeamInfo, r_query,
                       time_range=(-2*60, 20*60),
                       limit=None):
     """Plots per replay ward plots and returns assosciated metadata for a query.
-    
+
     Arguments:
         team {TeamInfo} -- TeamInfo object corresponding to processing team.
         r_query {[type]} -- Fitlered query for replays containing team.
         metadata {dict} -- Metadata dictionary to be accessed and returned.
-    
+
     Keyword Arguments:
         update_dire {bool} -- Process dire replays for team. (default: {True})
         update_radiant {bool} -- Process radiant replays for team. (default: {True})
@@ -265,6 +264,14 @@ def do_wards_separate(team: TeamInfo, r_query,
     team_path: Path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     dire_loc: Path = team_path / "dire/wards"
     radiant_loc: Path = team_path / "radiant/wards"
+
+    def _get_ax_size(ax_in, fig_in):
+        bbox = ax_in.get_window_extent()\
+                    .transformed(fig_in.dpi_scale_trans.inverted())
+        width, height = bbox.width, bbox.height
+        width *= fig_in.dpi
+        height *= fig_in.dpi
+        return width, height
 
     def _process_ward_replay(side: Team, r_query, replay_id,
                              time_range=(-2*60, 20*60)):
@@ -288,12 +295,17 @@ def do_wards_separate(team: TeamInfo, r_query,
         wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
 
         data = build_ward_table(wards, session, team_session)
+        if data.empty:
+            raise LookupError("Ward table empty!")
         fig, ax = plt.subplots(figsize=(10, 13))
+        width, height = _get_ax_size(ax, fig)
         extras = plot_eye_scatter(data, ax, size=(18, 14))
-        drafts = plot_drafts_above(r_query, ax, r_name=r_name,
+        drafts = plot_drafts_above(r_query, ax, width,
+                                   r_name=r_name,
                                    d_name=d_name)
         fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras),
                     bbox_inches='tight')
+        plt.close('all')
 
         return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
 
@@ -309,7 +321,11 @@ def do_wards_separate(team: TeamInfo, r_query,
         metadata[out_key] = {}
         r: Replay.replayID
         for r, in r_ids:
-            new_plot = _process_ward_replay(side, r_query, r, time_range)
+            try:
+                new_plot = _process_ward_replay(side, r_query, r, time_range)
+            except LookupError:
+                print("Failed to process individual wards for {}.".format(r))
+                continue
             metadata[out_key][r] = new_plot
 
     d_replays, r_replays = get_side_replays(r_query, session, team)
@@ -568,8 +584,6 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_rune_control'] = relpath
 
-
-
     return metadata
 
 
@@ -619,7 +633,9 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
     print("Processing individual ward replays.")
-    metadata = do_wards_separate(team, r_query, metadata, new_dire, new_radiant)
+    metadata = do_wards_separate(team, r_query, metadata, new_dire,
+                                 new_radiant)
+    plt.close('all')
     print("Processing smoke.")
     metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
@@ -779,6 +795,13 @@ if __name__ == "__main__":
     if args.custom_time is not None:
         TIME_CUT = datetime.utcfromtimestamp(args.custom_time)
 
+    if args.use_dataset:
+        data_set_name = args.use_dataset
+    elif args.use_time:
+        data_set_name = args.use_time
+    else:
+        data_set_name = "default"
+
     if args.process_teams is not None:
         for proc_team in args.process_teams:
             if args.extra_stackid is not None and len(args.process_teams) > 1:
@@ -789,7 +812,7 @@ if __name__ == "__main__":
                 print("Unable to find team {} in database!"
                       .format(proc_team))
 
-            metadata = get_create_metadata(team, args.use_dataset)
+            metadata = get_create_metadata(team, data_set_name)
             metadata['time_cut'] = TIME_CUT.timestamp()
 
             process_team(team, metadata, TIME_CUT, args.reprocess,
@@ -797,9 +820,9 @@ if __name__ == "__main__":
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
-            metadata = get_create_metadata(team, args.use_dataset)
+            metadata = get_create_metadata(team, data_set_name)
             metadata['time_cut'] = TIME_CUT.timestamp()
             process_team(team, metadata, TIME_CUT, args.reprocess)
 
-    if not args.skip_datasummary:
-        do_datasummary()
+    # if not args.skip_datasummary:
+    #     do_datasummary()
