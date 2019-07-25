@@ -42,8 +42,8 @@ from analysis.ward_vis import plot_full_text, plot_num_table, plot_eye_scatter, 
 
 fig, ax = plt.subplots(figsize=(10, 13))
 plot_full_text(data, ax)
-plot_drafts(r_query, ax, r_name=teamName)
-fig.savefig("r_full_text.png", bbox_inches='tight')
+# plot_drafts(r_query, ax, r_name=teamName)
+# fig.savefig("r_full_text.png", bbox_inches='tight')
 
 # fig, ax = plt.subplots(figsize=(10, 13))
 # plot_full_text(ddata, ax)
@@ -70,9 +70,20 @@ fig.savefig("r_full_text.png", bbox_inches='tight')
 # plot_drafts(r_query, ax, r_name=teamName)
 # fig.savefig("eye_small.png", bbox_inches='tight')
 
+
+# https://stackoverflow.com/questions/19306510/determine-matplotlib-axis-size-in-pixels
+def get_ax_size(ax_in, fig_in):
+    bbox = ax_in.get_window_extent()\
+                .transformed(fig_in.dpi_scale_trans.inverted())
+    width, height = bbox.width, bbox.height
+    width *= fig_in.dpi
+    height *= fig_in.dpi
+    return width, height
+
 fig, ax = plt.subplots(figsize=(10, 13))
+width, height = get_ax_size(ax, fig)
 extras = plot_eye_scatter(data, ax, size=(18, 14))
-drafts = plot_drafts_above(r_query, ax, r_name=teamName)
+drafts = plot_drafts_above(r_query, ax, width, r_name=teamName)
 #fig.savefig("r_eye_med.png", bbox_inches='tight')
 fig.savefig("r_eye_med.png", bbox_extra_artists=(*drafts, *extras), bbox_inches='tight')
 
