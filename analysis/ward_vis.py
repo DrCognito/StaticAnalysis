@@ -14,11 +14,14 @@ from adjustText import adjust_text
 import matplotlib.patheffects as PathEffects
 from matplotlib.table import Table
 from math import ceil
-from PIL.Image import Image
+from PIL.Image import Image, ANTIALIAS
 from PIL.Image import open as Image_open
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from analysis.draft_vis import add_draft_axes, process_team
+from analysis.draft_vis import add_draft_axes, process_team_portrait
 from analysis.visualisation import make_image_annotation2
+
+
+colour_list = ['black', 'red', 'blue', 'magenta', 'purple']
 
 
 def build_ward_table(query: Query, session: Session,
@@ -147,11 +150,14 @@ def plot_sum_table(data: DataFrame, ax_in: Axes) -> Table:
     # Needed in case we have uneven numbers
     summary_table.fillna(value='', inplace=True)
 
-    table = ax_in.table(cellText=summary_table.values,
-                        loc='bottom',
-                        colWidths=[0.05, 0.2, 0.1, 0.15, 0.05, 0.2, 0.1, 0.15],
-                        colLabels=["", "Name", "Time", "Smoked",
-                                   "", "Name", "Time", "Smoked"])
+    try:
+        table = ax_in.table(cellText=summary_table.values,
+                            loc='bottom',
+                            colWidths=[0.05, 0.2, 0.1, 0.15, 0.05, 0.2, 0.1, 0.15],
+                            colLabels=["", "Name", "Time", "Smoked",
+                                    "", "Name", "Time", "Smoked"])
+    except IndexError:
+        print(table)
 
     return table
 
@@ -268,15 +274,22 @@ def plot_eye_scatter(data: DataFrame, ax_in: Axes,
     plot_map(ax_in)
 
     # Add labels
-    data = label_smoke_name_time(data, number=True)
-    # data['label'] = [str(x + 1) for x in range(data.shape[0])]
+    #data = label_smoke_name_time(data, number=True)
+    data['label'] = ["{}.".format(x + 1) for x in range(data.shape[0])]
     text_style = {'color': 'blue',
                   'va': 'bottom',
                   'ha': 'left',
                   'path_effects': [PathEffects.withStroke(linewidth=3,
                                    foreground="w")],
                   'fontsize': 14}
-    text_ents = plot_labels(data, ax_in, text_style)
+
+    text_ents = []
+    for i, player in enumerate(data.Name.unique()):
+        text_style['color'] = colour_list[i]
+        p_data = data.loc[data['Name'] == player]
+        text_ents += plot_labels(p_data, ax_in, text_style)
+
+    # text_ents = plot_labels(data, ax_in, text_style)
 
     ward = Image_open(environment['WARD_ICON'])
     ward.thumbnail(size)
@@ -302,6 +315,7 @@ def plot_drafts(r_query: Query, ax_in: Axes,
     Arguments:
         replay {Replay} -- Replay object containing the TeamSelections.
         ax_in {Axes} -- Axes to plot on.
+        width {int} -- Width of the draft to scale everything to.
 
     Keyword Arguments:
         r_name {str} -- Radiant team name. (default: {"Opposition"})
@@ -313,9 +327,9 @@ def plot_drafts(r_query: Query, ax_in: Axes,
     replay = r_query.one()
     for t in replay.teams:
         if t.team == Team.RADIANT:
-            rdraft = process_team(replay, t)
+            rdraft = process_team_portrait(replay, t)
         else:
-            ddraft = process_team(replay, t)
+            ddraft = process_team_portrait(replay, t)
 
     r_draft_box = add_draft_axes(rdraft, ax_in, height=0.075,
                                  origin=(0, 1))
@@ -335,8 +349,9 @@ def plot_drafts(r_query: Query, ax_in: Axes,
 
 
 def plot_drafts_above(r_query: Query, ax_in: Axes,
+                      width,
                       r_name: str="Opposition",
-                      d_name: str="Opposition") -> list:
+                      d_name: str="Opposition",) -> list:
     """Plot the draft lines from a replay above an axes
 
     Arguments:
@@ -353,10 +368,16 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
     replay: Replay = r_query.one()
     for t in replay.teams:
         if t.team == Team.RADIANT:
-            rdraft = process_team(replay, t)
+            rdraft = process_team_portrait(replay, t)
         else:
-            ddraft = process_team(replay, t)
+            ddraft = process_team_portrait(replay, t)
 
+    rdraft.thumbnail((width,
+                      rdraft.size[1]*width/rdraft.size[0]),
+                     ANTIALIAS)
+    ddraft.thumbnail((width,
+                      ddraft.size[1]*width/ddraft.size[0]),
+                     ANTIALIAS)
     r_draft_box = make_image_annotation2(rdraft, ax_in, x=0.5, y=1.0,
                                          size=0.78)
     r_name_box = ax_in.text(s=r_name, x=0, y=1.0 + 0.18,
