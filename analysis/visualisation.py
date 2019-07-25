@@ -442,22 +442,37 @@ def plot_object_position(query_data: DataFrame, bins=64,
     return fig, ax_in
 
 
-def plot_hero_winrates(data: DataFrame, mingames=3):
+def plot_hero_winrates(data: DataFrame, mingames=3, min_rate=0.6):
     '''Plots hero win rate over all and with a minimum games required.'''
 
     fig, axes = plt.subplots(2, figsize=(10, 10))
     data.rename(heroShortName, inplace=True)
-    if data['Rate'].empty:
-        axes[0].text(0.5, 0.5, "No Data", fontsize=14,
-                     horizontalalignment='center',
-                     verticalalignment='center')
-        axes[0].yaxis.set_major_locator(MaxNLocator(integer=True))
-    else:
-        data['Rate'].sort_values(ascending=False).plot.bar(ax=axes[0])
-    subset = data.loc[data['Total'] > mingames]['Rate']\
-                 .sort_values(ascending=False)
+
+    def _do_plot(ax_in, data):
+        sub_set: DataFrame = data.loc[data['Rate'] >= min_rate]\
+            .sort_values(['Rate', 'Total'], ascending=False,)
+
+        if sub_set.empty:
+            ax_in.text(0.5, 0.5, "No Data", fontsize=14,
+                       horizontalalignment='center',
+                       verticalalignment='center')
+            ax_in.yaxis.set_major_locator(MaxNLocator(integer=True))
+            return
+        bar_plot = sub_set['Rate'].plot.bar(ax=ax_in)
+
+        for bar, label in zip(bar_plot.patches, sub_set['Total'].iteritems()):
+            y = bar.get_height()
+            x = bar.get_x() + bar.get_width() / 2
+            ax_in.text(s=int(label[1]), x=x, y=y,
+                       ha='center', va='bottom',
+                       color='black')
+        ax_in.set_ylim([max(min_rate - 0.1, 0), None])
+
+    _do_plot(axes[0], data)
+
+    subset = data.loc[data['Total'] > mingames]
     if not subset.empty:
-        subset.plot.bar(ax=axes[1])
+        _do_plot(axes[1], subset)
 
     axes[0].set_ylabel('All')
     axes[1].set_ylabel('Min {} games'.format(mingames))
@@ -507,24 +522,32 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo):
     power = rune_data[['Team Power', 'Opposition Power']]
 
     def _process_runes(data: DataFrame, axis, labels):
-        data = data.resample('10T').sum()
         data[labels[0]] = data.iloc[:, 0]/(data.iloc[:, 0] + data.iloc[:, 1])
         data[labels[1]] = data.iloc[:, 1]/(data.iloc[:, 0] + data.iloc[:, 1])
 
-        data[[*labels]].plot.bar(stacked=True, ax=axis, sharex=True)
+        data[[*labels]].plot.bar(stacked=True, ax=axis)
         xmin, xmax = axis.get_xlim()
         axis.plot((xmin, xmax), (0.5, 0.5), linewidth=3, color='r')
 
+    power = power.resample('2T').sum()[1:11]
     _process_runes(power, axes[0], [team.name, "Opposition"])
     axes[0].set_ylabel("Power", fontsize=14)
+
+    bounty = bounty.resample('5T').sum()[:10]
     _process_runes(bounty, axes[1], [team.name, "Opposition"])
     axes[1].set_ylabel("Bounty", fontsize=14)
 
-    # Labels should be on bottom axis only with sharex
-    time_slices = len(axes[1].get_xticklabels())
-    labels = ["{} to {} min".format(x*10, (x+1)*10)
-              for x in range(time_slices)]
-    axes[1].set_xticklabels(labels)
-    axes[1].legend_.remove()
+    def _add_t_labels(ax_in, mins_per_tick: int, off_set=0):
+        time_slices = len(ax_in.get_xticklabels())
+        labels = []
+        for x in range(time_slices):
+            t1 = x*mins_per_tick + off_set
+            t2 = (x+1)*mins_per_tick + off_set
+            labels.append("{} to {} min".format(t1, t2))
+        ax_in.set_xticklabels(labels)
+        ax_in.legend_.remove()
+
+    _add_t_labels(axes[0], 2, off_set=2)
+    _add_t_labels(axes[1], 5)
 
     return fig, axes
