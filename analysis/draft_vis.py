@@ -224,12 +224,55 @@ def add_draft_axes(draft: Image.Image, ax_in: Axes,
     return box
 
 
+def process_team_portrait(replay: Replay, team: TeamSelections, spacing=5):
+    hero_boxes = []
+    tot_width = spacing
+
+    prev_is_pick = team.draft[0].is_pick
+    extra_space = []
+    for selection in team.draft:
+        changed_phase = prev_is_pick != selection.is_pick
+        prev_is_pick = selection.is_pick
+        extra_space.append(changed_phase)
+        if changed_phase:
+            tot_width += spacing
+
+        hbox = hero_box_image_portrait(selection.hero,
+                                       selection.is_pick,
+                                       selection.order)
+
+        tot_width += hbox.size[0]
+        height = hbox.size[1] + spacing*2
+        hero_boxes.append(hbox)
+
+    tot_width += spacing
+    b_colour = (255, 255, 255, 0)
+    out_box = Image.new('RGBA', (tot_width, height), b_colour)
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, spacing),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    return out_box
+
+
 def process_team(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
     # First pick indicator
-    # pick_box = draw_firstpick_box(team)
-    # tot_width += pick_box.size[0]
+    pick_box = draw_firstpick_box(team)
+    tot_width += pick_box.size[0]
 
     team_win = team.team == replay.winner
     prev_is_pick = team.draft[0].is_pick
@@ -241,32 +284,27 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
         if changed_phase:
             tot_width += spacing
 
-        # draw_first = selection.order == 0 and team.firstPick
-        draw_first = False
+        draw_first = selection.order == 0 and team.firstPick
 
-        # hbox = hero_box_image(selection.hero,
-        #                       selection.is_pick,
-        #                       draw_first,
-        #                       team_win)
-
-        hbox = hero_box_image_portrait(selection.hero,
-                                       selection.is_pick,
-                                       selection.order)
+        hbox = hero_box_image(selection.hero,
+                              selection.is_pick,
+                              draw_first,
+                              team_win)
 
         tot_width += hbox.size[0]
         height = hbox.size[1] + spacing*2
         hero_boxes.append(hbox)
 
     tot_width += spacing
-    #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
-    b_colour = (255, 255, 255, 0)
+    b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     processed_size = spacing
-    # out_box.paste(pick_box,
-    #               (spacing, spacing),
-    #               pick_box)
-    # processed_size += pick_box.size[0]
+    out_box.paste(pick_box,
+                  (spacing, spacing),
+                  pick_box)
+    processed_size += pick_box.size[0]
     extras = 0
     for i, hbox in enumerate(hero_boxes):
         # Initial offset starts after the border (+spacing)
@@ -319,9 +357,9 @@ def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
             return None
         if t.team == main_side:
-            team_line = _process_team(t)
+            team_line = process_team(replay, t)
         else:
-            opposition_line = _process_team(t)
+            opposition_line = process_team(replay, t)
 
     spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
@@ -331,7 +369,7 @@ def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
     height = team_line.size[1]
     out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     out_box.paste(team_line, (0, 0), team_line)
-    out_box.paste(spacer, (team_line.size[0], 0), spacer)
+    # out_box.paste(spacer, (team_line.size[0], 0), spacer)
     out_box.paste(opposition_line,
                   (team_line.size[0] + spacer.size[0], 0),
                   opposition_line)
