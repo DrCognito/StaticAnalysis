@@ -329,6 +329,8 @@ def do_wards_separate(team: TeamInfo, r_query,
             metadata[out_key][r] = new_plot
 
     d_replays, r_replays = get_side_replays(r_query, session, team)
+    d_replays = d_replays.order_by(Replay.replayID.desc())
+    r_replays = r_replays.order_by(Replay.replayID.desc())
     if update_dire:
         _process_side(Team.DIRE, d_replays)
     if update_radiant:
