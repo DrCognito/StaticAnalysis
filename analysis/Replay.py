@@ -240,7 +240,7 @@ def pair_rate(session, r_query, team):
                                .filter(PickBans.replayID == replay.replayID)\
                                .filter(PickBans.team == side,
                                        PickBans.is_pick == True)\
-                               .order_by(PickBans.order.desc())\
+                               .order_by(PickBans.order)\
                                .limit(2)
 
             pick_pair = [p.hero for p in pick_pair]
