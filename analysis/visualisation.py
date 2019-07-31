@@ -284,7 +284,7 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
     return fig, extra_artists
 
 
-def plot_pick_context(picks: DataFrame, team, r_query):
+def plot_pick_context(picks: DataFrame, team, r_query, summarise=False):
     '''Plots the context (in picks and bans) of a teams top picks.
        Input is a DataFrame of picks, the TeamInfo and r_query
        context.
@@ -318,16 +318,16 @@ def plot_pick_context(picks: DataFrame, team, r_query):
 
         context = pick_context(pick, team, r_query)
         pick = context['Pick'].sort_values(ascending=False)
-        pick = _summarise(pick, 5)
+        pick = _summarise(pick, 5) if summarise else pick[:5]
 
         ban = context['Ban'].sort_values(ascending=False)
-        ban = _summarise(ban, 5)
+        ban = _summarise(ban, 5) if summarise else ban[:5]
 
         opick = context['Opponent Pick'].sort_values(ascending=False)
-        opick = _summarise(opick, 5)
+        opick = _summarise(opick, 5) if summarise else opick[:5]
 
         oban = context['Opponent Ban'].sort_values(ascending=False)
-        oban = _summarise(oban, 5)
+        oban = _summarise(oban, 5) if summarise else oban[:5]
 
         _do_plot(axes[0, i_pick], colour_list[0], pick)
         _do_plot(axes[1, i_pick], colour_list[1], ban)
