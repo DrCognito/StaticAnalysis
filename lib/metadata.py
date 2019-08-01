@@ -38,6 +38,8 @@ def make_meta(dataset="default"):
         'plot_rune_control': None,
 
         'stat_win_rate': None,
+
+        'counter_picks': {}
     }
 
     return meta
