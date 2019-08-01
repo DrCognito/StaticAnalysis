@@ -12,6 +12,7 @@ from replays.Smoke import Smoke
 from lib.team_info import TeamInfo
 from sqlalchemy import and_
 from datetime import timedelta
+from lib.HeroTools import heroShortName
 
 
 def win_rate_table(r_query, team):
@@ -306,3 +307,51 @@ def draft_summary(session, r_query, team) -> (DataFrame, DataFrame):
     output_ban = output_ban.apply(Series.value_counts)
 
     return output_pick, output_ban
+
+
+def counter_picks(session, r_query, team) -> DataFrame:
+    """Produces a table of counter picks. Information on how a team picks heroes
+    following selection of others by the opposition.
+
+    Arguments:
+        session {} -- Replay DB session.
+        r_query {} -- DB query for the replays used.
+        team {TeamInfo} -- Team that data is gathered for.
+
+    Returns:
+        DataFrame -- [opp_picks vs team picks] includes 0s.
+    """
+    counters = DataFrame(columns=heroShortName.values(),
+                         index=heroShortName.values())
+    counters = counters.fillna(0)
+
+    def _process(side):
+        side_filt = Replay.get_side_filter(team, side)
+        replays = r_query.filter(side_filt)
+
+        r: Replay
+        for r in replays:
+            draft = []
+            selection: PickBans
+            for selection in (r.teams[0].draft + r.teams[1].draft):
+                draft.append(
+                    {"hero": selection.hero,
+                     "is_pick": selection.hero,
+                     "side": selection.team,
+                     "order": selection.order}
+                )
+            draft = sorted(draft, key=lambda k: k['order'])
+            opp_picks = []
+            for pick_ban in draft:
+                name = heroShortName[pick_ban['hero']]
+                if pick_ban['side'] == side:
+                    for o in opp_picks:
+                        counters[name][o] += 1
+                else:
+                    opp_picks.append(name)
+        return
+
+    _process(Team.DIRE)
+    _process(Team.RADIANT)
+
+    return counters
