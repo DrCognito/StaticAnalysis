@@ -22,7 +22,8 @@ from analysis.Player import (cumulative_player, pick_context, player_heroes,
 from analysis.Replay import (draft_summary, get_ptbase_tslice,
                              get_ptbase_tslice_side,
                              get_rune_control, get_smoke, hero_win_rate,
-                             pair_rate, win_rate_table, get_side_replays)
+                             pair_rate, win_rate_table, get_side_replays,
+                             counter_picks)
 from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     dataframe_xy_time_smoke,
                                     plot_draft_summary, plot_hero_winrates,
@@ -107,6 +108,7 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
         mkdir(dataset_path / 'dire/wards')
         mkdir(dataset_path / 'radiant')
         mkdir(dataset_path / 'radiant/wards')
+        mkdir(dataset_path / 'counters')
 
     meta_json = team_path / 'meta_data.json'
     if meta_json.exists():
@@ -589,6 +591,32 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     return metadata
 
 
+def do_counters(team: TeamInfo, r_query, metadata: dict):
+    counters_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    counters_path = counters_path / 'counters'
+    # picks are columns, what they picked into are rows
+    counters = counter_picks(session, r_query, team)
+    # print(r_query.count(), counters)
+    # Remove 0 columns (unpicked heroes)
+    counters = counters.T[counters.any()].T
+
+    for hero in counters:
+        fig, axis = plt.subplots()
+        bar_data = counters[hero].loc[lambda x: x != 0]\
+                                 .sort_values(ascending=False)
+        bar_data.plot.bar(ax=axis)
+        axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+        output = counters_path / (hero + '.jpg')
+        fig.savefig(output,  bbox_inches='tight')
+        relpath = output.relative_to(Path(PLOT_BASE_PATH))
+        metadata['counter_picks'][hero] = str(relpath)
+
+        plt.close(fig)
+
+    return metadata
+
+
 def do_statistics(team: TeamInfo, r_query, metadata: dict):
     win_rate_df = win_rate_table(r_query, team)
     win_rate_df = win_rate_df[['First Pick', 'Second Pick', 'All']]
@@ -647,6 +675,9 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata, r_filter)
     plt.close('all')
+    if new_dire or new_radiant:
+        print("Processing counter picks.")
+        metadata = do_counters(team, r_query, metadata)
     print("Processing statistics.")
     metadata = do_statistics(team, r_query, metadata)
 
