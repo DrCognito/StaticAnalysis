@@ -480,14 +480,22 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
 
     def _process_side(query, side: Team):
         data = dataframe_xy_time_smoke(query, Smoke, session)
+        if data.empty:
+            print("No smoke data for {}.".format(side))
+            return
 
         fig, axList = plt.subplots(3, 2, figsize=(8, 10))
         ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axList
-        _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
-        _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
-        _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
-        _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
-        _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
+        try:
+            _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
+            _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
+            _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
+            _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
+            _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
+        except ValueError as e:
+            print(e)
+            print(data)
+            return
         ax6.axis('off')
 
         team_str = 'dire' if side == Team.DIRE else 'radiant'
@@ -596,10 +604,12 @@ def do_counters(team: TeamInfo, r_query, metadata: dict):
     counters_path = counters_path / 'counters'
     # picks are columns, what they picked into are rows
     counters = counter_picks(session, r_query, team)
-    # print(r_query.count(), counters)
+
     # Remove 0 columns (unpicked heroes)
     counters = counters.T[counters.any()].T
 
+    # Reset the metadata or old heroes remain.
+    metadata['counter_picks'] = {}
     for hero in counters:
         fig, axis = plt.subplots()
         bar_data = counters[hero].loc[lambda x: x != 0]\
@@ -649,37 +659,38 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata['replays_dire'] = list(dire_list)
     metadata['replays_radiant'] = list(radiant_list)
 
-    print("Processing drafts.")
-    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    plt.close('all')
-    print("Processing positioning.")
-    metadata = do_positioning(team, r_query,
-                              -2*60, 10*60,
-                              metadata,
-                              new_dire, new_radiant
-                              )
-    plt.close('all')
-    print("Processing wards.")
-    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing individual ward replays.")
-    metadata = do_wards_separate(team, r_query, metadata, new_dire,
-                                 new_radiant)
-    plt.close('all')
-    print("Processing smoke.")
-    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing scans.")
-    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing summary.")
-    metadata = do_summary(team, r_query, metadata, r_filter)
-    plt.close('all')
+    print("Process {}.".format(team.name))
+    # print("Processing drafts.")
+    # metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+    # plt.close('all')
+    # print("Processing positioning.")
+    # metadata = do_positioning(team, r_query,
+    #                           -2*60, 10*60,
+    #                           metadata,
+    #                           new_dire, new_radiant
+    #                           )
+    # plt.close('all')
+    # print("Processing wards.")
+    # metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
+    # print("Processing individual ward replays.")
+    # metadata = do_wards_separate(team, r_query, metadata, new_dire,
+    #                              new_radiant)
+    # plt.close('all')
+    # print("Processing smoke.")
+    # metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
+    # print("Processing scans.")
+    # metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
+    # print("Processing summary.")
+    # metadata = do_summary(team, r_query, metadata, r_filter)
+    # plt.close('all')
     if new_dire or new_radiant:
         print("Processing counter picks.")
         metadata = do_counters(team, r_query, metadata)
-    print("Processing statistics.")
-    metadata = do_statistics(team, r_query, metadata)
+    # print("Processing statistics.")
+    # metadata = do_statistics(team, r_query, metadata)
 
     path = store_metadata(team, metadata)
     print("Metadata file updated at {}".format(str(path)))
