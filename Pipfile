@@ -7,13 +7,14 @@ name = "pypi"
 
 [packages]
 
-SQLAlchemy = "*"
+sqlalchemy = "*"
 pandas = "*"
 python-dotenv = "*"
-Pillow = "*"
+pillow = "*"
 matplotlib = "*"
 scikit-learn = "*"
-adjustText = "*"
+adjusttext = "*"
+pytz = "*"
 
 
 [dev-packages]
