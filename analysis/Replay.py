@@ -309,6 +309,9 @@ def draft_summary(session, r_query, team) -> (DataFrame, DataFrame):
     return output_pick, output_ban
 
 
+short_alphabetical_names = sorted(heroShortName.values())
+
+
 def counter_picks(session, r_query, team) -> DataFrame:
     """Produces a table of counter picks. Information on how a team picks heroes
     following selection of others by the opposition.
@@ -321,8 +324,8 @@ def counter_picks(session, r_query, team) -> DataFrame:
     Returns:
         DataFrame -- [opp_picks vs team picks] includes 0s.
     """
-    counters = DataFrame(columns=heroShortName.values(),
-                         index=heroShortName.values())
+    counters = DataFrame(columns=short_alphabetical_names,
+                         index=short_alphabetical_names)
     counters = counters.fillna(0)
 
     def _process(side):
@@ -336,13 +339,15 @@ def counter_picks(session, r_query, team) -> DataFrame:
             for selection in (r.teams[0].draft + r.teams[1].draft):
                 draft.append(
                     {"hero": selection.hero,
-                     "is_pick": selection.hero,
+                     "is_pick": selection.is_pick,
                      "side": selection.team,
                      "order": selection.order}
                 )
             draft = sorted(draft, key=lambda k: k['order'])
             opp_picks = []
             for pick_ban in draft:
+                if not pick_ban['is_pick']:
+                    continue
                 name = heroShortName[pick_ban['hero']]
                 if pick_ban['side'] == side:
                     for o in opp_picks:
