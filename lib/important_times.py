@@ -1,5 +1,7 @@
 import datetime
+import pytz
 
+Shanghai = pytz.timezone('Asia/Shanghai')
 ImportantTimes = {
     'Patch_6_88':datetime.datetime(2016, 6, 12, 0, 0, 0, 0),
     'Patch_7_00':datetime.datetime(2016, 12, 13, 0, 0, 0, 0),
@@ -23,4 +25,6 @@ ImportantTimes = {
     'Epi2019': datetime.datetime(2019, 6, 22, 0, 0, 0, 0),
     'TIQuals2019': datetime.datetime(2019, 7, 2, 0, 0, 0, 0),
     'TheSummit10': datetime.datetime(2019, 7, 25, 0, 0, 0, 0),
+    'Ti2019Group': datetime.datetime(2019, 8, 15, 0, 0, 0, 0, tzinfo=Shanghai),
+    'Ti2019Main': datetime.datetime(2019, 8, 20, 0, 0, 0, 0, tzinfo=Shanghai),
 }
