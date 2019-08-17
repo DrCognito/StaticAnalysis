@@ -381,6 +381,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
     lines = list()
     tot_height = 0
     max_width = 0
+    vert_spacing = 20
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
@@ -389,7 +390,10 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
             continue
         lines.append(line)
         tot_height += line.size[1]
+        tot_height += vert_spacing
         max_width = max(max_width, line.size[0])
+    # Remove one to trim the bottom
+    tot_height -= vert_spacing
 
     # Add them to the sheet image
     sheet = Image.new('RGBA', (max_width, tot_height), (255, 255, 255, 0))
@@ -400,6 +404,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
             off_set = math.floor((max_width - line.size[0])/2)
         sheet.paste(line, (off_set, y_off), line)
         y_off += line.size[1]
+        y_off += vert_spacing
 
     # Finally add a title
     font_size = 30
