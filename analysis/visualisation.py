@@ -410,34 +410,34 @@ def plot_object_position(query_data: DataFrame, bins=64,
     else:
         fig = plt.gcf()
 
-    jet = plt.get_cmap('afmhot')
+    jet = plt.get_cmap('rainbow')
     jet.set_under('black', alpha=0.0)
     if vmax is None:
         vmax = get_binning_max_xy(query_data, bins)
         if vmax == 1:
             vmax = 2
 
-    plot = ax_in.hexbin(x=query_data['xCoordinate'],
-                        y=query_data['yCoordinate'],
-                        gridsize=bins, mincnt=1,
-                        extent=[0, 1, 0, 1],
-                        cmap='rainbow',
-                        vmin=vmin - 0.5, vmax=vmax + 0.5,
-                        zorder=2)
+    if not query_data.empty:
+        plot = ax_in.hexbin(x=query_data['xCoordinate'],
+                            y=query_data['yCoordinate'],
+                            gridsize=bins, mincnt=0,
+                            extent=[0, 1, 0, 1],
+                            cmap=jet,
+                            vmin=1, vmax=vmax + 0.5,
+                            zorder=2)
+        # Reposition colourbar
+        # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+        divider = make_axes_locatable(ax_in)
+        side_bar = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(plot, cax=side_bar)
+        cbar.locator = ticker.MaxNLocator(integer=True)
+        cbar.update_ticks()
+        cbar.ax.tick_params(labelsize=14)
 
     # Add map
     img = mpimg.imread(environment['MAP_PATH'])
     ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
-
-    # Reposition colourbar
-    # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
-    divider = make_axes_locatable(ax_in)
-    side_bar = divider.append_axes("right", size="5%", pad=0.05)
-    cbar = plt.colorbar(plot, cax=side_bar)
-    cbar.locator = ticker.MaxNLocator(integer=True)
-    cbar.update_ticks()
-    cbar.ax.tick_params(labelsize=14)
 
     return fig, ax_in
 
