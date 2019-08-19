@@ -70,7 +70,12 @@ class Player(Base):
         if relative_to_match_time:
             time = time + self.replay.creepSpawn
 
-        return self.status.filter(PlayerStatus.time == time).one_or_none()
+        pos = self.status.filter(PlayerStatus.time == time).one_or_none()
+        if pos is None:
+            print("No entry for player at time {}".format(time))
+            return self.get_position_at(time - 1, relative_to_match_time)
+
+        return pos
 
     def get_position_range(self, t1, t2, relative_to_match_time=False):
         ''' Get player position (x, y) for a global
