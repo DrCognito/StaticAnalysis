@@ -145,6 +145,8 @@ heroShortName["npc_dota_hero_pangolier"] = "Pang"
 heroShortName["npc_dota_hero_dark_willow"] = "D Willow"
 heroShortName["npc_dota_hero_grimstroke"] = "Grimstroke"
 heroShortName["npc_dota_hero_mars"] = "Mars"
+heroShortName["npc_dota_hero_snapfire"] = "Snapfire"
+heroShortName["npc_dota_hero_void_spirit"] = "Void Spirit"
 heroShortName["Other"] = "Other"
 
 heroByID = {}
@@ -265,6 +267,8 @@ heroByID[120] = "npc_dota_hero_pangolier"
 heroByID[119] = "npc_dota_hero_dark_willow"
 heroByID[121] = "npc_dota_hero_grimstroke"
 heroByID[129] = "npc_dota_hero_mars"
+heroByID[126] = "npc_dota_hero_void_spirit"
+heroByID[128] = "npc_dota_hero_snapfire"
 
 HeroLongName = {}
 HeroLongName["AM"] = "npc_dota_hero_antimage"
@@ -384,6 +388,8 @@ HeroLongName["Pang"] = "npc_dota_hero_pangolier"
 HeroLongName["D Willow"] = "npc_dota_hero_dark_willow"
 HeroLongName["Grimstroke"] = "npc_dota_hero_grimstroke"
 HeroLongName["Mars"] = "npc_dota_hero_mars"
+HeroLongName["Void Spirit"] = "npc_dota_hero_void_spirit"
+HeroLongName["Snapfire"] = "npc_dota_hero_snapfire"
 HeroLongName["Other"] = "Other"
 
 HeroIconPrefix = Path(environment['ICON_PATH'])
@@ -506,6 +512,8 @@ HeroIcon["Pang"] = "pangolier.png"
 HeroIcon["D Willow"] = "dark_willow.png"
 HeroIcon["Grimstroke"] = "grimstroke.png"
 HeroIcon["Mars"] = "mars.png"
+HeroIcon["Snapfire"] = "snapfire.png"
+HeroIcon["Void Spirit"] = "void_spirit.png"
 
 SheetHeroMap = {
                "npc_dota_hero_abaddon": "abaddon",
