@@ -131,14 +131,14 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
         steam_id = team.players[player_slot].player_id
 
         r_filter = Replay.get_side_filter(team, side)
-        replays = r_query.filter(r_filter)
+        replays = r_query.filter(r_filter).subquery()
         
         p_filter = t_filter + (PlayerStatus.steamID == steam_id,)
 
         player_q = session.query(PlayerStatus)\
                           .filter(*p_filter)\
                           .join(replays)
-        
+
         return player_q
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
