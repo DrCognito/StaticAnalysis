@@ -1,21 +1,17 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 sqlalchemy = "*"
 pandas = "*"
 python-dotenv = "*"
 pillow = "*"
-matplotlib = "*"
 scikit-learn = "*"
 adjusttext = "*"
 pytz = "*"
-
+flake8 = "*"
+matplotlib = "*"
 
 [dev-packages]
-
