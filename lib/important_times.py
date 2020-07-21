@@ -27,4 +27,6 @@ ImportantTimes = {
     'TheSummit10': datetime.datetime(2019, 7, 25, 0, 0, 0, 0),
     'Ti2019Group': datetime.datetime(2019, 8, 15, 0, 0, 0, 0, tzinfo=Shanghai),
     'Ti2019Main': datetime.datetime(2019, 8, 20, 0, 0, 0, 0, tzinfo=Shanghai),
+    'Patch_7_27': datetime.datetime(2020, 6, 28, 0, 0, 0, 0),
+    'Patch_7_26': datetime.datetime(2020, 4, 17, 0, 0, 0, 0),
 }
