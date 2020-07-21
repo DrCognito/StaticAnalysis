@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
@@ -61,7 +61,7 @@ team_session = team_maker()
 
 TIME_CUT = ImportantTimes['PreviousMonth']
 
-#Figure dpi output
+# Figure dpi output
 rcParams['savefig.dpi'] = 100
 
 arguments = ArgumentParser()
@@ -305,10 +305,9 @@ def do_wards_separate(team: TeamInfo, r_query,
         drafts = plot_drafts_above(r_query, ax, width,
                                    r_name=r_name,
                                    d_name=d_name)
-        fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras),
-                    bbox_inches='tight')
-        plt.close('all')
-
+        fig.set_tight_layout(True)
+        fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
+        plt.close(fig)
         return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
 
     def _process_side(side: Team, replays):
@@ -699,8 +698,8 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
 
 
 def get_team(name):
-    team = team_session.query(TeamInfo)\
-                       .filter(TeamInfo.name == name).one_or_none()
+    t_filter = or_(TeamInfo.team_id == name, TeamInfo.name == name)
+    team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
     return team
 
