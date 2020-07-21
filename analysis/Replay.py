@@ -66,7 +66,7 @@ def win_rate_table(r_query, team):
 def simple_side_filter(r_query, session, team: TeamInfo,
                        Type, side: Team, extra_filter=None):
     r_filter = Replay.get_side_filter(team, side)
-    replays = r_query.filter(r_filter)
+    replays = r_query.filter(r_filter).subquery()
 
     if extra_filter is not None:
         w_query = session.query(Type).filter(extra_filter)\
