@@ -15,6 +15,7 @@ from lib.team_info import TeamInfo
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 from .Player import pick_context
 
+import copy
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
 
@@ -145,7 +146,8 @@ def plot_player_heroes(data: DataFrame):
 
     def _plot_player(column: Series, name: str, axis, colour: str):
         # This filters out zeroes in a series
-        column = column.iloc[column.nonzero()]
+        # column = column.iloc[column.nonzero()]
+        column = column.iloc[column.to_numpy().nonzero()]
         if column.empty:
             axis.text(0.5, 0.5, "No Data", fontsize=14,
                       horizontalalignment='center',
@@ -367,8 +369,9 @@ def get_binning_max_xy(df: DataFrame, bins=64):
 
 def plot_player_positioning(query_data: DataFrame):
     fig, ax_in = plt.subplots(figsize=(10, 10))
-    jet = plt.get_cmap('afmhot')
-    jet.set_under('black', alpha=0.0)
+    # jet = plt.get_cmap('afmhot')
+    colour_map = copy.copy(plt.get_cmap('afmhot'))
+    colour_map.set_under('black', alpha=0.0)
 
     vmin, vmax = get_binning_percentile_xy(query_data)
     # plot = query_data.plot.hexbin(x='xCoordinate', y='yCoordinate',
@@ -384,7 +387,7 @@ def plot_player_positioning(query_data: DataFrame):
                         gridsize=64, mincnt=1,
                         vmin=vmin, vmax=vmax,
                         extent=[0, 1, 0, 1],
-                        cmap=jet,
+                        cmap=colour_map,
                         zorder=2)
 
     # Add map
@@ -410,8 +413,9 @@ def plot_object_position(query_data: DataFrame, bins=64,
     else:
         fig = plt.gcf()
 
-    jet = plt.get_cmap('rainbow')
-    jet.set_under('black', alpha=0.0)
+    #jet = plt.get_cmap('rainbow')
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
     if vmax is None:
         vmax = get_binning_max_xy(query_data, bins)
         if vmax == 1:
@@ -422,7 +426,7 @@ def plot_object_position(query_data: DataFrame, bins=64,
                             y=query_data['yCoordinate'],
                             gridsize=bins, mincnt=0,
                             extent=[0, 1, 0, 1],
-                            cmap=jet,
+                            cmap=colour_map,
                             vmin=1, vmax=vmax + 0.5,
                             zorder=2)
         # Reposition colourbar
@@ -484,8 +488,8 @@ def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
     if ax_in is None:
         fig, ax_in = plt.subplots(figsize=(10, 10))
 
-    jet = plt.get_cmap('afmhot')
-    jet.set_under('black', alpha=0.0)
+    colour_map = copy.copy(plt.get_cmap('afmhot'))
+    colour_map.set_under('black', alpha=0.0)
 
     plot = ax_in.scatter(x=query_data['xCoordinate'],
                          y=query_data['yCoordinate'],
