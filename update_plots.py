@@ -229,18 +229,20 @@ def do_draft(team: TeamInfo, metadata,
         dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).all(),
                                          Team.DIRE,
                                          team.name)
-        dire_drafts.save(output)
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata['plot_dire_drafts'] = relpath
+        if dire_drafts is not None:
+            dire_drafts.save(output)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_dire_drafts'] = relpath
 
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
         radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
                                             Team.RADIANT,
                                             team.name)
-        radiant_drafts.save(output)
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata['plot_radiant_drafts'] = relpath
+        if radiant_drafts is not None:
+            radiant_drafts.save(output)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_radiant_drafts'] = relpath
 
     return metadata
 
@@ -588,12 +590,18 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     metadata['plot_win_rate'] = relpath
 
     rune_df = get_rune_control(r_query, team)
-    fig, _ = plot_runes(rune_df, team)
-    output = team_path / 'rune_control.png'
-    fig.tight_layout(h_pad=0)
-    fig.savefig(output, bbox_inches='tight', dpi=200)
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_rune_control'] = relpath
+    print(rune_df)
+    # One line
+    one_line = len(rune_df) == 1
+    # All that line is 0
+    zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0]).to_list())
+    if not one_line and not zeroed:
+        fig, _ = plot_runes(rune_df, team)
+        output = team_path / 'rune_control.png'
+        fig.tight_layout(h_pad=0)
+        fig.savefig(output, bbox_inches='tight', dpi=200)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_rune_control'] = relpath
 
     return metadata
 
