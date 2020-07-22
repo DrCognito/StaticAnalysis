@@ -590,7 +590,6 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     metadata['plot_win_rate'] = relpath
 
     rune_df = get_rune_control(r_query, team)
-    print(rune_df)
     # One line
     one_line = len(rune_df) == 1
     # All that line is 0
