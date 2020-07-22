@@ -395,6 +395,11 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
     # Remove one to trim the bottom
     tot_height -= vert_spacing
 
+    # Drop out early if there were no replays to process, tot_height of <0
+    # throws errors
+    if tot_height < 0:
+        return None
+
     # Add them to the sheet image
     sheet = Image.new('RGBA', (max_width, tot_height), (255, 255, 255, 0))
     y_off = 0
