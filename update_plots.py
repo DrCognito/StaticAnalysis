@@ -101,13 +101,12 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
     if not team_path.exists():
         print("Adding new team {}.".format(team.name))
         mkdir(team_path)
+        mkdir(team_path / 'wards')
 
     if not dataset_path.exists():
         mkdir(dataset_path)
         mkdir(dataset_path / 'dire')
-        mkdir(dataset_path / 'dire/wards')
         mkdir(dataset_path / 'radiant')
-        mkdir(dataset_path / 'radiant/wards')
         mkdir(dataset_path / 'counters')
 
     meta_json = team_path / 'meta_data.json'
@@ -265,9 +264,9 @@ def do_wards_separate(team: TeamInfo, r_query,
     """
     if not update_dire and not update_radiant:
         return metadata
-    team_path: Path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
-    dire_loc: Path = team_path / "dire/wards"
-    radiant_loc: Path = team_path / "radiant/wards"
+    team_path: Path = Path(PLOT_BASE_PATH) / team.name
+    dire_loc: Path = team_path / "wards"
+    radiant_loc: Path = team_path / "wards"
 
     def _get_ax_size(ax_in, fig_in):
         bbox = ax_in.get_window_extent()\
