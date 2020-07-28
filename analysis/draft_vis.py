@@ -267,6 +267,80 @@ def process_team_portrait(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
+def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
+    hero_boxes_pick = []
+    hero_boxes_ban = []
+
+    tot_width_pick = spacing
+    tot_width_ban = spacing
+
+    prev_is_pick = team.draft[0].is_pick
+    extra_space_pick = []
+    extra_space_ban = []
+
+    height = 0
+    for selection in team.draft:
+        changed_phase = prev_is_pick != selection.is_pick
+        prev_is_pick = selection.is_pick
+
+        if selection.is_pick:
+            extra_space_pick.append(changed_phase)
+            hbox = hero_box_image_portrait(selection.hero,
+                                        selection.is_pick,
+                                        selection.order)
+            tot_width_pick += hbox.size[0]
+            hero_boxes_pick.append(hbox)
+            height = max(height, hbox.size[1] + spacing*2)
+        else:
+            extra_space_ban.append(changed_phase)
+            hbox = hero_box_image_portrait(selection.hero,
+                                        selection.is_pick,
+                                        selection.order)
+            tot_width_ban += hbox.size[0]
+            hero_boxes_ban.append(hbox)
+            height = max(height, hbox.size[1] + spacing*2)
+
+    tot_width_pick += spacing
+    tot_width_ban += spacing
+
+    #b_colour = (255, 255, 255, 0)
+    b_colour = (255, 255, 255, 0)
+    #out_box = Image.new('RGBA', (max([tot_width_pick, tot_width_ban]), 2*height), b_colour)
+    out_box = Image.new('RGBA', (tot_width_ban, 2*height), b_colour)
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes_pick):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space_pick[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, spacing),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes_ban):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space_ban[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, height),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    return out_box
+
+
 def process_team(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
