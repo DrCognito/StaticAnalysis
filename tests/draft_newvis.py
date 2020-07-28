@@ -4,7 +4,7 @@ import sys
 from os import environ as environment
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from dotenv import load_dotenv
-from analysis.draft_vis import hero_box_image, process_team_portrait, hero_box_image_portrait, replay_draft_image
+from analysis.draft_vis import hero_box_image, process_team_portrait, hero_box_image_portrait, replay_draft_image, process_team_portrait_dotabuff
 from replays.Replay import Replay, Team
 from lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
 
@@ -21,21 +21,22 @@ def get_team(name):
     return team
 
 
-team = get_team("Chaos Esports")
-r_query = team.get_replays(session).filter(Replay.replayID == 4903243468)
+team = get_team("Alliance")
+r_query = team.get_replays(session).filter(Replay.replayID == 5538671659)
 
 replay: Replay = r_query.first()
 
 for t in replay.teams:
-    if t.team == Team.RADIANT:
-        radiant = process_team_portrait(replay, t)
+    if t.team == Team.DIRE:
+        radiant_old = process_team_portrait(replay, t)
+        radiant = process_team_portrait_dotabuff(replay, t)
     else:
-        dire = process_team_portrait(replay, t)
+        dire = process_team_portrait_dotabuff(replay, t)
 
-
-radiant.save('./rtest.png')
-dire.save('./dtest.png')
+radiant.show()
+# radiant.save('./rtest.png')
+# dire.save('./dtest.png')
 
 # test = hero_box_image_portrait("npc_dota_hero_viper", is_pick=True, pick_num=10)
 # test = replay_draft_image([replay,], Team.RADIANT, 'Hippomaniacs')
-test.show()
+# test.show()
