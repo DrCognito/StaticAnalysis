@@ -223,23 +223,27 @@ def do_draft(team: TeamInfo, metadata,
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
 
+    draft_resize = 3
     if update_dire:
         output = team_path / 'dire/drafts.png'
         dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).all(),
                                          Team.DIRE,
                                          team.name)
         if dire_drafts is not None:
-            dire_drafts.save(output)
+            dire_drafts = dire_drafts.convert("RGB")
+            dire_drafts = dire_drafts.resize((dire_drafts.size[0] // draft_resize, dire_drafts.size[1] // draft_resize))
+            dire_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_dire_drafts'] = relpath
 
     if update_radiant:
-        output = team_path / 'radiant/drafts.png'
+        output = team_path / 'radiant/drafts.jpg'
         radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
                                             Team.RADIANT,
                                             team.name)
         if radiant_drafts is not None:
-            radiant_drafts.save(output)
+            radiant_drafts = radiant_drafts.convert("RGB")
+            radiant_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_radiant_drafts'] = relpath
 
@@ -668,37 +672,37 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
     plt.close('all')
-    print("Processing positioning.")
-    metadata = do_positioning(team, r_query,
-                              -2*60, 10*60,
-                              metadata,
-                              new_dire, new_radiant
-                              )
-    plt.close('all')
-    print("Processing wards.")
-    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing individual ward replays.")
-    metadata = do_wards_separate(team, r_query, metadata, new_dire,
-                                 new_radiant)
-    plt.close('all')
-    print("Processing smoke.")
-    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing scans.")
-    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
+    # print("Processing positioning.")
+    # metadata = do_positioning(team, r_query,
+    #                           -2*60, 10*60,
+    #                           metadata,
+    #                           new_dire, new_radiant
+    #                           )
+    # plt.close('all')
+    # print("Processing wards.")
+    # metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
+    # print("Processing individual ward replays.")
+    # metadata = do_wards_separate(team, r_query, metadata, new_dire,
+    #                              new_radiant)
+    # plt.close('all')
+    # print("Processing smoke.")
+    # metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
+    # print("Processing scans.")
+    # metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    # plt.close('all')
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata, r_filter)
-    plt.close('all')
-    if new_dire or new_radiant:
-        print("Processing counter picks.")
-        metadata = do_counters(team, r_query, metadata)
-    print("Processing statistics.")
-    metadata = do_statistics(team, r_query, metadata)
+    # plt.close('all')
+    # if new_dire or new_radiant:
+    #     print("Processing counter picks.")
+    #     metadata = do_counters(team, r_query, metadata)
+    # print("Processing statistics.")
+    # metadata = do_statistics(team, r_query, metadata)
 
-    path = store_metadata(team, metadata)
-    print("Metadata file updated at {}".format(str(path)))
+    # path = store_metadata(team, metadata)
+    # print("Metadata file updated at {}".format(str(path)))
 
     return metadata
 
