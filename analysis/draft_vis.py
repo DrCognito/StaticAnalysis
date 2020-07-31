@@ -488,7 +488,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
-        line = pickban_line_image(replay, main_side)
+        line = pickban_line_image(replay, main_side, add_team_name=True)
         if line is None:
             continue
         lines.append(line)
