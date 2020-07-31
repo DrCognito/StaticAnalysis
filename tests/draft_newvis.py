@@ -41,10 +41,10 @@ for t in replay.teams:
         dire = process_team_portrait_dotabuff(replay, t)
         dire2 = process_team_dotabuff(replay, t)
 
-full_line = pickban_line_image(replay, Team.DIRE)
+full_line = pickban_line_image(replay, Team.DIRE, add_team_name=True)
 
-radiant2.show()
-dire2.show()
+# radiant2.show()
+# dire2.show()
 full_line.show()
 # radiant.save('./rtest.png')
 # dire.save('./dtest.png')
