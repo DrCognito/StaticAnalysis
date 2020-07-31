@@ -549,11 +549,7 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo):
             t2 = (x+1)*mins_per_tick + off_set
             labels.append("{} to {} min".format(t1, t2))
         ax_in.set_xticklabels(labels)
-<<<<<<< HEAD
-        # ax_in.legend_.remove()
-=======
         #ax_in.legend_.remove()
->>>>>>> dotabuff_drafts
 
     _add_t_labels(axes[0], 2, off_set=2)
     _add_t_labels(axes[1], 5)
