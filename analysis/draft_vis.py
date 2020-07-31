@@ -411,10 +411,12 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     firstpick_box = draw_firstpick_box(team, size=(40, pick_ban_box.size[1]))
     tot_width += firstpick_box.size[0]
     tot_width += spacing
-    height = pick_ban_box.size[1] + 2 * spacing
+    height = pick_ban_box.size[1] + 4 * spacing
 
     team_win = team.team == replay.winner
-    b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    b_colour = (238, 130, 238, 255) if team_win else (255, 255, 255, 0)
+    
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     # Paste in first pick indicator
@@ -429,36 +431,8 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
-def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
-    def _process_team(team: TeamSelections):
-        hero_boxes = []
-        tot_width = spacing
-        team_win = team.team == replay.winner
-        for selection in team.draft:
-            draw_first = selection.order == 0 and team.firstPick
-
-            hbox = hero_box_image(selection.hero,
-                                  selection.is_pick,
-                                  draw_first,
-                                  team_win)
-            tot_width += hbox.size[0] + spacing
-            height = hbox.size[1] + spacing*2
-            hero_boxes.append(hbox)
-
-        b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
-        out_box = Image.new('RGBA', (tot_width, height), b_colour)
-
-        processed_size = spacing
-        for i, hbox in enumerate(hero_boxes):
-            # Initial offset starts after the border (+spacing)
-            x_off = processed_size + i*spacing
-            out_box.paste(hbox,
-                          (x_off, spacing),
-                          hbox)
-            processed_size += hbox.size[0]
-
-        return out_box
-
+def pickban_line_image(replay: Replay, main_side: Team, spacing=5, add_team_name=True):
+    t: TeamSelections
     for t in replay.teams:
         if len(t.draft) == 0:
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
@@ -467,19 +441,41 @@ def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
             team_line = process_team_dotabuff(replay, t)
         else:
             opposition_line = process_team_dotabuff(replay, t)
+            opp_name = t.teamName
 
+    # Team spacer
     spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
+    # Opposition team name text, size concerns?
+    if add_team_name:
+        font_size = 40
+        height = team_line.size[1] + font_size + 2*spacing
+        font = ImageFont.truetype('arialbd.ttf', font_size)
+        text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+                               (255, 255, 255, 0))
+        text_canv = ImageDraw.Draw(text_image)
+        first_pick_box_offset = 40
+        text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
+                       font=font, fill=(0, 0, 0))
+    else:
+        height = team_line.size[1]
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
-    height = team_line.size[1]
     out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
-    out_box.paste(team_line, (0, 0), team_line)
-    # out_box.paste(spacer, (team_line.size[0], 0), spacer)
-    out_box.paste(opposition_line,
-                  (team_line.size[0] + spacer.size[0], 0),
-                  opposition_line)
+    if add_team_name:
+        out_box.paste(team_line, (0, text_image.size[1]), team_line)
+
+        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0), text_image)
+        out_box.paste(opposition_line,
+                      (team_line.size[0] + spacer.size[0], text_image.size[1]),
+                      opposition_line)
+    else:
+        out_box.paste(team_line, (0, 0), team_line)
+
+        out_box.paste(opposition_line,
+                    (team_line.size[0] + spacer.size[0], 0),
+                    opposition_line)
 
     return out_box
 
