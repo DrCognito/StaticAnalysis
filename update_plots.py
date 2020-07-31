@@ -672,37 +672,37 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
     plt.close('all')
-    # print("Processing positioning.")
-    # metadata = do_positioning(team, r_query,
-    #                           -2*60, 10*60,
-    #                           metadata,
-    #                           new_dire, new_radiant
-    #                           )
-    # plt.close('all')
-    # print("Processing wards.")
-    # metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
-    # print("Processing individual ward replays.")
-    # metadata = do_wards_separate(team, r_query, metadata, new_dire,
-    #                              new_radiant)
-    # plt.close('all')
-    # print("Processing smoke.")
-    # metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
-    # print("Processing scans.")
-    # metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
+    print("Processing positioning.")
+    metadata = do_positioning(team, r_query,
+                              -2*60, 10*60,
+                              metadata,
+                              new_dire, new_radiant
+                              )
+    plt.close('all')
+    print("Processing wards.")
+    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
+    print("Processing individual ward replays.")
+    metadata = do_wards_separate(team, r_query, metadata, new_dire,
+                                 new_radiant)
+    plt.close('all')
+    print("Processing smoke.")
+    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
+    print("Processing scans.")
+    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata, r_filter)
-    # plt.close('all')
-    # if new_dire or new_radiant:
-    #     print("Processing counter picks.")
-    #     metadata = do_counters(team, r_query, metadata)
-    # print("Processing statistics.")
-    # metadata = do_statistics(team, r_query, metadata)
+    plt.close('all')
+    if new_dire or new_radiant:
+        print("Processing counter picks.")
+        metadata = do_counters(team, r_query, metadata)
+    print("Processing statistics.")
+    metadata = do_statistics(team, r_query, metadata)
 
-    # path = store_metadata(team, metadata)
-    # print("Metadata file updated at {}".format(str(path)))
+    path = store_metadata(team, metadata)
+    print("Metadata file updated at {}".format(str(path)))
 
     return metadata
 
