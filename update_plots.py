@@ -237,12 +237,13 @@ def do_draft(team: TeamInfo, metadata,
             metadata['plot_dire_drafts'] = relpath
 
     if update_radiant:
-        output = team_path / 'radiant/drafts.jpg'
+        output = team_path / 'radiant/drafts.png'
         radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
                                             Team.RADIANT,
                                             team.name)
         if radiant_drafts is not None:
             radiant_drafts = radiant_drafts.convert("RGB")
+            radiant_drafts = radiant_drafts.resize((radiant_drafts.size[0] // draft_resize, radiant_drafts.size[1] // draft_resize))
             radiant_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_radiant_drafts'] = relpath
