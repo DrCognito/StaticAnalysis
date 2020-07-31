@@ -71,7 +71,7 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
     return out_box
 
 
-def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int):
+def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox: bool = True):
     image: str = hero_portrait[hero]
     if not is_pick:
         image = image.replace(".png", "_grey.png")
@@ -92,38 +92,42 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int):
 
     # Build over all box
     background_colour = (255, 255, 255, 0)
-    size = (text_box_x + 2*boarder,
-            text_box_y + dimensions[1] + 2*boarder + y_spacing)
+    if add_textbox:
+        size = (text_box_x + 2*boarder,
+                text_box_y + dimensions[1] + 2*boarder + y_spacing)
+    else:
+        size = (text_box_x + 2*boarder,
+                dimensions[1] + 2*boarder + y_spacing)
     out_box = Image.new('RGBA', size, background_colour)
     canvas = ImageDraw.Draw(out_box)
 
-    if is_pick:
-        text = "PICK"
-        extra = hero_portrait_prefix.parent / "check_mark.png"
-    else:
-        text = "BAN"
-        extra = hero_portrait_prefix.parent / "x_mark.png"
-
-    extra_graphic = Image.open(extra).convert("RGBA")
-    extra_graphic = extra_graphic.resize((font_size, font_size))
-
     # Put in the portrait
     out_box.paste(portrait, (boarder, boarder), portrait)
-
-    # Text box
-    canvas.rectangle((boarder, text_off_y,
-                      boarder + text_box_x,
-                      text_off_y + text_box_y), fill='black')
     font = ImageFont.truetype('arialbd.ttf', font_size)
+    if add_textbox:
+        if is_pick:
+            text = "PICK"
+            extra = hero_portrait_prefix.parent / "check_mark.png"
+        else:
+            text = "BAN"
+            extra = hero_portrait_prefix.parent / "x_mark.png"
 
-    text_size = font.getsize(text)
-    text_off = text_box_x // 2 - text_size[0] // 2 + extra_graphic.size[0] // 2
-    canvas.text((text_off, text_off_y + 1), text, fill='white',
-                font=font)
+        extra_graphic = Image.open(extra).convert("RGBA")
+        extra_graphic = extra_graphic.resize((font_size, font_size))
 
-    # Add the extra graphic
-    out_box.paste(extra_graphic, (text_off - font_size - 1, text_off_y + 2),
-                  extra_graphic)
+        # Text box
+        canvas.rectangle((boarder, text_off_y,
+                        boarder + text_box_x,
+                        text_off_y + text_box_y), fill='black')
+
+        text_size = font.getsize(text)
+        text_off = text_box_x // 2 - text_size[0] // 2 + extra_graphic.size[0] // 2
+        canvas.text((text_off, text_off_y + 1), text, fill='white',
+                    font=font)
+
+        # Add the extra graphic
+        out_box.paste(extra_graphic, (text_off - font_size - 1, text_off_y + 2),
+                    extra_graphic)
 
     # Number box, has to be drawn to temp canvas
     tint = (0, 0, 0, 200)
@@ -142,7 +146,7 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int):
         factor = 1.0
     else:
         factor = 1.5
-    w, h = font.getsize(str(pick_num))
+    # w, h = font.getsize(str(pick_num))
 
     draw.text((text_box_x + boarder - factor*font_size, boarder + 1),
                 str_num,
@@ -267,6 +271,82 @@ def process_team_portrait(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
+def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
+    hero_boxes_pick = []
+    hero_boxes_ban = []
+
+    tot_width_pick = spacing
+    tot_width_ban = spacing
+
+    prev_is_pick = team.draft[0].is_pick
+    extra_space_pick = []
+    extra_space_ban = []
+
+    height = 0
+    for selection in team.draft:
+        changed_phase = prev_is_pick != selection.is_pick
+        prev_is_pick = selection.is_pick
+
+        if selection.is_pick:
+            extra_space_pick.append(changed_phase)
+            hbox = hero_box_image_portrait(selection.hero,
+                                           selection.is_pick,
+                                           selection.order,
+                                           add_textbox=False)
+            tot_width_pick += hbox.size[0]
+            hero_boxes_pick.append(hbox)
+            height = max(height, hbox.size[1] + spacing*2)
+        else:
+            extra_space_ban.append(changed_phase)
+            hbox = hero_box_image_portrait(selection.hero,
+                                           selection.is_pick,
+                                           selection.order,
+                                           add_textbox=False)
+            tot_width_ban += hbox.size[0]
+            hero_boxes_ban.append(hbox)
+            height = max(height, hbox.size[1] + spacing*2)
+
+    tot_width_pick += spacing
+    tot_width_ban += spacing
+
+    #b_colour = (255, 255, 255, 0)
+    b_colour = (255, 255, 255, 255)
+    #out_box = Image.new('RGBA', (max([tot_width_pick, tot_width_ban]), 2*height), b_colour)
+    out_box = Image.new('RGBA', (tot_width_ban, 2*height), b_colour)
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes_pick):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space_pick[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, spacing),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(hero_boxes_ban):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        # Extra if we changed our pick/ban phase
+        if extra_space_ban[i]:
+            x_off += spacing
+            extras += spacing
+        out_box.paste(hbox,
+                      (x_off, height),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    return out_box
+
+
 def process_team(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
@@ -322,57 +402,80 @@ def process_team(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
-def pickban_line_image(replay: Replay, main_side: Team, spacing=5):
-    def _process_team(team: TeamSelections):
-        hero_boxes = []
-        tot_width = spacing
-        team_win = team.team == replay.winner
-        for selection in team.draft:
-            draw_first = selection.order == 0 and team.firstPick
+def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
+    tot_width = spacing
+    # All the heroes as per dotabuff formatting
+    pick_ban_box = process_team_portrait_dotabuff(replay, team, spacing=0)
+    tot_width += pick_ban_box.size[0]
+    # First pick indicator, y scaling to pick_ban_box
+    firstpick_box = draw_firstpick_box(team, size=(40, pick_ban_box.size[1]))
+    tot_width += firstpick_box.size[0]
+    tot_width += spacing
+    height = pick_ban_box.size[1] + 4 * spacing
 
-            hbox = hero_box_image(selection.hero,
-                                  selection.is_pick,
-                                  draw_first,
-                                  team_win)
-            tot_width += hbox.size[0] + spacing
-            height = hbox.size[1] + spacing*2
-            hero_boxes.append(hbox)
+    team_win = team.team == replay.winner
+    #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
+    b_colour = (238, 130, 238, 255) if team_win else (255, 255, 255, 0)
+    
+    out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
-        b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
-        out_box = Image.new('RGBA', (tot_width, height), b_colour)
+    # Paste in first pick indicator
+    out_box.paste(firstpick_box,
+                  (spacing, spacing),
+                  firstpick_box)
+    # Paste in dotabuff formatted heroes
+    out_box.paste(pick_ban_box,
+                  (spacing+firstpick_box.size[0], spacing),
+                  pick_ban_box)
 
-        processed_size = spacing
-        for i, hbox in enumerate(hero_boxes):
-            # Initial offset starts after the border (+spacing)
-            x_off = processed_size + i*spacing
-            out_box.paste(hbox,
-                          (x_off, spacing),
-                          hbox)
-            processed_size += hbox.size[0]
+    return out_box
 
-        return out_box
 
+def pickban_line_image(replay: Replay, main_side: Team, spacing=5, add_team_name=True):
+    t: TeamSelections
     for t in replay.teams:
         if len(t.draft) == 0:
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
             return None
         if t.team == main_side:
-            team_line = process_team(replay, t)
+            team_line = process_team_dotabuff(replay, t)
         else:
-            opposition_line = process_team(replay, t)
+            opposition_line = process_team_dotabuff(replay, t)
+            opp_name = t.teamName
 
+    # Team spacer
     spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
+    # Opposition team name text, size concerns?
+    if add_team_name:
+        font_size = 40
+        height = team_line.size[1] + font_size + 2*spacing
+        font = ImageFont.truetype('arialbd.ttf', font_size)
+        text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+                               (255, 255, 255, 0))
+        text_canv = ImageDraw.Draw(text_image)
+        first_pick_box_offset = 40
+        text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
+                       font=font, fill=(0, 0, 0))
+    else:
+        height = team_line.size[1]
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
-    height = team_line.size[1]
     out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
-    out_box.paste(team_line, (0, 0), team_line)
-    # out_box.paste(spacer, (team_line.size[0], 0), spacer)
-    out_box.paste(opposition_line,
-                  (team_line.size[0] + spacer.size[0], 0),
-                  opposition_line)
+    if add_team_name:
+        out_box.paste(team_line, (0, text_image.size[1]), team_line)
+
+        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0), text_image)
+        out_box.paste(opposition_line,
+                      (team_line.size[0] + spacer.size[0], text_image.size[1]),
+                      opposition_line)
+    else:
+        out_box.paste(team_line, (0, 0), team_line)
+
+        out_box.paste(opposition_line,
+                    (team_line.size[0] + spacer.size[0], 0),
+                    opposition_line)
 
     return out_box
 
@@ -385,7 +488,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
-        line = pickban_line_image(replay, main_side)
+        line = pickban_line_image(replay, main_side, add_team_name=True)
         if line is None:
             continue
         lines.append(line)
@@ -401,7 +504,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
         return None
 
     # Add them to the sheet image
-    sheet = Image.new('RGBA', (max_width, tot_height), (255, 255, 255, 0))
+    sheet = Image.new('RGBA', (max_width, tot_height), (255, 255, 255, 255))
     y_off = 0
     for line in lines:
         off_set = 0
@@ -415,7 +518,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
     font_size = 30
     final_image = Image.new('RGBA',
                             (sheet.size[0], sheet.size[1]+font_size),
-                            (255, 255, 255, 0))
+                            (255, 255, 255, 255))
     canvas = ImageDraw.Draw(final_image)
 
     font = ImageFont.truetype('arialbd.ttf', font_size)
