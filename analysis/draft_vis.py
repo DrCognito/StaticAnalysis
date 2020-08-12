@@ -11,7 +11,7 @@ from typing import List
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from pathlib import Path
-
+from lib.team_info import TeamInfo
 
 def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
     '''Template for the pick and ban box'''
@@ -416,7 +416,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     team_win = team.team == replay.winner
     #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
     b_colour = (238, 130, 238, 255) if team_win else (255, 255, 255, 0)
-    
+
     out_box = Image.new('RGBA', (tot_width, height), b_colour)
 
     # Paste in first pick indicator
@@ -431,14 +431,15 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
-def pickban_line_image(replay: Replay, main_side: Team, spacing=5, add_team_name=True):
+def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5, add_team_name=True):
     t: TeamSelections
     for t in replay.teams:
         if len(t.draft) == 0:
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
             return None
-        if t.team == main_side:
+        if t.teamID == team.team_id or t.stackID == team.stack_id:
             team_line = process_team_dotabuff(replay, t)
+            main_team_faction = t.team
         else:
             opposition_line = process_team_dotabuff(replay, t)
             opp_name = t.teamName
@@ -453,17 +454,30 @@ def pickban_line_image(replay: Replay, main_side: Team, spacing=5, add_team_name
         font_size = 40
         height = team_line.size[1] + font_size + 2*spacing
         font = ImageFont.truetype('arialbd.ttf', font_size)
+        # Opposition name
         text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
                                (255, 255, 255, 0))
         text_canv = ImageDraw.Draw(text_image)
         first_pick_box_offset = 40
         text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
                        font=font, fill=(0, 0, 0))
+        # Faction text
+        faction_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+                                  (255, 255, 255, 0))
+        faction_canv = ImageDraw.Draw(faction_image)
+        if main_team_faction == Team.DIRE:
+            faction_canv.text((first_pick_box_offset + spacing, spacing), text="Dire",
+                               font=font, fill=(168, 56, 6))
+        else:
+            faction_canv.text((first_pick_box_offset + spacing, spacing), text="Radiant",
+                                font=font, fill=(89, 131, 7))
     else:
         height = team_line.size[1]
+
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
     out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     if add_team_name:
+        out_box.paste(faction_image, (0, 0), faction_image)
         out_box.paste(team_line, (0, text_image.size[1]), team_line)
 
         out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0), text_image)
@@ -480,7 +494,7 @@ def pickban_line_image(replay: Replay, main_side: Team, spacing=5, add_team_name
     return out_box
 
 
-def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
+def replay_draft_image(replays: List[Replay], team: Team, team_name: str):
     lines = list()
     tot_height = 0
     max_width = 0
@@ -488,7 +502,7 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
-        line = pickban_line_image(replay, main_side, add_team_name=True)
+        line = pickban_line_image(replay, team, add_team_name=True)
         if line is None:
             continue
         lines.append(line)
@@ -515,9 +529,9 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
         y_off += vert_spacing
 
     # Finally add a title
-    font_size = 30
+    font_size = 40
     final_image = Image.new('RGBA',
-                            (sheet.size[0], sheet.size[1]+font_size),
+                            (sheet.size[0], sheet.size[1]+font_size+5),
                             (255, 255, 255, 255))
     canvas = ImageDraw.Draw(final_image)
 
@@ -529,6 +543,6 @@ def replay_draft_image(replays: List[Replay], main_side: Team, team_name: str):
     canvas.text((sheet.size[0]/2 + 5, 0), 'Opponent', fill='black', font=font)
 
     # Paste the old thing in
-    final_image.paste(sheet, (0, font_size), sheet)
+    final_image.paste(sheet, (0, font_size + 5), sheet)
 
     return final_image

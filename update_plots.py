@@ -227,7 +227,7 @@ def do_draft(team: TeamInfo, metadata,
     if update_dire:
         output = team_path / 'dire/drafts.png'
         dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).all(),
-                                         Team.DIRE,
+                                         team,
                                          team.name)
         if dire_drafts is not None:
             dire_drafts = dire_drafts.convert("RGB")
@@ -239,7 +239,7 @@ def do_draft(team: TeamInfo, metadata,
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
         radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
-                                            Team.RADIANT,
+                                            team,
                                             team.name)
         if radiant_drafts is not None:
             radiant_drafts = radiant_drafts.convert("RGB")
@@ -247,6 +247,18 @@ def do_draft(team: TeamInfo, metadata,
             radiant_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_radiant_drafts'] = relpath
+
+    if update_radiant or update_dire:
+        output = team_path / 'drafts.png'
+        drafts = replay_draft_image(r_drafted.order_by(Replay.replayID.desc()).all(),
+                                    team,
+                                    team.name)
+        if drafts is not None:
+            drafts = drafts.convert("RGB")
+            drafts = drafts.resize((drafts.size[0] // draft_resize, drafts.size[1] // draft_resize))
+            drafts.save(output, dpi=(50, 50), optimize=True)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_drafts'] = relpath
 
     return metadata
 
