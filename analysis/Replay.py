@@ -106,7 +106,7 @@ def hero_win_rate(r_query, team):
         for r in replays:
             is_win = r.winner == side
 
-            picks = [p.hero for t in r.teams if t.team == side for p in t.draft]
+            picks = [p.hero for t in r.teams if t.team == side for p in t.draft if p.is_pick]
 
             for hero in picks:
                 column = 'Win' if is_win else 'Loss'
