@@ -132,3 +132,6 @@ current_process.ps1
 
 # Some debugging files.
 *.pyx
+
+# Default scrims list
+scrims.txt
