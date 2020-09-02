@@ -93,6 +93,13 @@ arguments.add_argument('--process_all',
 arguments.add_argument('--skip_datasummary',
                        help='''Skip processing the data set summary plots.''',
                        action='store_true')
+arguments.add_argument('--scrim_list',
+                       help='''Specify a location for scrim list.''',
+                       default='./scrims.txt',
+                       type=str)
+arguments.add_argument('--scrim_teamid',
+                       help='''Team ID for scrims.''',
+                       type=int)
 
 
 def get_create_metadata(team: TeamInfo, dataset="default"):
@@ -661,8 +668,11 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
 
 
 def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
-                 extra_stackid=None):
+                 extra_stackid=None, replay_list=None):
+
     r_filter = Replay.endTimeUTC >= time
+    if replay_list is not None:
+        r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
     try:
         r_query = team.get_replays(session, extra_stackid).filter(r_filter)
     except SQLAlchemyError as e:
@@ -883,6 +893,24 @@ if __name__ == "__main__":
 
             process_team(team, metadata, TIME_CUT, args.reprocess,
                          args.extra_stackid)
+
+    if args.scrim_teamid is not None:
+        try:
+            with open(Path(args.scrim_list)) as file:
+                scrim_list = file.read().splitlines()
+        except IOError:
+            print(f"Failed to read scrim_list {args.scrim_list} for {args.scrim_teamid}")
+
+        team = get_team(args.scrim_teamid)
+        if team is None:
+            print(f"Unable to find team {args.scrim_teamid} in database!")
+        print(f"Processing scrims from {args.scrim_list} for team {team.name}.")
+
+        metadata = get_create_metadata(team, "Scrims")
+        metadata['time_cut'] = TIME_CUT.timestamp()
+
+        process_team(team, metadata, TIME_CUT, args.reprocess,
+                     args.extra_stackid, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
