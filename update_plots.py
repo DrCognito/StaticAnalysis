@@ -670,6 +670,13 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
 def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
                  extra_stackid=None, replay_list=None):
 
+    navi_cut = datetime(2020, 9, 22, 0, 0, 0, 0)
+    if team.team_id == 36 and time < navi_cut:
+        #team.__init__()
+        team.extra_id_filter = Replay.endTimeUTC >= navi_cut
+
+    if extra_stackid is not None:
+        team.extra_stackid = extra_stackid
     r_filter = Replay.endTimeUTC >= time
     if replay_list is not None:
         r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
