@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from replays.Replay import Replay
 from replays.TeamSelections import TeamSelections
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from datetime import datetime, timedelta
 from os import environ as environment
@@ -14,7 +14,7 @@ from sqlalchemy import (BigInteger, Column, DateTime, ForeignKey, Integer,
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, reconstructor
 
 
 Base_TI = declarative_base()
@@ -49,15 +49,21 @@ def InitTeamDB(path=None):
 
 # Adapt team_db class
 class TeamInfo(TeamInfo_DB):
+    @reconstructor
     def __init__(self):
         self._filter = None
+        self.extra_stackid = None
+        self.extra_id_filter = None
 
     @property
-    def filter(self, extra_stackid=None):
+    def filter(self):
         id_filter = Replay.teams.any(TeamSelections.teamID == self.team_id)
-        if extra_stackid is not None:
+        if self.extra_id_filter is not None:
+            id_filter = and_(self.extra_id_filter, id_filter)
+
+        if self.extra_stackid is not None:
             stack_filter = Replay.teams.any(TeamSelections.stackID.in_(
-                                            (self.stack_id, extra_stackid)))
+                                            (self.stack_id, self.extra_stackid)))
         else:
             stack_filter = Replay.teams.any(TeamSelections.stackID ==
                                             self.stack_id)
