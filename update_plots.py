@@ -210,7 +210,7 @@ def do_positioning(team: TeamInfo, r_query,
 
 def do_draft(team: TeamInfo, metadata,
              update_dire=True, update_radiant=True,
-             r_filter=None):
+             r_filter=None, per_side_limit = 20):
     '''Produces draft images from the replays in r_query.
        Will only proceed for sides with update = True.
     '''
@@ -233,7 +233,7 @@ def do_draft(team: TeamInfo, metadata,
     draft_resize = 3
     if update_dire:
         output = team_path / 'dire/drafts.png'
-        dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).all(),
+        dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).limit(per_side_limit),
                                          team,
                                          team.name)
         if dire_drafts is not None:
@@ -245,7 +245,7 @@ def do_draft(team: TeamInfo, metadata,
 
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
-        radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).all(),
+        radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).limit(per_side_limit),
                                             team,
                                             team.name)
         if radiant_drafts is not None:
@@ -257,7 +257,7 @@ def do_draft(team: TeamInfo, metadata,
 
     if update_radiant or update_dire:
         output = team_path / 'drafts.png'
-        drafts = replay_draft_image(r_drafted.order_by(Replay.replayID.desc()).all(),
+        drafts = replay_draft_image(r_drafted.order_by(Replay.replayID.desc()).limit(per_side_limit),
                                     team,
                                     team.name)
         if drafts is not None:
@@ -367,7 +367,8 @@ def do_wards_separate(team: TeamInfo, r_query,
 
 def do_wards(team: TeamInfo, r_query,
              metadata: dict,
-             update_dire=True, update_radiant=True):
+             update_dire=True, update_radiant=True,
+             replay_limit=20):
 
     if not update_dire and not update_radiant:
         return metadata
@@ -376,7 +377,8 @@ def do_wards(team: TeamInfo, r_query,
 
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                                   Type=Ward,
-                                                  start=-2*60, end=12*60)
+                                                  start=-2*60, end=12*60,
+                                                  replay_limit=replay_limit)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
     metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins",
