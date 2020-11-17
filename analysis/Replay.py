@@ -64,17 +64,18 @@ def win_rate_table(r_query, team):
 
 
 def simple_side_filter(r_query, session, team: TeamInfo,
-                       Type, side: Team, extra_filter=None):
+                       Type, side: Team, extra_filter=None,
+                       limit=None):
     r_filter = Replay.get_side_filter(team, side)
     replays = r_query.filter(r_filter).subquery()
+    if limit:
+        replays = replays.limit(limit)
 
     if extra_filter is not None:
         w_query = session.query(Type).filter(extra_filter)\
-                                     .filter(Type.team == side)\
                                      .join(replays)
     else:
-        w_query = session.query(Type).filter(Type.team == side)\
-                                     .join(replays)
+        w_query = session.query(Type).join(replays)
 
     return w_query
 
@@ -129,7 +130,8 @@ def hero_win_rate(r_query, team):
 
 
 def get_ptbase_tslice(session, r_query, Type,
-                      team: TeamInfo, start=None, end=None):
+                      team: TeamInfo, start=None, end=None,
+                      replay_limit=None):
     if start is not None and end is not None:
         assert(end >= start)
         t_filter = and_(Type.game_time > start, Type.game_time <= end)
@@ -141,9 +143,9 @@ def get_ptbase_tslice(session, r_query, Type,
         t_filter = None
 
     dire = simple_side_filter(r_query, session, team, Type, Team.DIRE,
-                              t_filter)
+                              t_filter, limit=replay_limit)
     radiant = simple_side_filter(r_query, session, team, Type, Team.RADIANT,
-                                 t_filter)
+                                 t_filter, limit=replay_limit)
 
     return dire, radiant
 
