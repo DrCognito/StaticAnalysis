@@ -135,3 +135,5 @@ current_process.ps1
 
 # Default scrims list
 scrims.txt
+pstat_res.py
+profile.out
