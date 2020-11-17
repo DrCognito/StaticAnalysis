@@ -15,3 +15,4 @@ flake8 = "*"
 matplotlib = "*"
 
 [dev-packages]
+pylint = "*"
