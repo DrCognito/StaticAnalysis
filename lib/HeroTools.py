@@ -147,6 +147,9 @@ heroShortName["npc_dota_hero_grimstroke"] = "Grimstroke"
 heroShortName["npc_dota_hero_mars"] = "Mars"
 heroShortName["npc_dota_hero_snapfire"] = "Snapfire"
 heroShortName["npc_dota_hero_void_spirit"] = "Void Spirit"
+heroShortName["npc_dota_hero_hoodwink"] = "Hoodwink"
+heroShortName["npc_dota_hero_dawnbreaker"] = "Dawn Breaker"
+heroShortName["npc_dota_hero_marci"] = "Marci"
 heroShortName["Other"] = "Other"
 
 heroByID = {}
@@ -269,6 +272,9 @@ heroByID[121] = "npc_dota_hero_grimstroke"
 heroByID[129] = "npc_dota_hero_mars"
 heroByID[126] = "npc_dota_hero_void_spirit"
 heroByID[128] = "npc_dota_hero_snapfire"
+heroByID[123] = "npc_dota_hero_hoodwink"
+heroByID[135] = "npc_dota_hero_dawnbreaker"
+heroByID[136] = "npc_dota_hero_marci"
 
 HeroLongName = {}
 HeroLongName["AM"] = "npc_dota_hero_antimage"
@@ -390,6 +396,9 @@ HeroLongName["Grimstroke"] = "npc_dota_hero_grimstroke"
 HeroLongName["Mars"] = "npc_dota_hero_mars"
 HeroLongName["Void Spirit"] = "npc_dota_hero_void_spirit"
 HeroLongName["Snapfire"] = "npc_dota_hero_snapfire"
+HeroLongName["Hoodwink"] = "npc_dota_hero_hoodwink"
+HeroLongName["Dawn Breaker"] = "npc_dota_hero_dawnbreaker"
+HeroLongName["Marci"] = "npc_dota_hero_marci"
 HeroLongName["Other"] = "Other"
 
 HeroIconPrefix = Path(environment['ICON_PATH'])
@@ -514,6 +523,9 @@ HeroIcon["Grimstroke"] = "grimstroke.png"
 HeroIcon["Mars"] = "mars.png"
 HeroIcon["Snapfire"] = "snapfire.png"
 HeroIcon["Void Spirit"] = "void_spirit.png"
+HeroIcon["Hoodwink"] = "hoodwink.png"
+HeroIcon["Dawn Breaker"] = "dawnbreaker.png"
+HeroIcon["Marci"] = "marci.png"
 
 SheetHeroMap = {
                "npc_dota_hero_abaddon": "abaddon",
@@ -633,6 +645,9 @@ SheetHeroMap = {
                "npc_dota_hero_zuus": "zeus",
                "npc_dota_hero_grimstroke": "grimstroke",
                "npc_dota_hero_mars": "mars",
+               "npc_dota_hero_hoodwink": "hoodwink",
+               "npc_dota_hero_dawnbreaker": "dawnbreaker",
+               "npc_dota_hero_marci": "marci",
 }
 
 hero_portrait_prefix = Path(environment['PORTRAIT_PATH'])
