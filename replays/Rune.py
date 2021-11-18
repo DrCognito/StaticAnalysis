@@ -19,7 +19,7 @@ class RuneID(enum.Enum):
     Regeneration = 4
     Bounty = 5
     Arcane = 6
-    WaterRun = 7
+    WaterRune = 7
 
 
 class Rune(Base):
