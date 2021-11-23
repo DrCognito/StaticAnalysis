@@ -67,7 +67,8 @@ def simple_side_filter(r_query, session, team: TeamInfo,
                        Type, side: Team, extra_filter=None,
                        limit=None):
     r_filter = Replay.get_side_filter(team, side)
-    replays = r_query.filter(r_filter).subquery()
+    #replays = r_query.filter(r_filter).subquery()
+    replays = r_query.filter(r_filter)
     if limit:
         replays = replays.limit(limit)
 
