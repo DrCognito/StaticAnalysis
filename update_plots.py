@@ -109,7 +109,6 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
         print("Adding new team {}.".format(team.name))
         # Will make the whole tree up to path
         team_path.mkdir(parents=True, exist_ok=True)
-        mkdir(team_path)
         mkdir(team_path / 'wards')
 
     if not dataset_path.exists():
