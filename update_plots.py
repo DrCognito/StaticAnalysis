@@ -104,14 +104,16 @@ arguments.add_argument('--scrim_teamid',
 
 def get_create_metadata(team: TeamInfo, dataset="default"):
     team_path = Path(PLOT_BASE_PATH) / team.name
-    dataset_path = team_path / dataset
+    dataset_path: Path = team_path / dataset
     if not team_path.exists():
         print("Adding new team {}.".format(team.name))
+        # Will make the whole tree up to path
+        team_path.mkdir(parents=True, exist_ok=True)
         mkdir(team_path)
         mkdir(team_path / 'wards')
 
     if not dataset_path.exists():
-        mkdir(dataset_path)
+        dataset_path.mkdir(parents=True, exist_ok=True)
         mkdir(dataset_path / 'dire')
         mkdir(dataset_path / 'radiant')
         mkdir(dataset_path / 'counters')
@@ -161,7 +163,10 @@ def do_positioning(team: TeamInfo, r_query,
         metadata['plot_pos_dire'] = []
     if update_radiant:
         metadata['plot_pos_radiant'] = []
-    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path: Path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     for pos in positions:
         if pos >= len(team.players):
             print("Position {} is out of range for {}"
@@ -229,6 +234,9 @@ def do_draft(team: TeamInfo, metadata,
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     draft_resize = 3
     if update_dire:
@@ -291,6 +299,7 @@ def do_wards_separate(team: TeamInfo, r_query,
     team_path: Path = Path(PLOT_BASE_PATH) / team.name
     dire_loc: Path = team_path / "wards"
     radiant_loc: Path = team_path / "wards"
+    (team_path / 'wards').mkdir(parents=True, exist_ok=True)
 
     def _get_ax_size(ax_in, fig_in):
         bbox = ax_in.get_window_extent()\
@@ -373,6 +382,8 @@ def do_wards(team: TeamInfo, r_query,
     if not update_dire and not update_radiant:
         return metadata
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     vmin, vmax = (1, None)
 
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
@@ -476,6 +487,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         return metadata
 
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     time_pairs = [
         (-10*60, 10*60),
         (10*60, 20*60),
@@ -549,6 +562,8 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
         return metadata
 
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     s_dire, s_radiant = get_ptbase_tslice(session, r_query,
                                           team=team, Type=Scan)
@@ -576,6 +591,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
 
     draft_summary_df = draft_summary(session, r_query, team)
     fig, extra = plot_draft_summary(*draft_summary_df)
@@ -633,6 +649,8 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
 def do_counters(team: TeamInfo, r_query, metadata: dict):
     counters_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     counters_path = counters_path / 'counters'
+    counters_path.mkdir(parents=True, exist_ok=True)
+
     # picks are columns, what they picked into are rows
     counters = counter_picks(session, r_query, team)
 
