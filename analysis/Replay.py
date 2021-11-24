@@ -208,7 +208,7 @@ def get_rune_control(r_query, team: TeamInfo):
                 else:
                     series[time] = 1
 
-            is_bounty = rune.runeType == RuneID.Bounty
+            is_bounty = rune.runeType == RuneID.Bounty or rune.runeType == RuneID.WaterRune
 
             if is_bounty:
                 if rune.team == team_side:
