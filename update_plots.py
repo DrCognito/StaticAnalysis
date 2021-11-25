@@ -190,6 +190,7 @@ def do_positioning(team: TeamInfo, r_query,
                                                            session))
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
+            plt.close(fig)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
 
@@ -206,6 +207,7 @@ def do_positioning(team: TeamInfo, r_query,
                                                            session))
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
+            plt.close(fig)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_radiant'].append(relpath)
 
@@ -403,6 +405,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_pregame.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
@@ -412,6 +415,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_0to4.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
@@ -421,6 +425,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_4to8.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
@@ -430,6 +435,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_8to12.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
@@ -443,6 +449,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_pregame.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
@@ -452,6 +459,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_0to4.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
@@ -461,6 +469,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_4to8.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
@@ -470,6 +479,7 @@ def do_wards(team: TeamInfo, r_query,
         fig.tight_layout()
         p_out = output / 'wards_8to12.jpg'
         fig.savefig(p_out)
+        plt.close(fig)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
@@ -541,6 +551,7 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         fig.tight_layout()
         fig.subplots_adjust(wspace=0.05)
         fig.savefig(output)
+        plt.close(fig)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_smoke_{}'.format(team_str)] = relpath
 
@@ -575,6 +586,7 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/scan_summary.jpg'.format(team_str)
         fig.savefig(output, bbox_inches='tight')
+        plt.close(fig)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_scan_{}'.format(team_str)] = relpath
 
@@ -596,6 +608,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     fig, extra = plot_draft_summary(*draft_summary_df)
     output = team_path / 'draft_summary.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    plt.close(fig)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_draft_summary'] = relpath
 
@@ -604,6 +617,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    plt.close(fig)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_hero_picks'] = relpath
 
@@ -611,6 +625,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     fig, extra = plot_pick_pairs(pick_pair_df)
     output = team_path / 'pick_pairs.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    plt.close(fig)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pair_picks'] = relpath
 
@@ -618,6 +633,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     output = team_path / 'pick_context.png'
     fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
+    plt.close(fig)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pick_context'] = relpath
 
@@ -626,6 +642,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     output = team_path / 'hero_win_rate.png'
     fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_inches='tight', dpi=300)
+    plt.close(fig)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_win_rate'] = relpath
 
@@ -639,6 +656,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
         output = team_path / 'rune_control.png'
         fig.tight_layout(h_pad=0)
         fig.savefig(output, bbox_inches='tight', dpi=200)
+        plt.close(fig)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_rune_control'] = relpath
 
@@ -667,6 +685,7 @@ def do_counters(team: TeamInfo, r_query, metadata: dict):
 
         output = counters_path / (hero + '.jpg')
         fig.savefig(output,  bbox_inches='tight')
+        plt.close(fig)
         relpath = output.relative_to(Path(PLOT_BASE_PATH))
         metadata['counter_picks'][hero] = str(relpath)
 
@@ -877,10 +896,12 @@ def do_datasummary(r_filter=None):
     fig, ax = _ward_summary(dire_summary)
     fig.tight_layout()
     fig.savefig(data_plot_dir / 'wards_dire.png')
+    plt.close(fig)
 
     fig, ax = _ward_summary(radiant_summary)
     fig.tight_layout()
     fig.savefig(data_plot_dir / 'wards_radiant.png')
+    plt.close(fig)
 
 
 if __name__ == "__main__":
