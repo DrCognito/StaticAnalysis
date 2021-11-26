@@ -302,6 +302,9 @@ def do_wards_separate(team: TeamInfo, r_query,
     radiant_loc: Path = team_path / "wards"
     (team_path / 'wards').mkdir(parents=True, exist_ok=True)
 
+    # fig, ax = plt.subplots(figsize=(10, 13))
+    fig = plt.figure(figsize=(10, 13))
+
     def _get_ax_size(ax_in, fig_in):
         bbox = ax_in.get_window_extent()\
                     .transformed(fig_in.dpi_scale_trans.inverted())
@@ -312,6 +315,11 @@ def do_wards_separate(team: TeamInfo, r_query,
 
     def _process_ward_replay(side: Team, r_query, replay_id,
                              time_range=(-2*60, 20*60)):
+        # nonlocal fig
+        # nonlocal ax
+        # fig.clf('reset')
+        fig = plt.gcf()
+        ax = plt.gca()
         if side == Team.DIRE:
             outloc = dire_loc / (str(replay_id) + ".png")
             r_name = "Opposition"
@@ -325,16 +333,19 @@ def do_wards_separate(team: TeamInfo, r_query,
             return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
 
         r_query = r_query.filter(Replay.replayID == replay_id)
-        wards = get_ptbase_tslice_side(session, r_query, team=team,
-                                       Type=Ward,
-                                       side=side,
-                                       start=-2*60, end=20*60)
+        try:
+            wards = get_ptbase_tslice_side(session, r_query, team=team,
+                                           Type=Ward,
+                                           side=side,
+                                           start=-2*60, end=20*60)
+        except LookupError:
+            print(f"Failed to process slice! wards for. Error:\n{e}")
         wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
 
         data = build_ward_table(wards, session, team_session)
         if data.empty:
             raise LookupError("Ward table empty!")
-        fig, ax = plt.subplots(figsize=(10, 13))
+        # fig, ax = plt.subplots(figsize=(10, 13))
         width, height = _get_ax_size(ax, fig)
         extras = plot_eye_scatter(data, ax, size=(18, 14))
         drafts = plot_drafts_above(r_query, ax, width,
@@ -342,7 +353,8 @@ def do_wards_separate(team: TeamInfo, r_query,
                                    d_name=d_name)
         fig.set_tight_layout(True)
         fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
-        plt.close(fig)
+        for a in fig.axes:
+            a.cla()
         return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
 
     def _process_side(side: Team, replays):
@@ -357,11 +369,13 @@ def do_wards_separate(team: TeamInfo, r_query,
         metadata[out_key] = {}
         r: Replay.replayID
         for r, in r_ids:
-            try:
-                new_plot = _process_ward_replay(side, r_query, r, time_range)
-            except LookupError:
-                print("Failed to process individual wards for {}.".format(r))
-                continue
+            # try:
+            new_plot = _process_ward_replay(side, r_query, r,
+                                            time_range)
+            # except LookupError as e:
+            #     # print("Failed to process individual wards for {}.".format(r))
+            #     print(f"Failed to process individual wards for {r}. Error:\n{e}")
+            #     continue
             metadata[out_key][r] = new_plot
 
     d_replays, r_replays = get_side_replays(r_query, session, team)
