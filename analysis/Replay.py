@@ -72,12 +72,14 @@ def simple_side_filter(r_query, session, team: TeamInfo,
     if limit:
         replays = replays.limit(limit)
 
+    typeFilter = Type.team.__eq__(side)
     if extra_filter is not None:
-        w_query = session.query(Type).filter(extra_filter)\
-                                     .join(replays)
-    else:
-        w_query = session.query(Type).join(replays)
-
+        # w_query = session.query(Type).filter(and_(Type.Team == side, extra_filter))\
+        #                              .join(replays)
+        typeFilter = and_(typeFilter, extra_filter)
+    # else:
+    #     w_query = session.query(Type).join(replays)
+    w_query = session.query(Type).join(replays).filter(typeFilter)
     return w_query
 
 
