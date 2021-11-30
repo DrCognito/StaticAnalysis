@@ -367,8 +367,13 @@ def get_binning_max_xy(df: DataFrame, bins=64):
     return weightSeries.max()
 
 
-def plot_player_positioning(query_data: DataFrame):
-    fig, ax_in = plt.subplots(figsize=(10, 10))
+def plot_player_positioning(query_data: DataFrame,
+                            fig_in=None):
+
+    if fig_in is None:
+        fig_in, ax_in = plt.subplots(figsize=(10, 10))
+    else:
+        ax_in = fig_in.add_subplot(111)
     # jet = plt.get_cmap('afmhot')
     colour_map = copy.copy(plt.get_cmap('afmhot'))
     colour_map.set_under('black', alpha=0.0)
@@ -398,12 +403,12 @@ def plot_player_positioning(query_data: DataFrame):
     # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
     divider = make_axes_locatable(ax_in)
     side_bar = divider.append_axes("right", size="5%", pad=0.05)
-    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar = fig_in.colorbar(plot, cax=side_bar)
     cbar.locator = ticker.MaxNLocator(integer=True)
     cbar.update_ticks()
     cbar.ax.tick_params(labelsize=14)
 
-    return fig, ax_in
+    return ax_in, side_bar, cbar.ax, plot.axes
 
 
 def plot_object_position(query_data: DataFrame, bins=64,

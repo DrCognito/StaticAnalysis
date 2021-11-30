@@ -166,6 +166,9 @@ def do_positioning(team: TeamInfo, r_query,
     team_path.mkdir(parents=True, exist_ok=True)
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
+
+    # Figure and axes for use for all plots.
+    fig, ax_in = plt.subplots(figsize=(10, 10))
     for pos in positions:
         if pos >= len(team.players):
             print("Position {} is out of range for {}"
@@ -176,7 +179,6 @@ def do_positioning(team: TeamInfo, r_query,
         pos_dire, pos_radiant = player_position(session, r_query, team,
                                                 player_slot=pos,
                                                 start=start, end=end)
-
         if update_dire:
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
@@ -185,12 +187,12 @@ def do_positioning(team: TeamInfo, r_query,
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
-            fig, ax = plot_player_positioning(dataframe_xy(pos_dire,
-                                                           PlayerStatus,
-                                                           session))
+            axes_ret = plot_player_positioning(dataframe_xy(pos_dire,
+                                               PlayerStatus, session),
+                                               fig)
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            plt.close(fig)
+            fig.clf()
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
 
@@ -202,15 +204,15 @@ def do_positioning(team: TeamInfo, r_query,
             ancient_filter = location_filter(radiant_ancient_cords,
                                              PlayerStatus)
             pos_radiant = pos_radiant.filter(ancient_filter)
-            fig, ax = plot_player_positioning(dataframe_xy(pos_radiant,
-                                                           PlayerStatus,
-                                                           session))
+            axes_ret = plot_player_positioning(dataframe_xy(pos_radiant,
+                                               PlayerStatus, session),
+                                               fig)
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            plt.close(fig)
+            fig.clf()
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_radiant'].append(relpath)
-
+    fig.clf()
     return metadata
 
 
@@ -753,14 +755,14 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Process {}.".format(team.name))
     print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    plt.close('all')
+    # plt.close('all')
     print("Processing positioning.")
     metadata = do_positioning(team, r_query,
                               -2*60, 10*60,
                               metadata,
                               new_dire, new_radiant
                               )
-    plt.close('all')
+    # plt.close('all')
     print("Processing wards.")
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
