@@ -675,23 +675,26 @@ def do_counters(team: TeamInfo, r_query, metadata: dict):
 
     # Remove 0 columns (unpicked heroes)
     counters = counters.T[counters.any()].T
-
     # Reset the metadata or old heroes remain.
     metadata['counter_picks'] = {}
+    # Reusable fig
+    fig, _ = plt.subplots()
+    fig.clf()
+
     for hero in counters:
-        fig, axis = plt.subplots()
+        axis = fig.add_subplot(111)
+
         bar_data = counters[hero].loc[lambda x: x != 0]\
                                  .sort_values(ascending=False)
         bar_data.plot.bar(ax=axis)
+
         axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
         output = counters_path / (hero + '.jpg')
         fig.savefig(output,  bbox_inches='tight')
-        plt.close(fig)
+        fig.clf()
         relpath = output.relative_to(Path(PLOT_BASE_PATH))
         metadata['counter_picks'][hero] = str(relpath)
-
-        plt.close(fig)
 
     return metadata
 
@@ -739,16 +742,16 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata['replays_radiant'] = list(radiant_list)
 
     print("Process {}.".format(team.name))
-    # print("Processing drafts.")
-    # metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    # # plt.close('all')
-    # print("Processing positioning.")
-    # metadata = do_positioning(team, r_query,
-    #                           -2*60, 10*60,
-    #                           metadata,
-    #                           new_dire, new_radiant
-    #                           )
+    print("Processing drafts.")
+    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
     # plt.close('all')
+    print("Processing positioning.")
+    metadata = do_positioning(team, r_query,
+                              -2*60, 10*60,
+                              metadata,
+                              new_dire, new_radiant
+                              )
+    plt.close('all')
     print("Processing wards.")
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
     plt.close('all')
