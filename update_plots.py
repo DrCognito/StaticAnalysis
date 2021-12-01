@@ -578,15 +578,17 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     s_dire, s_radiant = get_ptbase_tslice(session, r_query,
                                           team=team, Type=Scan)
 
+    fig, _ = plt.subplots(figsize=(10, 13))
+    fig.clf()
+
     def _plot_scans(query, side: Team):
         data = dataframe_xy_time(query, Scan, session)
-        fig, ax = plt.subplots(figsize=(10, 13))
-        plot_object_position_scatter(data, ax_in=ax)
+        plot_object_position_scatter(data, fig_in=fig)
 
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/scan_summary.jpg'.format(team_str)
         fig.savefig(output, bbox_inches='tight')
-        plt.close(fig)
+        fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_scan_{}'.format(team_str)] = relpath
 
