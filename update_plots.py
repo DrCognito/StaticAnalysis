@@ -411,47 +411,44 @@ def do_wards(team: TeamInfo, r_query,
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
     metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins",
                                    "8 to 12 mins"]
+    fig, _ = plt.subplots(figsize=(10, 10))
+    fig.clf()
+
+    def _plot_wards(data: DataFrame, p_out: Path):
+        plot_object_position(data, fig_in=fig, vmin=vmin, vmax=vmax)
+        fig.tight_layout()
+        fig.savefig(p_out)
+        fig.clf()
+        return
+
     if update_dire:
         metadata['plot_ward_dire'] = []
         output = team_path / 'dire'
         ward_df = dataframe_xy_time(wards_dire, Ward, session)
 
-        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_pregame.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[ward_df['game_time'] <= 0], p_out)
         relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &
-                                                  (ward_df['game_time'] <= 4*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_0to4.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 0) &
+                                (ward_df['game_time'] <= 4*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                                  (ward_df['game_time'] <= 8*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_4to8.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 4*60) &
+                                (ward_df['game_time'] <= 8*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 8*60) &
-                                                  (ward_df['game_time'] <= 12*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_8to12.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 8*60) &
+                                (ward_df['game_time'] <= 12*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
@@ -460,42 +457,29 @@ def do_wards(team: TeamInfo, r_query,
         output = team_path / 'radiant'
         ward_df = dataframe_xy_time(wards_radiant, Ward, session)
 
-        fig, _ = plot_object_position(ward_df.loc[ward_df['game_time'] <= 0],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_pregame.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
-        relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
+        _plot_wards(ward_df.loc[ward_df['game_time'] <= 0], p_out)
+        relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 0) &\
-                                                  (ward_df['game_time'] <= 4*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_0to4.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 0) &
+                                (ward_df['game_time'] <= 4*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                                  (ward_df['game_time'] <= 8*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_4to8.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 4*60) &
+                                (ward_df['game_time'] <= 8*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        fig, _ = plot_object_position(ward_df.loc[(ward_df['game_time'] > 8*60) &
-                                                  (ward_df['game_time'] <= 12*60)],
-                                      vmin=vmin, vmax=vmax)
-        fig.tight_layout()
         p_out = output / 'wards_8to12.jpg'
-        fig.savefig(p_out)
-        plt.close(fig)
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 8*60) &
+                                (ward_df['game_time'] <= 12*60)],
+                    p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
@@ -538,8 +522,8 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
                               (data['game_start_time'] <= times[1])]
         if data_slice['xCoordinate'].isnull().all():
             return
-        plot_object_position(data_slice, bins=16, ax_in=axis,
-                             vmin=vmin, vmax=vmax)
+        axis = plot_object_position(data_slice, bins=16, ax_in=axis,
+                                    vmin=vmin, vmax=vmax)
         axis.set_title(title)
 
     def _process_side(query, side: Team):
@@ -753,15 +737,15 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata['replays_radiant'] = list(radiant_list)
 
     print("Process {}.".format(team.name))
-    print("Processing drafts.")
-    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    # plt.close('all')
-    print("Processing positioning.")
-    metadata = do_positioning(team, r_query,
-                              -2*60, 10*60,
-                              metadata,
-                              new_dire, new_radiant
-                              )
+    # print("Processing drafts.")
+    # metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+    # # plt.close('all')
+    # print("Processing positioning.")
+    # metadata = do_positioning(team, r_query,
+    #                           -2*60, 10*60,
+    #                           metadata,
+    #                           new_dire, new_radiant
+    #                           )
     # plt.close('all')
     print("Processing wards.")
     metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
