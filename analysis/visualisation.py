@@ -412,11 +412,11 @@ def plot_player_positioning(query_data: DataFrame,
 
 
 def plot_object_position(query_data: DataFrame, bins=64,
-                         ax_in=None, vmin=None, vmax=None):
+                         fig_in=None, ax_in=None, vmin=None, vmax=None):
+    if fig_in is None:
+        fig_in = plt.gcf()
     if ax_in is None:
-        fig, ax_in = plt.subplots(figsize=(10, 10))
-    else:
-        fig = plt.gcf()
+        ax_in = fig_in.add_subplot(111)
 
     #jet = plt.get_cmap('rainbow')
     colour_map = copy.copy(plt.get_cmap('rainbow'))
@@ -448,7 +448,7 @@ def plot_object_position(query_data: DataFrame, bins=64,
     ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
 
-    return fig, ax_in
+    return ax_in
 
 
 def plot_hero_winrates(data: DataFrame, mingames=3, min_rate=0.6):
