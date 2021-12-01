@@ -489,9 +489,12 @@ def plot_hero_winrates(data: DataFrame, mingames=3, min_rate=0.6):
     return fig, axes
 
 
-def plot_object_position_scatter(query_data: DataFrame, size=700, ax_in=None):
+def plot_object_position_scatter(query_data: DataFrame, size=700,
+                                 fig_in=None, ax_in=None):
+    if fig_in is None:
+        fig_in = plt.gcf()
     if ax_in is None:
-        fig, ax_in = plt.subplots(figsize=(10, 10))
+        ax_in = fig_in.add_subplot(111)
 
     colour_map = copy.copy(plt.get_cmap('afmhot'))
     colour_map.set_under('black', alpha=0.0)
