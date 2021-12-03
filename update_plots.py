@@ -306,6 +306,9 @@ def do_wards_separate(team: TeamInfo, r_query,
 
     # fig, ax = plt.subplots(figsize=(10, 13))
     fig = plt.figure(figsize=(10, 13))
+    fig.set_tight_layout(True)
+    # Get width only once as subsequent widths are weird!
+    fixed_width = None
 
     def _get_ax_size(ax_in, fig_in):
         bbox = ax_in.get_window_extent()\
@@ -317,11 +320,12 @@ def do_wards_separate(team: TeamInfo, r_query,
 
     def _process_ward_replay(side: Team, r_query, replay_id,
                              time_range=(-2*60, 20*60)):
-        # nonlocal fig
-        # nonlocal ax
+        nonlocal fixed_width
+        nonlocal fig
         # fig.clf('reset')
-        fig = plt.gcf()
-        ax = plt.gca()
+        # fig = plt.gcf()
+        # ax = plt.gca()
+        ax = fig.subplots()
         if side == Team.DIRE:
             outloc = dire_loc / (str(replay_id) + ".png")
             r_name = "Opposition"
@@ -348,15 +352,19 @@ def do_wards_separate(team: TeamInfo, r_query,
         if data.empty:
             raise LookupError("Ward table empty!")
         # fig, ax = plt.subplots(figsize=(10, 13))
-        width, height = _get_ax_size(ax, fig)
+        if fixed_width is None:
+            fixed_width, _ = _get_ax_size(ax, fig)
         extras = plot_eye_scatter(data, ax, size=(18, 14))
-        drafts = plot_drafts_above(r_query, ax, width,
+        drafts = plot_drafts_above(r_query, ax, fixed_width,
                                    r_name=r_name,
                                    d_name=d_name)
-        fig.set_tight_layout(True)
-        fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
-        for a in fig.axes:
-            a.cla()
+        # fig.set_tight_layout(True)
+        fig.tight_layout(pad=2.0)
+        # fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
+        fig.savefig(outloc)
+        # for a in fig.axes:
+        #     a.cla()
+        fig.clf()
         return str(outloc.relative_to(Path(PLOT_BASE_PATH)))
 
     def _process_side(side: Team, replays):
@@ -606,45 +614,47 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
+    fig = plt.figure()
     draft_summary_df = draft_summary(session, r_query, team)
-    fig, extra = plot_draft_summary(*draft_summary_df)
+    fig, extra = plot_draft_summary(*draft_summary_df, fig)
     output = team_path / 'draft_summary.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    plt.close(fig)
+    fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_draft_summary'] = relpath
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter)
-    fig, extra = plot_player_heroes(hero_picks_df)
-    fig.tight_layout(h_pad=3.0)
+    fig, extra = plot_player_heroes(hero_picks_df, fig)
+    # fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    plt.close(fig)
+    fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_hero_picks'] = relpath
 
     pick_pair_df = pair_rate(session, r_query, team)
-    fig, extra = plot_pick_pairs(pick_pair_df)
+    fig, extra = plot_pick_pairs(pick_pair_df, fig)
     output = team_path / 'pick_pairs.png'
+    fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    plt.close(fig)
+    fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pair_picks'] = relpath
 
-    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query)
+    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig)
     output = team_path / 'pick_context.png'
     fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
-    plt.close(fig)
+    fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_pick_context'] = relpath
 
     hero_win_rate_df = hero_win_rate(r_query, team)
-    fig, _ = plot_hero_winrates(hero_win_rate_df)
+    fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
     output = team_path / 'hero_win_rate.png'
-    fig.tight_layout(h_pad=3.0)
+    # fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_inches='tight', dpi=300)
-    plt.close(fig)
+    fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_win_rate'] = relpath
 
@@ -654,11 +664,11 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     # All that line is 0
     zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0]).to_list())
     if not one_line and not zeroed:
-        fig, _ = plot_runes(rune_df, team)
+        fig, _ = plot_runes(rune_df, team, fig)
         output = team_path / 'rune_control.png'
         fig.tight_layout(h_pad=0)
         fig.savefig(output, bbox_inches='tight', dpi=200)
-        plt.close(fig)
+        fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_rune_control'] = relpath
 
@@ -678,11 +688,10 @@ def do_counters(team: TeamInfo, r_query, metadata: dict):
     # Reset the metadata or old heroes remain.
     metadata['counter_picks'] = {}
     # Reusable fig
-    fig, _ = plt.subplots()
-    fig.clf()
+    fig = plt.figure()
 
     for hero in counters:
-        axis = fig.add_subplot(111)
+        axis = fig.subplots()
 
         bar_data = counters[hero].loc[lambda x: x != 0]\
                                  .sort_values(ascending=False)

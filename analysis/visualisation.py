@@ -2,6 +2,7 @@ from os import environ as environment
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 from matplotlib import ticker
 from matplotlib.axes import Axes
@@ -139,10 +140,10 @@ def x_label_icon(axis, y_pos=-0.15, size=1.0):
     return extra_artists
 
 
-def plot_player_heroes(data: DataFrame):
+def plot_player_heroes(data: DataFrame, fig: Figure):
 
-    figure, axes = plt.subplots(5)
-    figure.set_size_inches(6, 10)
+    fig.set_size_inches(6, 10)
+    axes = fig.subplots(5)
 
     def _plot_player(column: Series, name: str, axis, colour: str):
         # This filters out zeroes in a series
@@ -168,15 +169,16 @@ def plot_player_heroes(data: DataFrame):
         ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colour_list[i_ax])
         extra_artists += extra
 
-    return figure, extra_artists
+    return fig, extra_artists
 
 
-def plot_draft_summary(picks: DataFrame, bans: DataFrame):
+def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
     '''Plot an abbreviated pick and ban count for a team.
        Stages will be combined.
     '''
-    fig, axes = plt.subplots(2, 3, sharey='row')
     fig.set_size_inches(8, 7)
+    axes = fig.subplots(2, 3, sharey='row')
+
     pick_colour = colour_list[0]
     ban_colour = colour_list[1]
     extra_artists = []
@@ -227,14 +229,15 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame):
     return fig, extra_artists
 
 
-def plot_pick_pairs(data: DataFrame, num_heroes=10):
+def plot_pick_pairs(data: DataFrame, fig: Figure, num_heroes=10):
     '''Plots pick pair combinations for the DataFrame data.
        Heroes are replaced by icons.
        num_heroes determines the number of paris to consider.
        Returns axis and extra artists for extending bounding box.
     '''
     working = data[:num_heroes]
-    fig, axis = plt.subplots()
+    fig.set_size_inches(8, 4)
+    axis = fig.subplots()
 
     if working.empty:
         axis.text(0.5, 0.5, "No Data", fontsize=14,
@@ -286,14 +289,14 @@ def plot_pick_pairs(data: DataFrame, num_heroes=10):
     return fig, extra_artists
 
 
-def plot_pick_context(picks: DataFrame, team, r_query, summarise=False):
+def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=False):
     '''Plots the context (in picks and bans) of a teams top picks.
        Input is a DataFrame of picks, the TeamInfo and r_query
        context.
     '''
     top_picks = picks.sum(axis=1).sort_values(ascending=False)
-    fig, axes = plt.subplots(4, 5, sharey='row')
-    fig.set_size_inches(8,9)
+    fig.set_size_inches(8, 9)
+    axes = fig.subplots(4, 5, sharey='row')
 
     extra_artists = []
 
@@ -451,10 +454,11 @@ def plot_object_position(query_data: DataFrame, bins=64,
     return ax_in
 
 
-def plot_hero_winrates(data: DataFrame, mingames=3, min_rate=0.6):
+def plot_hero_winrates(data: DataFrame, fig: Figure, mingames=3, min_rate=0.6):
     '''Plots hero win rate over all and with a minimum games required.'''
 
-    fig, axes = plt.subplots(2, figsize=(10, 10))
+    fig.set_size_inches(10, 10)
+    axes = fig.subplots(2)
     data.rename(heroShortName, inplace=True)
 
     def _do_plot(ax_in, data):
@@ -527,8 +531,9 @@ def plot_object_position_scatter(query_data: DataFrame, size=700,
     return plot
 
 
-def plot_runes(rune_data: DataFrame, team: TeamInfo):
-    fig, axes = plt.subplots(2, figsize=(10, 10))
+def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
+    fig.set_size_inches(10, 10)
+    axes = fig.subplots(2)
 
     bounty = rune_data[['Team Bounty', 'Opposition Bounty']]
     power = rune_data[['Team Power', 'Opposition Power']]
