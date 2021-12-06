@@ -10,4 +10,5 @@ scrims = list(scrims_dir.glob('*.dem'))
 
 with open('scrims.txt', 'a') as f:
     for s in scrims:
+        print(f"Adding {s.stem}.")
         f.write(f"{s.stem}\n")
