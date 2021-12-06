@@ -1,4 +1,5 @@
 from os import environ as environment
+from typing import Dict
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -229,64 +230,66 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
     return fig, extra_artists
 
 
-def plot_pick_pairs(data: DataFrame, fig: Figure, num_heroes=10):
+def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
     '''Plots pick pair combinations for the DataFrame data.
        Heroes are replaced by icons.
        num_heroes determines the number of paris to consider.
        Returns axis and extra artists for extending bounding box.
     '''
-    working = data[:num_heroes]
-    fig.set_size_inches(8, 4)
-    axis = fig.subplots()
 
-    if working.empty:
-        axis.text(0.5, 0.5, "No Data", fontsize=14,
-                  horizontalalignment='center',
-                  verticalalignment='center')
+    nplots = len(data)
+    fig.set_size_inches(8, 4*nplots)
+    axes = fig.subplots(nplots)
+
+    final_icon = []
+    for i, axis in zip(data, axes):
+        working = data[i][:num_heroes]
+        if working.empty:
+            axis.text(0.5, 0.5, "No Data", fontsize=14,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+            axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+            continue
+
+        working.plot.bar(ax=axis, width=0.9, grid=True)
         axis.yaxis.set_major_locator(MaxNLocator(integer=True))
-        return fig, []
 
-    working.plot.bar(ax=axis, width=0.9, grid=True)
-    axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+        hero_pairs = (h.split(', ') for h in working.index)
 
-    hero_pairs = (h.split(', ') for h in working.index)
+        x_axis = axis.get_xaxis()
+        x_locations = x_axis.get_major_locator()
 
-    x_axis = axis.get_xaxis()
-    x_locations = x_axis.get_major_locator()
+        x_min, x_max = axis.get_xlim()
+        x_range = x_max - x_min
 
-    x_min, x_max = axis.get_xlim()
-    x_range = x_max - x_min
+        for h_pair, x_loc in zip(hero_pairs, x_locations.locs):
+            try:
+                i1 = HeroIconPrefix / convertName(h_pair[0], HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+            except ValueError:
+                print("Unable to find hero icon for: " + hero)
+                continue
+            try:
+                i2 = HeroIconPrefix / convertName(h_pair[1], HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+            except ValueError:
+                print("Unable to find hero icon for: " + hero)
+                continue
 
-    extra_artists = []
+            y_pos1 = -0.1
+            y_pos2 = -0.22
+            size = 1.0
 
-    for h_pair, x_loc in zip(hero_pairs, x_locations.locs):
-        try:
-            i1 = HeroIconPrefix / convertName(h_pair[0], HeroIDType.NPC_NAME,
-                                              HeroIDType.ICON_FILENAME)
-        except ValueError:
-            print("Unable to find hero icon for: " + hero)
-            continue
-        try:
-            i2 = HeroIconPrefix / convertName(h_pair[1], HeroIDType.NPC_NAME,
-                                              HeroIDType.ICON_FILENAME)
-        except ValueError:
-            print("Unable to find hero icon for: " + hero)
-            continue
+            x_rel = (float(x_loc) - x_min)/x_range
+            make_image_annotation(i1, axis, x_rel, y_pos1, size)
+            a2 = make_image_annotation(i2, axis, x_rel, y_pos2, size)
+            # Should only need the bottom artist
+            final_icon = [a2, ]
 
-        y_pos1 = -0.1
-        y_pos2 = -0.22
-        size = 1.0
+            axis.set_xticklabels([])
+            axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-        x_rel = (float(x_loc) - x_min)/x_range
-        a1 = make_image_annotation(i1, axis, x_rel, y_pos1, size)
-        a2 = make_image_annotation(i2, axis, x_rel, y_pos2, size)
-        # Should only need the bottom artist
-        extra_artists.append(a2)
-
-    axis.set_xticklabels([])
-    axis.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-    return fig, extra_artists
+    return fig, final_icon
 
 
 def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=False):
