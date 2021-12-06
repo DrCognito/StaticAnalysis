@@ -2,6 +2,8 @@ from PIL import Image, ImageDraw, ImageFont
 import math
 import os
 import sys
+
+from sqlalchemy.sql.operators import op
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.HeroTools import (convertName, HeroIDType, HeroIconPrefix,
                            hero_portrait, hero_portrait_prefix)
@@ -434,15 +436,25 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5, add_team_name=True):
     t: TeamSelections
     for t in replay.teams:
+        team_win = t.team == replay.winner
         if len(t.draft) == 0:
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
             return None
         if t.teamID == team.team_id or t.stackID == team.stack_id:
             team_line = process_team_dotabuff(replay, t)
             main_team_faction = t.team
+
+            if main_team_faction == Team.DIRE:
+                main_name = "Dire"
+            else:
+                main_name = "Radiant"
+            if team_win:
+                main_name += " (winner)"
         else:
             opposition_line = process_team_dotabuff(replay, t)
             opp_name = t.teamName
+            if team_win:
+                opp_name += " (winner)"
 
     # Team spacer
     spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
@@ -466,10 +478,10 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5, add_team_name=
                                   (255, 255, 255, 0))
         faction_canv = ImageDraw.Draw(faction_image)
         if main_team_faction == Team.DIRE:
-            faction_canv.text((first_pick_box_offset + spacing, spacing), text="Dire",
+            faction_canv.text((first_pick_box_offset + spacing, spacing), text=main_name,
                                font=font, fill=(168, 56, 6))
         else:
-            faction_canv.text((first_pick_box_offset + spacing, spacing), text="Radiant",
+            faction_canv.text((first_pick_box_offset + spacing, spacing), text=main_name,
                                 font=font, fill=(89, 131, 7))
     else:
         height = team_line.size[1]
