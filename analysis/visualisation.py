@@ -376,7 +376,8 @@ def plot_player_positioning(query_data: DataFrame,
     if fig_in is None:
         fig_in, ax_in = plt.subplots(figsize=(10, 10))
     else:
-        ax_in = fig_in.add_subplot(111)
+        ax_in = fig_in.subplots()
+
     # jet = plt.get_cmap('afmhot')
     colour_map = copy.copy(plt.get_cmap('afmhot'))
     colour_map.set_under('black', alpha=0.0)
