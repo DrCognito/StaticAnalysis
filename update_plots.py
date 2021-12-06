@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker, rcParams
 from dotenv import load_dotenv
 from matplotlib.ticker import MaxNLocator
+import matplotlib.patheffects as PathEffects
+from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
 from sqlalchemy import and_, or_
@@ -168,7 +170,8 @@ def do_positioning(team: TeamInfo, r_query,
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     # Figure and axes for use for all plots.
-    fig, ax_in = plt.subplots(figsize=(10, 10))
+    fig = plt.figure()
+    fig.set_size_inches(10, 10)
     for pos in positions:
         if pos >= len(team.players):
             print("Position {} is out of range for {}"
@@ -358,6 +361,11 @@ def do_wards_separate(team: TeamInfo, r_query,
         drafts = plot_drafts_above(r_query, ax, fixed_width,
                                    r_name=r_name,
                                    d_name=d_name)
+        ax.text(s=str(replay_id), x=0, y=0,
+                ha='left', va='bottom', zorder=5,
+                path_effects=[PathEffects.withStroke(linewidth=3,
+                              foreground="w")],
+                color='black')
         # fig.set_tight_layout(True)
         fig.tight_layout(pad=2.0)
         # fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
@@ -382,10 +390,7 @@ def do_wards_separate(team: TeamInfo, r_query,
             # try:
             new_plot = _process_ward_replay(side, r_query, r,
                                             time_range)
-            # except LookupError as e:
-            #     # print("Failed to process individual wards for {}.".format(r))
-            #     print(f"Failed to process individual wards for {r}. Error:\n{e}")
-            #     continue
+            fig.clf()
             metadata[out_key][r] = new_plot
 
     d_replays, r_replays = get_side_replays(r_query, session, team)
