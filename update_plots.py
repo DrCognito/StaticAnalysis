@@ -221,7 +221,7 @@ def do_positioning(team: TeamInfo, r_query,
 
 def do_draft(team: TeamInfo, metadata,
              update_dire=True, update_radiant=True,
-             r_filter=None, per_side_limit = 20):
+             r_filter=None, per_side_limit=None):
     '''Produces draft images from the replays in r_query.
        Will only proceed for sides with update = True.
     '''
@@ -247,7 +247,13 @@ def do_draft(team: TeamInfo, metadata,
     draft_resize = 3
     if update_dire:
         output = team_path / 'dire/drafts.png'
-        dire_drafts = replay_draft_image(r_drafted.filter(dire_filter).limit(per_side_limit),
+        if per_side_limit is not None:
+            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
+                               .limit(2*per_side_limit).all()
+        else:
+            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
+                               .all()
+        dire_drafts = replay_draft_image(replays,
                                          team,
                                          team.name)
         if dire_drafts is not None:
@@ -259,7 +265,13 @@ def do_draft(team: TeamInfo, metadata,
 
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
-        radiant_drafts = replay_draft_image(r_drafted.filter(radiant_filter).limit(per_side_limit),
+        if per_side_limit is not None:
+            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
+                               .limit(2*per_side_limit).all()
+        else:
+            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
+                               .all()
+        radiant_drafts = replay_draft_image(replays,
                                             team,
                                             team.name)
         if radiant_drafts is not None:
@@ -271,7 +283,13 @@ def do_draft(team: TeamInfo, metadata,
 
     if update_radiant or update_dire:
         output = team_path / 'drafts.png'
-        drafts = replay_draft_image(r_drafted.order_by(Replay.replayID.desc()).limit(per_side_limit),
+        if per_side_limit is not None:
+            replays = r_drafted.order_by(Replay.replayID.desc())\
+                               .limit(2*per_side_limit).all()
+        else:
+            replays = r_drafted.order_by(Replay.replayID.desc())\
+                               .all()
+        drafts = replay_draft_image(replays,
                                     team,
                                     team.name)
         if drafts is not None:
@@ -758,7 +776,7 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     print("Process {}.".format(team.name))
     print("Processing drafts.")
     metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    # plt.close('all')
+    plt.close('all')
     print("Processing positioning.")
     metadata = do_positioning(team, r_query,
                               -2*60, 10*60,
