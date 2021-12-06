@@ -1,3 +1,4 @@
+from typing import List
 from .Statistics import x_vs_time, xy_vs_time, cumulative_statistic
 from pandas import DataFrame, Series, concat
 import os
@@ -235,7 +236,32 @@ def get_rune_control(r_query, team: TeamInfo):
 
 
 def pair_rate(session, r_query, team):
-    output = Series()
+    output = {}
+
+    def _pairs_by_side(pick_bans: List[PickBans]):
+        last_team = None
+        last_was_pick = None
+        last_hero = None
+        pick_pair_ordinal = 1
+        dire_out = {}
+        radiant_out = {}
+        for p in pick_bans:
+            team = p.team
+            hero = p.hero
+            is_pick = p.is_pick
+            # If its the same team, a pick and last one was a pick, thats a pair!
+            if last_team == team and is_pick and last_was_pick:
+                if team == Team.DIRE:
+                    dire_out[pick_pair_ordinal] = f"{last_hero}, {hero}"
+                if team == Team.RADIANT:
+                    radiant_out[pick_pair_ordinal] = f"{last_hero}, {hero}"
+                pick_pair_ordinal += 1
+            # Variables for next go round
+            last_team = team
+            last_was_pick = is_pick
+            last_hero = hero
+
+        return dire_out, radiant_out
 
     def _process(side):
         side_filt = Replay.get_side_filter(team, side)
@@ -244,25 +270,28 @@ def pair_rate(session, r_query, team):
         for replay in replays:
             pick_pair = session.query(PickBans)\
                                .filter(PickBans.replayID == replay.replayID)\
-                               .filter(PickBans.team == side,
-                                       PickBans.is_pick == True)\
                                .order_by(PickBans.order)\
-                               .limit(2)
+                               .all()
 
-            pick_pair = [p.hero for p in pick_pair]
-            if len(pick_pair) != 2:
-                print("Skipped invalid hero picks.")
-                continue
-            pick_pair.sort()
-            pair_str = pick_pair[0] + ", " + pick_pair[1]
-            if pair_str in output:
-                output[pair_str] += 1
-            else:
-                output[pair_str] = 1
+            dire, radiant = _pairs_by_side(pick_pair)
+            if side == Team.DIRE:
+                pick_pairs = dire
+            if side == Team.RADIANT:
+                pick_pairs = radiant
+
+            # pick_pair.sort()
+            for i, pair in pick_pairs.items():
+                if i not in output:
+                    output[i] = Series()
+                if pair in output[i]:
+                    output[i][pair] += 1
+                else:
+                    output[i][pair] = 1
 
     _process(Team.DIRE)
     _process(Team.RADIANT)
-    output.sort_values(ascending=False, inplace=True)
+    for out in output:
+        output[out].sort_values(ascending=False, inplace=True)
 
     return output
 
