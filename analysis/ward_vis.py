@@ -366,39 +366,40 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
         list -- List of generated plotted objects.
     """
     replay: Replay = r_query.one()
+    extra_ents = []
     for t in replay.teams:
+        if len(t.draft) == 0:
+            print(f"No draft for {t.team} in {replay.replayID}")
+            continue
         if t.team == Team.RADIANT:
             rdraft = process_team_portrait(replay, t)
+            rdraft.thumbnail((width,
+                             rdraft.size[1]*width/rdraft.size[0]),
+                             ANTIALIAS)
+            rdraft.thumbnail((width,
+                             rdraft.size[1]*width/rdraft.size[0]),
+                             ANTIALIAS)
+            r_draft_box = make_image_annotation2(rdraft, ax_in, x=0.5, y=1.1,
+                                                size=0.78)
+            r_name_box = ax_in.text(s=r_name, x=0, y=1.0 + 0.18,
+                                    path_effects=[PathEffects.withStroke(linewidth=3,
+                                                foreground="w")],
+                                    ha='left', va='bottom', zorder=5,
+                                    color='#598307')
+            extra_ents += [r_draft_box, r_name_box]
         else:
             ddraft = process_team_portrait(replay, t)
+            ddraft.thumbnail((width,
+                             ddraft.size[1]*width/ddraft.size[0]),
+                             ANTIALIAS)
 
-    rdraft.thumbnail((width,
-                      rdraft.size[1]*width/rdraft.size[0]),
-                     ANTIALIAS)
-    ddraft.thumbnail((width,
-                      ddraft.size[1]*width/ddraft.size[0]),
-                     ANTIALIAS)
-    r_draft_box = make_image_annotation2(rdraft, ax_in, x=0.5, y=1.1,
-                                         size=0.78)
-    r_name_box = ax_in.text(s=r_name, x=0, y=1.0 + 0.18,
-                            path_effects=[PathEffects.withStroke(linewidth=3,
-                                          foreground="w")],
-                            ha='left', va='bottom', zorder=5,
-                            color='#598307')
+            d_draft_box = make_image_annotation2(ddraft, ax_in, x=0.5, y=1.0,
+                                                size=0.78)
+            d_name_box = ax_in.text(s=d_name, x=0.0, y=1.0 + 0.08,
+                                    path_effects=[PathEffects.withStroke(linewidth=3,
+                                                foreground="w")],
+                                    ha='left', va='bottom', zorder=5,
+                                    color='#A83806')
+            extra_ents += [d_draft_box, d_name_box]
 
-    d_draft_box = make_image_annotation2(ddraft, ax_in, x=0.5, y=1.0,
-                                         size=0.78)
-    d_name_box = ax_in.text(s=d_name, x=0.0, y=1.0 + 0.08,
-                            path_effects=[PathEffects.withStroke(linewidth=3,
-                                          foreground="w")],
-                            ha='left', va='bottom', zorder=5,
-                            color='#A83806')
-
-    # Simple replay text
-    ax_in.text(s=str(replay.replayID), x=0, y=0,
-               ha='left', va='bottom', zorder=5,
-               path_effects=[PathEffects.withStroke(linewidth=3,
-                             foreground="w")],
-               color='black')
-
-    return [r_draft_box, r_name_box, d_draft_box, d_name_box]
+    return extra_ents
