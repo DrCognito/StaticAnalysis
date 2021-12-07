@@ -63,6 +63,7 @@ def dataframe_xy(query, Type, session):
 
 def make_image_annotation(icon, axes, x, y, size=1.0):
     icon = Image.open(icon)
+    icon = icon.convert("RGBA")
     # Resize if necessary
     if size != 1.0:
         width, height = icon.size
@@ -240,10 +241,12 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
     nplots = len(data)
     fig.set_size_inches(8, 4*nplots)
     axes = fig.subplots(nplots)
+    y_labels = ["First pair", "Second pair", "Third pair", "Fourth pair"]
 
     final_icon = []
-    for i, axis in zip(data, axes):
-        working = data[i][:num_heroes]
+    for i, axis in zip(range(nplots), axes):
+        working = data.get(i, Series())
+        working = working[:num_heroes]
         if working.empty:
             axis.text(0.5, 0.5, "No Data", fontsize=14,
                       horizontalalignment='center',
@@ -252,13 +255,14 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
             continue
 
         working.plot.bar(ax=axis, width=0.9, grid=True)
+
+        axis.set_ylabel(y_labels[i])
         axis.yaxis.set_major_locator(MaxNLocator(integer=True))
 
         hero_pairs = (h.split(', ') for h in working.index)
 
         x_axis = axis.get_xaxis()
         x_locations = x_axis.get_major_locator()
-
         x_min, x_max = axis.get_xlim()
         x_range = x_max - x_min
 
@@ -277,14 +281,15 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
                 continue
 
             y_pos1 = -0.1
-            y_pos2 = -0.22
+            y_pos2 = -0.25
             size = 1.0
 
             x_rel = (float(x_loc) - x_min)/x_range
             make_image_annotation(i1, axis, x_rel, y_pos1, size)
             a2 = make_image_annotation(i2, axis, x_rel, y_pos2, size)
             # Should only need the bottom artist
-            final_icon = [a2, ]
+            # final_icon = [a2, ]
+            final_icon.append(a2)
 
             axis.set_xticklabels([])
             axis.yaxis.set_major_locator(MaxNLocator(integer=True))
