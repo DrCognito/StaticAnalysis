@@ -242,7 +242,7 @@ def pair_rate(session, r_query, team):
         last_team = None
         last_was_pick = None
         last_hero = None
-        pick_pair_ordinal = 1
+        pick_pair_ordinal = 0
         dire_out = {}
         radiant_out = {}
         for p in pick_bans:
@@ -251,10 +251,12 @@ def pair_rate(session, r_query, team):
             is_pick = p.is_pick
             # If its the same team, a pick and last one was a pick, thats a pair!
             if last_team == team and is_pick and last_was_pick:
+                sorted = [last_hero, hero]
+                sorted.sort()
                 if team == Team.DIRE:
-                    dire_out[pick_pair_ordinal] = f"{last_hero}, {hero}"
+                    dire_out[pick_pair_ordinal] = f"{sorted[0]}, {sorted[1]}"
                 if team == Team.RADIANT:
-                    radiant_out[pick_pair_ordinal] = f"{last_hero}, {hero}"
+                    radiant_out[pick_pair_ordinal] = f"{sorted[0]}, {sorted[1]}"
                 pick_pair_ordinal += 1
             # Variables for next go round
             last_team = team
@@ -278,7 +280,7 @@ def pair_rate(session, r_query, team):
                 pick_pairs = dire
             if side == Team.RADIANT:
                 pick_pairs = radiant
-
+            # print(f"{replay.replayID}: {pick_pairs}")
             # pick_pair.sort()
             for i, pair in pick_pairs.items():
                 if i not in output:
