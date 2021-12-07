@@ -658,7 +658,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     pick_pair_df = pair_rate(session, r_query, team)
     fig, extra = plot_pick_pairs(pick_pair_df, fig)
     output = team_path / 'pick_pairs.png'
-    fig.tight_layout(h_pad=3.0)
+    fig.tight_layout(h_pad=7.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
@@ -774,29 +774,29 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata['replays_radiant'] = list(radiant_list)
 
     print("Process {}.".format(team.name))
-    # print("Processing drafts.")
-    # metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    # plt.close('all')
-    # print("Processing positioning.")
-    # metadata = do_positioning(team, r_query,
-    #                           -2*60, 10*60,
-    #                           metadata,
-    #                           new_dire, new_radiant
-    #                           )
-    # plt.close('all')
-    # print("Processing wards.")
-    # metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
-    # print("Processing individual ward replays.")
-    # metadata = do_wards_separate(team, r_query, metadata, new_dire,
-    #                              new_radiant)
-    # plt.close('all')
-    # print("Processing smoke.")
-    # metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
-    # print("Processing scans.")
-    # metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
-    # plt.close('all')
+    print("Processing drafts.")
+    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+    plt.close('all')
+    print("Processing positioning.")
+    metadata = do_positioning(team, r_query,
+                              -2*60, 10*60,
+                              metadata,
+                              new_dire, new_radiant
+                              )
+    plt.close('all')
+    print("Processing wards.")
+    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
+    print("Processing individual ward replays.")
+    metadata = do_wards_separate(team, r_query, metadata, new_dire,
+                                 new_radiant)
+    plt.close('all')
+    print("Processing smoke.")
+    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
+    print("Processing scans.")
+    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+    plt.close('all')
     print("Processing summary.")
     metadata = do_summary(team, r_query, metadata, r_filter)
     plt.close('all')
