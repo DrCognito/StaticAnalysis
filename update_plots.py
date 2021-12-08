@@ -648,7 +648,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
-    # fig.tight_layout(h_pad=3.0)
+    fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
