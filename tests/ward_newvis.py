@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 from datetime import timedelta
 from math import sin, cos, radians
 import matplotlib.patheffects as PathEffects
-from sklearn.cluster import KMeans
 from adjustText import adjust_text
 from analysis.draft_vis import hero_box_image, process_team
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
@@ -207,76 +206,76 @@ def pos_vector(l: float, angle: float)->(float, float):
     return x, y
 
 
-def get_clusters(data: DataFrame, clusters=4) -> List[int]:
-    kmeans = KMeans(n_clusters=clusters)
-    kmeans.fit(data[['xCoordinate', 'yCoordinate']].values)
-    print(kmeans.cluster_centers_)
-    return kmeans.labels_
+# def get_clusters(data: DataFrame, clusters=4) -> List[int]:
+#     kmeans = KMeans(n_clusters=clusters)
+#     kmeans.fit(data[['xCoordinate', 'yCoordinate']].values)
+#     print(kmeans.cluster_centers_)
+#     return kmeans.labels_
 
 
-def plot_overlayed_smokes(data: DataFrame, ax_in):
-    # Pre game to 20mins
-    vmin = -120
-    vmax = 20*60
-    jet = plt.get_cmap('afmhot')
+# def plot_overlayed_smokes(data: DataFrame, ax_in):
+#     # Pre game to 20mins
+#     vmin = -120
+#     vmax = 20*60
+#     jet = plt.get_cmap('afmhot')
 
-    img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
-    ax_in.axis('off')
-    ax_in.set_xlim(0, 1)
-    ax_in.set_ylim(0, 1)
+#     img = mpimg.imread(environment['MAP_PATH'])
+#     ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+#     ax_in.axis('off')
+#     ax_in.set_xlim(0, 1)
+#     ax_in.set_ylim(0, 1)
 
-    smoke_data = data.loc[data["anon_1"] == True]
-    normal_data = data.loc[data["anon_1"] == False]
-    data = data.sort_values(by='game_time', ascending=False)
+#     smoke_data = data.loc[data["anon_1"] == True]
+#     normal_data = data.loc[data["anon_1"] == False]
+#     data = data.sort_values(by='game_time', ascending=False)
 
-    # ax_in.scatter(x=smoke_data['xCoordinate'],
-    #               y=smoke_data['yCoordinate'],
-    #               y=smoke_data['game_time'],
-    #               edgecolor='gray', linewidth='3',
-    #               vmin=vmin, vmax=vmax)
+#     # ax_in.scatter(x=smoke_data['xCoordinate'],
+#     #               y=smoke_data['yCoordinate'],
+#     #               y=smoke_data['game_time'],
+#     #               edgecolor='gray', linewidth='3',
+#     #               vmin=vmin, vmax=vmax)
 
-    # ax_in.scatter(x=smoke_data['xCoordinate'],
-    #               y=smoke_data['yCoordinate'],
-    #               c=smoke_data['game_time'],
-    #               edgecolor='grey', linewidth=3,
-    #               marker='1',
-    #               s=250, cmap='gist_rainbow',
-    #               alpha=0.75,
-    #               vmin=vmin, vmax=vmax,
-    #               zorder=3)
+#     # ax_in.scatter(x=smoke_data['xCoordinate'],
+#     #               y=smoke_data['yCoordinate'],
+#     #               c=smoke_data['game_time'],
+#     #               edgecolor='grey', linewidth=3,
+#     #               marker='1',
+#     #               s=250, cmap='gist_rainbow',
+#     #               alpha=0.75,
+#     #               vmin=vmin, vmax=vmax,
+#     #               zorder=3)
 
-    # ax_in.scatter(x=normal_data['xCoordinate'],
-    #               y=normal_data['yCoordinate'],
-    #               c=normal_data['game_time'],
-    #               edgecolor='g', linewidth=3,
-    #               s=250, cmap='gist_rainbow',
-    #               alpha=0.75, marker='2',
-    #               vmin=vmin, vmax=vmax,
-    #               zorder=2)
+#     # ax_in.scatter(x=normal_data['xCoordinate'],
+#     #               y=normal_data['yCoordinate'],
+#     #               c=normal_data['game_time'],
+#     #               edgecolor='g', linewidth=3,
+#     #               s=250, cmap='gist_rainbow',
+#     #               alpha=0.75, marker='2',
+#     #               vmin=vmin, vmax=vmax,
+#     #               zorder=2)
 
-    # table_test = data[['Initials', 'game_time']][0:3]
-    # ax_in.table(cellText=table_test.values,
-    #             rowLabels=table_test.index,
-    #             colLabels=table_test.columns,
-    #             bbox=[0, 0, 0.2, 0.05], zorder=2)
-    # ax_in.table(cellText=table_test.values,
-    #             rowLabels=table_test.index,
-    #             colLabels=table_test.columns,
-    #             loc='top')
+#     # table_test = data[['Initials', 'game_time']][0:3]
+#     # ax_in.table(cellText=table_test.values,
+#     #             rowLabels=table_test.index,
+#     #             colLabels=table_test.columns,
+#     #             bbox=[0, 0, 0.2, 0.05], zorder=2)
+#     # ax_in.table(cellText=table_test.values,
+#     #             rowLabels=table_test.index,
+#     #             colLabels=table_test.columns,
+#     #             loc='top')
 
-    data['clusters'] = get_clusters(data)
-    cluster_info = data.groupby(['clusters',])['xCoordinate'].nunique()
-    cluster_tots = cluster_info.to_dict()
+#     data['clusters'] = get_clusters(data)
+#     cluster_info = data.groupby(['clusters',])['xCoordinate'].nunique()
+#     cluster_tots = cluster_info.to_dict()
 
-    texts = []
-    for j, row in data.iterrows():
-        texts.append(text_point(row, ax_in))
+#     texts = []
+#     for j, row in data.iterrows():
+#         texts.append(text_point(row, ax_in))
 
-    adjust_text(texts, ax=ax_in,
-                va='bottom',
-                ha='left',
-                arrowprops=dict(arrowstyle='->', color='r', lw=2),)
+#     adjust_text(texts, ax=ax_in,
+#                 va='bottom',
+#                 ha='left',
+#                 arrowprops=dict(arrowstyle='->', color='r', lw=2),)
 
 
 def plot_adjusted_text(data: DataFrame, ax_in,
