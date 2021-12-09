@@ -2,8 +2,10 @@ from PIL import Image, ImageDraw, ImageFont
 import math
 import os
 import sys
+import json
 
 from sqlalchemy.sql.operators import op
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.HeroTools import (convertName, HeroIDType, HeroIconPrefix,
                            hero_portrait, hero_portrait_prefix)
@@ -14,6 +16,15 @@ from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from pathlib import Path
 from lib.team_info import TeamInfo
+from os import environ as environment
+
+
+scims_json = environment['SCRIMS_JSON']
+try:
+    with open(scims_json) as file:
+        SCRIM_REPLAY_DICT = json.load(file)
+except IOError:
+    print(f"Failed to read scrim_list {scims_json}!")
 
 def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
     '''Template for the pick and ban box'''
@@ -452,7 +463,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5, add_team_name=
                 main_name += " (winner)"
         else:
             opposition_line = process_team_dotabuff(replay, t)
-            opp_name = t.teamName
+            opp_name = SCRIM_REPLAY_DICT.get(str(replay.replayID), t.teamName)
             if team_win:
                 opp_name += " (winner)"
 
