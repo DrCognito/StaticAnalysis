@@ -28,7 +28,8 @@ scrim_sheet = sheet.worksheet_by_title(r"Past Scrim ID's")
 team_names = scrim_sheet.get_col(2)
 scrim_ids = scrim_sheet.get_col(3)
 
-assert(len(team_names) == len(scrim_ids))
+if len(team_names) != len(scrim_ids):
+    print("Warning: team names do not match scrim ids in length!")
 scrim_dict = {}
 
 for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
