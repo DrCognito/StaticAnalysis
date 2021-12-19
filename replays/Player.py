@@ -72,9 +72,14 @@ class Player(Base):
 
         pos = self.status.filter(PlayerStatus.time == time).one_or_none()
         if pos is None:
-            print("No entry for player at time {}".format(time))
-            return self.get_position_at(time - 1, relative_to_match_time)
-
+            print("No entry for player at time {} trying + 1".format(time))
+            pos = self.status.filter(PlayerStatus.time == time + 1).one_or_none()
+        if pos is None:
+            print("No entry for player at time {} trying - 1".format(time + 1))
+            pos = self.status.filter(PlayerStatus.time == time - 1).one_or_none()
+        if pos is None:
+            print("No entry for player at time {} using created time.".format(time - 1))
+            pos = self.status.filter(PlayerStatus.time == self.created_at).one()
         return pos
 
     def get_position_range(self, t1, t2, relative_to_match_time=False):
