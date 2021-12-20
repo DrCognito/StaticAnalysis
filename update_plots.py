@@ -113,30 +113,6 @@ arguments.add_argument("--scans", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 
-# arguments.add_argument('--positioning', dest='positioning', action='store_true')
-# arguments.add_argument('--no-positioning', dest='positioning', action='store_false')
-# # arguments.set_defaults(positioning=True)
-
-# arguments.add_argument('--wards', dest='wards', action='store_true')
-# arguments.add_argument('--no-wards', dest='wards', action='store_false')
-# # arguments.set_defaults(wards=True)
-
-# arguments.add_argument('--wards_separate', dest='wards_separate', action='store_true')
-# arguments.add_argument('--no-wards_separate', dest='wards_separate', action='store_false')
-# # arguments.set_defaults(wards_separate=True)
-
-# arguments.add_argument('--smoke', dest='smoke', action='store_true')
-# arguments.add_argument('--no-smoke', dest='smoke', action='store_false')
-# # arguments.set_defaults(smoke=True)
-
-# arguments.add_argument('--scans', dest='scans', action='store_true')
-# arguments.add_argument('--no-scans', dest='scans', action='store_false')
-# # arguments.set_defaults(scans=True)
-
-# arguments.add_argument('--summary', dest='summary', action='store_true')
-# arguments.add_argument('--no-summary', dest='summary', action='store_false')
-# arguments.set_defaults(summary=True)
-
 arguments.add_argument('--default_off', action='store_true', default=False)
 #endregion
 
