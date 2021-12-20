@@ -1,3 +1,4 @@
+import argparse
 import json
 from argparse import ArgumentParser
 from datetime import datetime
@@ -102,6 +103,42 @@ arguments.add_argument('--scrim_list',
 arguments.add_argument('--scrim_teamid',
                        help='''Team ID for scrims.''',
                        type=int)
+#region
+arguments.add_argument("--draft", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--positioning", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--wards", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--wards_separate", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--smoke", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--scans", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
+
+# arguments.add_argument('--positioning', dest='positioning', action='store_true')
+# arguments.add_argument('--no-positioning', dest='positioning', action='store_false')
+# # arguments.set_defaults(positioning=True)
+
+# arguments.add_argument('--wards', dest='wards', action='store_true')
+# arguments.add_argument('--no-wards', dest='wards', action='store_false')
+# # arguments.set_defaults(wards=True)
+
+# arguments.add_argument('--wards_separate', dest='wards_separate', action='store_true')
+# arguments.add_argument('--no-wards_separate', dest='wards_separate', action='store_false')
+# # arguments.set_defaults(wards_separate=True)
+
+# arguments.add_argument('--smoke', dest='smoke', action='store_true')
+# arguments.add_argument('--no-smoke', dest='smoke', action='store_false')
+# # arguments.set_defaults(smoke=True)
+
+# arguments.add_argument('--scans', dest='scans', action='store_true')
+# arguments.add_argument('--no-scans', dest='scans', action='store_false')
+# # arguments.set_defaults(scans=True)
+
+# arguments.add_argument('--summary', dest='summary', action='store_true')
+# arguments.add_argument('--no-summary', dest='summary', action='store_false')
+# arguments.set_defaults(summary=True)
+
+arguments.add_argument('--default_off', action='store_true', default=False)
+#endregion
 
 
 def get_create_metadata(team: TeamInfo, dataset="default"):
@@ -742,12 +779,13 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
-def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
-                 extra_stackid=None, replay_list=None):
+def process_team(team: TeamInfo, metadata, time: datetime,
+                 args: argparse.Namespace, replay_list=None):
 
+    reprocess = args.reprocess
+    extra_stackid = args.extra_stackid
     navi_cut = datetime(2020, 9, 22, 0, 0, 0, 0)
     if team.team_id == 36 and time < navi_cut:
-        #team.__init__()
         team.extra_id_filter = Replay.endTimeUTC >= navi_cut
 
     if extra_stackid is not None:
@@ -774,35 +812,43 @@ def process_team(team: TeamInfo, metadata, time: datetime, reprocess=False,
     metadata['replays_radiant'] = list(radiant_list)
 
     print("Process {}.".format(team.name))
-    print("Processing drafts.")
-    metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
-    plt.close('all')
-    print("Processing positioning.")
-    metadata = do_positioning(team, r_query,
-                              -2*60, 10*60,
-                              metadata,
-                              new_dire, new_radiant
-                              )
-    plt.close('all')
-    print("Processing wards.")
-    metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing individual ward replays.")
-    metadata = do_wards_separate(team, r_query, metadata, new_dire,
-                                 new_radiant)
-    plt.close('all')
-    print("Processing smoke.")
-    metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing scans.")
-    metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
-    plt.close('all')
-    print("Processing summary.")
-    metadata = do_summary(team, r_query, metadata, r_filter)
-    plt.close('all')
-    if new_dire or new_radiant:
-        print("Processing counter picks.")
-        metadata = do_counters(team, r_query, metadata)
+    if args.draft:
+        print("Processing drafts.")
+        metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+        plt.close('all')
+    if args.positioning:
+        print("Processing positioning.")
+        metadata = do_positioning(team, r_query,
+                                -2*60, 10*60,
+                                metadata,
+                                new_dire, new_radiant
+                                )
+        plt.close('all')
+    if args.wards:
+        print("Processing wards.")
+        metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
+        plt.close('all')
+    if args.wards_separate:
+        print("Processing individual ward replays.")
+        metadata = do_wards_separate(team, r_query, metadata, new_dire,
+                                    new_radiant)
+        plt.close('all')
+    if args.smoke:
+        print("Processing smoke.")
+        metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
+        plt.close('all')
+    if args.scans:
+        print("Processing scans.")
+        metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
+        plt.close('all')
+    if args.summary:
+        print("Processing summary.")
+        metadata = do_summary(team, r_query, metadata, r_filter)
+        plt.close('all')
+    if args.counters:
+        if new_dire or new_radiant:
+            print("Processing counter picks.")
+            metadata = do_counters(team, r_query, metadata)
     print("Processing statistics.")
     metadata = do_statistics(team, r_query, metadata)
 
@@ -962,6 +1008,24 @@ if __name__ == "__main__":
     else:
         data_set_name = "default"
 
+    default_process = not args.default_off
+    if args.draft is None:
+        args.draft = default_process
+    if args.positioning is None:
+        args.positioning = default_process
+    if args.wards is None:
+        args.wards = default_process
+    if args.wards_separate is None:
+        args.wards_separate = default_process
+    if args.smoke is None:
+        args.smoke = default_process
+    if args.scans is None:
+        args.scans = default_process
+    if args.summary is None:
+        args.summary = default_process
+    if args.counters is None:
+        args.counters = default_process
+
     if args.process_teams is not None:
         for proc_team in args.process_teams:
             if args.extra_stackid is not None and len(args.process_teams) > 1:
@@ -975,8 +1039,7 @@ if __name__ == "__main__":
             metadata = get_create_metadata(team, data_set_name)
             metadata['time_cut'] = TIME_CUT.timestamp()
 
-            process_team(team, metadata, TIME_CUT, args.reprocess,
-                         args.extra_stackid)
+            process_team(team, metadata, TIME_CUT, args)
 
     if args.scrim_teamid is not None:
         try:
@@ -993,14 +1056,13 @@ if __name__ == "__main__":
         metadata = get_create_metadata(team, "Scrims")
         metadata['time_cut'] = TIME_CUT.timestamp()
 
-        process_team(team, metadata, TIME_CUT, args.reprocess,
-                     args.extra_stackid, replay_list=scrim_list)
+        process_team(team, metadata, TIME_CUT, args, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
             metadata = get_create_metadata(team, data_set_name)
             metadata['time_cut'] = TIME_CUT.timestamp()
-            process_team(team, metadata, TIME_CUT, args.reprocess)
+            process_team(team, metadata, TIME_CUT, args)
 
     # if not args.skip_datasummary:
     #     do_datasummary()
