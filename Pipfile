@@ -12,5 +12,6 @@ adjusttext = "*"
 pytz = "*"
 flake8 = "*"
 matplotlib = "*"
+pygsheets = "*"
 
 [dev-packages]

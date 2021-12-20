@@ -98,7 +98,7 @@ arguments.add_argument('--skip_datasummary',
                        action='store_true')
 arguments.add_argument('--scrim_list',
                        help='''Specify a location for scrim list.''',
-                       default='./scrims.txt',
+                       default='./scrims.json',
                        type=str)
 arguments.add_argument('--scrim_teamid',
                        help='''Team ID for scrims.''',
@@ -1026,6 +1026,14 @@ if __name__ == "__main__":
     if args.counters is None:
         args.counters = default_process
 
+    scims_json = environment['SCRIMS_JSON']
+    try:
+        with open(scims_json) as file:
+            SCRIM_REPLAY_DICT = json.load(file)
+            scrim_list = list(SCRIM_REPLAY_DICT.keys())
+    except IOError:
+        print(f"Failed to read scrim_list {scims_json} for {args.scrim_teamid}")
+
     if args.process_teams is not None:
         for proc_team in args.process_teams:
             if args.extra_stackid is not None and len(args.process_teams) > 1:
@@ -1042,12 +1050,6 @@ if __name__ == "__main__":
             process_team(team, metadata, TIME_CUT, args)
 
     if args.scrim_teamid is not None:
-        try:
-            with open(Path(args.scrim_list)) as file:
-                scrim_list = file.read().splitlines()
-        except IOError:
-            print(f"Failed to read scrim_list {args.scrim_list} for {args.scrim_teamid}")
-
         team = get_team(args.scrim_teamid)
         if team is None:
             print(f"Unable to find team {args.scrim_teamid} in database!")
