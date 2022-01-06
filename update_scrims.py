@@ -35,7 +35,10 @@ scrim_dict = {}
 for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
     if scrim_id == '':
         # Lots of trailing info in the columns.
-        break
+        continue
+    if len(scrim_id) != 10:
+        print(f"Skipping unusual scrim ID {scrim_id}")
+        continue
     scrim_dict[int(scrim_id)] = name
 
 
