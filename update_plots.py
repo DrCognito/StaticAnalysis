@@ -200,7 +200,7 @@ def do_positioning(team: TeamInfo, r_query,
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
                 continue
-            output = team_path / 'dire' / (p_name + '.jpg')
+            output = team_path / 'dire' / (p_name + '.png')
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
@@ -791,15 +791,20 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     print("Process {}.".format(team.name))
     if args.draft:
         print("Processing drafts.")
-        metadata = cProfile.run(do_draft(team, metadata, new_dire, new_radiant, r_filter))
+        cProfile.runctx('do_draft(team, metadata, new_dire, new_radiant, r_filter)',
+                        filename="do_draft2.out",
+                        globals=globals(), locals=locals())
         plt.close('all')
     if args.positioning:
         print("Processing positioning.")
-        metadata = do_positioning(team, r_query,
-                                -2*60, 10*60,
-                                metadata,
-                                new_dire, new_radiant
-                                )
+        # metadata = do_positioning(team, r_query,
+        #                         -2*60, 10*60,
+        #                         metadata,
+        #                         new_dire, new_radiant
+        #                         )
+        cProfile.runctx('do_positioning(team, r_query, -2*60, 10*60, metadata, new_dire, new_radiant)',
+                        filename="do_positioning_png.out",
+                        globals=globals(), locals=locals())
         plt.close('all')
     if args.wards:
         print("Processing wards.")
