@@ -446,7 +446,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, caching=True):
-
+                       #wtf
     if caching:
         cache_dir = Path(environment["CACHE"])
         file_name = f"{replay.replayID}_{team.name}.png"
@@ -522,6 +522,13 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         out_box.paste(opposition_line,
                     (team_line.size[0] + spacer.size[0], 0),
                     opposition_line)
+
+    if caching:
+        cache_dir = Path(environment["CACHE"])
+        file_name = f"{replay.replayID}_{team.name}.png"
+        file_path = cache_dir / file_name
+        assert file_path.exists() is False
+        out_box.save(file_path)
 
     return out_box
 
