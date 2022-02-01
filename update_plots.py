@@ -384,7 +384,8 @@ def do_wards_separate(team: TeamInfo, r_query,
 
         data = build_ward_table(wards, session, team_session)
         if data.empty:
-            raise LookupError("Ward table empty!")
+            print(f"Ward table empty! {replay_id}: {side}")
+            return None
         # fig, ax = plt.subplots(figsize=(10, 13))
         if fixed_width is None:
             fixed_width, _ = _get_ax_size(ax, fig)
@@ -422,7 +423,8 @@ def do_wards_separate(team: TeamInfo, r_query,
             new_plot = _process_ward_replay(side, r_query, r,
                                             time_range)
             fig.clf()
-            metadata[out_key][r] = new_plot
+            if new_plot is not None:
+                metadata[out_key][r] = new_plot
 
     d_replays, r_replays = get_side_replays(r_query, session, team)
     d_replays = d_replays.order_by(Replay.replayID.desc())
