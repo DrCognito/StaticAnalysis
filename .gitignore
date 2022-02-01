@@ -138,4 +138,4 @@ scrims.txt
 pstat_res.py
 profile.out
 current_process.bsh
-cache/desktop.ini
+*.out
