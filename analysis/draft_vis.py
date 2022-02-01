@@ -444,7 +444,16 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
-def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5, add_team_name=True):
+def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
+                       add_team_name=True, caching=True):
+
+    if caching:
+        cache_dir = Path(environment["CACHE"])
+        file_name = f"{replay.replayID}_{team.name}.png"
+        file_path = cache_dir / file_name
+        if file_path.exists():
+            return Image.open(file_path)
+
     t: TeamSelections
     for t in replay.teams:
         team_win = t.team == replay.winner
