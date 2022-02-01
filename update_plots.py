@@ -49,6 +49,7 @@ from replays.TeamSelections import TeamSelections
 from replays.Ward import Ward, WardType
 from analysis.ward_vis import build_ward_table
 from analysis.ward_vis import plot_eye_scatter, plot_drafts_above
+import cProfile
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -792,7 +793,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     print("Process {}.".format(team.name))
     if args.draft:
         print("Processing drafts.")
-        metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+        metadata = cProfile.run(do_draft(team, metadata, new_dire, new_radiant, r_filter))
         plt.close('all')
     if args.positioning:
         print("Processing positioning.")
