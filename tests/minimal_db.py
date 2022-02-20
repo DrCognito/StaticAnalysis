@@ -47,3 +47,6 @@ except SQLAlchemyError as e:
     print(e)
     print("Failed to retrieve replays for team {}".format(team.name))
     quit()
+
+liquid = get_team(2163)
+print(liquid.players[0].name)
