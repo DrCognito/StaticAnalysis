@@ -119,7 +119,7 @@ def pick_context(hero, team, r_query, extra_p_filt=None):
 
 
 def player_position(session, r_query, team: TeamInfo, player_slot: int,
-                    start: int, end: int):
+                    start: int, end: int, recent_limit=5):
 
     t_filter = ()
     if start is not None:
@@ -132,6 +132,7 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
 
         r_filter = Replay.get_side_filter(team, side)
         replays = r_query.filter(r_filter).subquery()
+        replays_limited = r_query.filter(r_filter).limit(recent_limit).subquery()
 
         p_filter = t_filter + (PlayerStatus.steamID == steam_id,)
 
@@ -139,6 +140,10 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
                           .filter(*p_filter)\
                           .join(replays)
 
-        return player_q
+        player_q_limited = session.query(PlayerStatus)\
+                                  .filter(*p_filter)\
+                                  .join(replays_limited)
+
+        return player_q, player_q_limited
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
