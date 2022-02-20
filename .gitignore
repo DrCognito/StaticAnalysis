@@ -139,3 +139,4 @@ pstat_res.py
 profile.out
 current_process.bsh
 *.out
+current_test.ps1
