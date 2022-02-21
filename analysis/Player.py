@@ -34,7 +34,8 @@ def cumulative_player(session, prop_name, team, filt):
     return output
 
 
-def player_heroes(session, team, summarise=10, r_filt=None, p_filt=None):
+def player_heroes(session, team, summarise=10,
+                  r_filt=None, p_filt=None, limit=None):
     player_series = []
 
     if r_filt is None:
@@ -51,8 +52,11 @@ def player_heroes(session, team, summarise=10, r_filt=None, p_filt=None):
         else:
             p_f = and_(Player.steamID == pid, p_filt)
 
+        replays = session.query(Replay).filter(r_filt)
+        if limit is not None:
+            replays = replays.limit(limit)
         p_picks = session.query(Player.hero).filter(p_f)\
-                                            .join(Replay).filter(r_filt)
+                                            .join(replays)
 
         p_res = Series(name=player.name)
         for pick in p_picks:
