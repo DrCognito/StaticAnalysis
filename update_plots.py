@@ -677,14 +677,14 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
-def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
+def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure()
-    draft_summary_df = draft_summary(session, r_query, team)
+    draft_summary_df = draft_summary(session, r_query, team, limit=limit)
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
     output = team_path / 'draft_summary.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
@@ -692,7 +692,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_draft_summary'] = relpath
 
-    hero_picks_df = player_heroes(session, team, r_filt=r_filter)
+    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
     fig.tight_layout(h_pad=3.0)
     output = team_path / 'hero_picks.png'
@@ -701,7 +701,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['plot_hero_picks'] = relpath
 
-    pick_pair_df = pair_rate(session, r_query, team)
+    pick_pair_df = pair_rate(session, r_query, team, limit=5)
     fig, extra = plot_pick_pairs(pick_pair_df, fig)
     output = team_path / 'pick_pairs.png'
     fig.tight_layout(h_pad=7.0)
