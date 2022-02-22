@@ -1,3 +1,4 @@
+from operator import or_
 from .Statistics import x_vs_time, xy_vs_time
 from datetime import timedelta
 from pandas import Series, concat, DataFrame
@@ -77,46 +78,52 @@ def player_heroes(session, team, summarise=10,
     return concat(player_series, axis=1, sort=True).fillna(0)
 
 
-def pick_context(hero, team, r_query, extra_p_filt=None):
+def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
     output = DataFrame(columns=['Pick', 'Ban',
                                 'Opponent Pick', 'Opponent Ban'])
 
-    def _process_context(side):
-        side_filt = Replay.get_side_filter(team, side)
-        replays = r_query.filter(side_filt)
+    pick_filter = and_(or_(TeamSelections.teamID == team.team_id, TeamSelections.stackID == team.stack_id),
+                       TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick)))
+    if limit is not None:
+        latest5 = [r.replayID for r in r_query.order_by(Replay.replayID.desc()).limit(limit)]
+        pick_filter = and_(TeamSelections.replay_ID.in_(latest5), pick_filter)
+    if extra_p_filt is not None:
+        pick_filter = and_(pick_filter, extra_p_filt)
+    replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replayID).filter(pick_filter)
 
-        player_filter = TeamSelections.draft.any(and_(PickBans.hero == hero,
-                                                      PickBans.team == side,
-                                                      PickBans.is_pick))
-
-        if extra_p_filt is not None:
-            player_filter = and_(player_filter, extra_p_filt)
-
-        replays = replays.join(TeamSelections).filter(player_filter)
-
-        for r in replays:
-            picks_bans = [(x.hero, x.team, x.is_pick) for t in r.teams for x in t.draft]
-            for pick in picks_bans:
-                if pick[0] == hero:
+    for r in replays:
+        found_hero = False
+        for t in r.teams:
+            if t.teamID != team.team_id and t.stackID != team.stack_id:
+                opponent = True
+            else:
+                opponent = False
+            picks_bans = [(x.hero, x.is_pick) for x in t.draft]
+            for h_in, is_pick in picks_bans:
+                if h_in == hero:
+                    assert(not opponent)
+                    found_hero = True
                     continue
-                if pick[1] == side:
-                    if pick[2]:
+                if not opponent:
+                    if is_pick:
                         update = 'Pick'
                     else:
                         update = 'Ban'
                 else:
-                    if pick[2]:
+                    if is_pick:
                         update = 'Opponent Pick'
                     else:
                         update = 'Opponent Ban'
 
-                if pick[0] in output[update]:
-                    output.loc[pick[0], update] += 1
+                if h_in in output[update]:
+                    output.loc[h_in, update] += 1
                 else:
-                    output.loc[pick[0], update] = 1
+                    output.loc[h_in, update] = 1
+        if not found_hero:
+            print(f"Failed to find {hero} in {r.replayID}")
+            #raise AssertionError
+        #assert(found_hero)
 
-    _process_context(Team.DIRE)
-    _process_context(Team.RADIANT)
     output.fillna(0, inplace=True)
 
     return output
