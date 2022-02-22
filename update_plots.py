@@ -34,8 +34,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_object_position_scatter,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
-                                    plot_player_positioning, plot_runes,
-                                    get_binning_percentile_xy)
+                                    plot_player_positioning, plot_runes)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from lib.important_times import ImportantTimes
@@ -164,8 +163,7 @@ def do_positioning(team: TeamInfo, r_query,
                    start: int, end: int,
                    metadata: dict,
                    update_dire=True, update_radiant=True,
-                   positions=(0, 1, 2, 3, 4),
-                   recent_limit=5):
+                   positions=(0, 1, 2, 3, 4)):
     '''Make the positioning plots between start and end times for
        positions in r_query.
        update_dire and update_radiant control updating specific side.
@@ -184,6 +182,9 @@ def do_positioning(team: TeamInfo, r_query,
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
+    # Figure and axes for use for all plots.
+    fig = plt.figure()
+    fig.set_size_inches(10, 10)
     for pos in positions:
         if pos >= len(team.players):
             print("Position {} is out of range for {}"
@@ -191,72 +192,40 @@ def do_positioning(team: TeamInfo, r_query,
         p_name = team.players[pos].name
         metadata['player_names'].append(p_name)
         print("Processing {} for {}".format(p_name, team.name))
-        (pos_dire, pos_dire_limited),\
-            (pos_radiant, pos_radiant_limited) = player_position(session, r_query, team,
-                                                                 player_slot=pos,
-                                                                 start=start, end=end,
-                                                                 recent_limit=recent_limit)
+        pos_dire, pos_radiant = player_position(session, r_query, team,
+                                                player_slot=pos,
+                                                start=start, end=end)
         if update_dire:
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
                 continue
-            fig, axes = plt.subplots(1, 2, figsize=(15, 10))
-
             output = team_path / 'dire' / (p_name + '.jpg')
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
-            pos_dire_limited = pos_dire_limited.filter(dire_ancient_filter)
-
-            pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
-            vmin, vmax = get_binning_percentile_xy(pos_dire_df)
-            vmin = max(1.0, vmin)
-            axis = plot_object_position(pos_dire_df,
-                                        bins=64, fig_in=fig, ax_in=axes[0],
-                                        vmin=vmin, vmax=vmax)
-            pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
-            vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
-            vmin = max(1.0, vmin)
-            axis = plot_object_position(pos_dire_limited_df,
-                                        bins=64, ax_in=axes[1],
-                                        vmin=vmin, vmax=vmax)
-            axis.set_title('Latest 5 games')
+            axes_ret = plot_player_positioning(dataframe_xy(pos_dire,
+                                               PlayerStatus, session),
+                                               fig)
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            plt.close(fig)
+            fig.clf()
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
-
 
         if update_radiant:
             if pos_radiant.count() == 0:
                 print("No data for {} on Radiant.".format(team.players[pos].name))
                 continue
-            fig, axes = plt.subplots(1, 2, figsize=(15, 10))
-
             output = team_path / 'radiant' / (p_name + '.jpg')
-            # axes = fig.subplots(1, 2)
             ancient_filter = location_filter(radiant_ancient_cords,
                                              PlayerStatus)
             pos_radiant = pos_radiant.filter(ancient_filter)
-            pos_radiant_df = dataframe_xy(pos_radiant, PlayerStatus, session)
-            vmin, vmax = get_binning_percentile_xy(pos_radiant_df)
-            vmin = max(1.0, vmin)
-            axis = plot_object_position(pos_radiant_df,
-                                        bins=64, fig_in=fig, ax_in=axes[0],
-                                        vmin=vmin, vmax=vmax)
-
-            pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
-            pos_radiant_limited_df = dataframe_xy(pos_radiant_limited, PlayerStatus, session)
-            vmin, vmax = get_binning_percentile_xy(pos_radiant_limited_df)
-            vmin = max(1.0, vmin)
-            axis = plot_object_position(pos_radiant_limited_df,
-                                        bins=64, ax_in=axes[1],
-                                        vmin=vmin, vmax=vmax)
-            axis.set_title('Latest 5 games')
+            axes_ret = plot_player_positioning(dataframe_xy(pos_radiant,
+                                               PlayerStatus, session),
+                                               fig)
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
-            plt.close(fig)
+            fig.clf()
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_radiant'].append(relpath)
     fig.clf()
@@ -326,22 +295,36 @@ def do_draft(team: TeamInfo, metadata,
             metadata['plot_radiant_drafts'] = relpath
 
     if update_radiant or update_dire:
-        output = team_path / 'drafts.png'
         if per_side_limit is not None:
             replays = r_drafted.order_by(Replay.replayID.desc())\
                                .limit(2*per_side_limit).all()
         else:
             replays = r_drafted.order_by(Replay.replayID.desc())\
                                .all()
-        drafts = replay_draft_image(replays,
-                                    team,
-                                    team.name)
-        if drafts is not None:
-            drafts = drafts.convert("RGB")
-            drafts = drafts.resize((drafts.size[0] // draft_resize, drafts.size[1] // draft_resize))
-            drafts.save(output, dpi=(50, 50), optimize=True)
-            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_drafts'] = relpath
+
+        output_first = team_path / 'drafts_first.png'
+        drafts_first = replay_draft_image(replays,
+                                          team,
+                                          team.name,
+                                          second_pick=False)
+        if drafts_first is not None:
+            drafts_first = drafts_first.convert("RGB")
+            drafts_first = drafts_first.resize((drafts_first.size[0] // draft_resize, drafts_first.size[1] // draft_resize))
+            drafts_first.save(output_first, dpi=(50, 50), optimize=True)
+            relpath = str(output_first.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_drafts_first'] = relpath
+        
+        output_second = team_path / 'drafts_second.png'
+        drafts_second = replay_draft_image(replays,
+                                           team,
+                                           team.name,
+                                           first_pick=False)
+        if drafts_second is not None:
+            drafts_second = drafts_second.convert("RGB")
+            drafts_second = drafts_second.resize((drafts_second.size[0] // draft_resize, drafts_second.size[1] // draft_resize))
+            drafts_second.save(output_second, dpi=(50, 50), optimize=True)
+            relpath = str(output_second.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_drafts_second'] = relpath
 
     return metadata
 
@@ -677,69 +660,69 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
-def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
+def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure()
-    draft_summary_df = draft_summary(session, r_query, team, limit=limit)
+    draft_summary_df = draft_summary(session, r_query, team)
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
-    output = team_path / f'draft_summary{postfix}.png'
+    output = team_path / 'draft_summary.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_draft_summary{postfix}'] = relpath
+    metadata['plot_draft_summary'] = relpath
 
-    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
+    hero_picks_df = player_heroes(session, team, r_filt=r_filter)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
     fig.tight_layout(h_pad=3.0)
-    output = team_path / f'hero_picks{postfix}.png'
+    output = team_path / 'hero_picks.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_hero_picks{postfix}'] = relpath
+    metadata['plot_hero_picks'] = relpath
 
-    pick_pair_df = pair_rate(session, r_query, team, limit=limit)
+    pick_pair_df = pair_rate(session, r_query, team)
     fig, extra = plot_pick_pairs(pick_pair_df, fig)
-    output = team_path / f'pick_pairs{postfix}.png'
+    output = team_path / 'pick_pairs.png'
     fig.tight_layout(h_pad=7.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_pair_picks{postfix}'] = relpath
+    metadata['plot_pair_picks'] = relpath
 
-    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
-    output = team_path / f'pick_context{postfix}.png'
+    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig)
+    output = team_path / 'pick_context.png'
     fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_pick_context{postfix}'] = relpath
+    metadata['plot_pick_context'] = relpath
 
-    hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
+    hero_win_rate_df = hero_win_rate(r_query, team)
     fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
-    output = team_path / f'hero_win_rate{postfix}.png'
+    output = team_path / 'hero_win_rate.png'
     # fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_inches='tight', dpi=300)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_win_rate{postfix}'] = relpath
+    metadata['plot_win_rate'] = relpath
 
-    rune_df = get_rune_control(r_query, team, limit=limit)
+    rune_df = get_rune_control(r_query, team)
     # One line
     one_line = len(rune_df) == 1
     # All that line is 0
     zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0]).to_list())
     if not one_line and not zeroed:
         fig, _ = plot_runes(rune_df, team, fig)
-        output = team_path / f'rune_control{postfix}.png'
+        output = team_path / 'rune_control.png'
         fig.tight_layout(h_pad=0)
         fig.savefig(output, bbox_inches='tight', dpi=200)
         fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[f'plot_rune_control{postfix}'] = relpath
+        metadata['plot_rune_control'] = relpath
 
     return metadata
 
@@ -817,8 +800,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
         return
 
-    # l_query = r_query.order_by(Replay.replayID.desc()).limit(5)
-
     metadata['replays_dire'] = list(dire_list)
     metadata['replays_radiant'] = list(radiant_list)
 
@@ -855,8 +836,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if args.summary:
         print("Processing summary.")
         metadata = do_summary(team, r_query, metadata, r_filter)
-        metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
-        # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
         plt.close('all')
     if args.counters:
         if new_dire or new_radiant:
