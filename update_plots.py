@@ -677,7 +677,7 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
-def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None):
+def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
@@ -686,46 +686,46 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None):
     fig = plt.figure()
     draft_summary_df = draft_summary(session, r_query, team, limit=limit)
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
-    output = team_path / 'draft_summary.png'
+    output = team_path / f'draft_summary{postfix}.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_draft_summary'] = relpath
+    metadata[f'plot_draft_summary{postfix}'] = relpath
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
     fig.tight_layout(h_pad=3.0)
-    output = team_path / 'hero_picks.png'
+    output = team_path / f'hero_picks{postfix}.png'
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_hero_picks'] = relpath
+    metadata[f'plot_hero_picks{postfix}'] = relpath
 
-    pick_pair_df = pair_rate(session, r_query, team, limit=5)
+    pick_pair_df = pair_rate(session, r_query, team, limit=limit)
     fig, extra = plot_pick_pairs(pick_pair_df, fig)
-    output = team_path / 'pick_pairs.png'
+    output = team_path / f'pick_pairs{postfix}.png'
     fig.tight_layout(h_pad=7.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_pair_picks'] = relpath
+    metadata[f'plot_pair_picks{postfix}'] = relpath
 
-    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig)
-    output = team_path / 'pick_context.png'
+    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
+    output = team_path / f'pick_context{postfix}.png'
     fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_pick_context'] = relpath
+    metadata[f'plot_pick_context{postfix}'] = relpath
 
-    hero_win_rate_df = hero_win_rate(r_query, team)
+    hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
     fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
-    output = team_path / 'hero_win_rate.png'
+    output = team_path / f'hero_win_rate{postfix}.png'
     # fig.tight_layout(h_pad=3.0)
     fig.savefig(output, bbox_inches='tight', dpi=300)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_win_rate'] = relpath
+    metadata[f'plot_win_rate{postfix}'] = relpath
 
     rune_df = get_rune_control(r_query, team)
     # One line
@@ -734,12 +734,12 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None):
     zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0]).to_list())
     if not one_line and not zeroed:
         fig, _ = plot_runes(rune_df, team, fig)
-        output = team_path / 'rune_control.png'
+        output = team_path / f'rune_control{postfix}.png'
         fig.tight_layout(h_pad=0)
         fig.savefig(output, bbox_inches='tight', dpi=200)
         fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata['plot_rune_control'] = relpath
+        metadata[f'plot_rune_control{postfix}'] = relpath
 
     return metadata
 
@@ -817,6 +817,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
         return
 
+    # l_query = r_query.order_by(Replay.replayID.desc()).limit(5)
+
     metadata['replays_dire'] = list(dire_list)
     metadata['replays_radiant'] = list(radiant_list)
 
@@ -853,6 +855,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if args.summary:
         print("Processing summary.")
         metadata = do_summary(team, r_query, metadata, r_filter)
+        metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
+        # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
         plt.close('all')
     if args.counters:
         if new_dire or new_radiant:
