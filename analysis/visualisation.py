@@ -241,6 +241,10 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
     nplots = len(data)
     fig.set_size_inches(8, 4*nplots)
     axes = fig.subplots(nplots)
+    # Matplotlib will return a collection if nplots > 1, or a single object if 1
+    # So we just always make it a collection... Must be a better way.
+    if nplots == 1:
+        axes = (axes,)
     y_labels = ["First pair", "Second pair", "Third pair", "Fourth pair"]
 
     final_icon = []
@@ -297,7 +301,7 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
     return fig, final_icon
 
 
-def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=False):
+def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=False, limit=None):
     '''Plots the context (in picks and bans) of a teams top picks.
        Input is a DataFrame of picks, the TeamInfo and r_query
        context.
@@ -329,7 +333,7 @@ def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=Fa
                            HeroIDType.NICK_NAME)
         axes[0, i_pick].set_title(nick)
 
-        context = pick_context(pick, team, r_query)
+        context = pick_context(pick, team, r_query, limit=limit)
         pick = context['Pick'].sort_values(ascending=False)
         pick = _summarise(pick, 5) if summarise else pick[:5]
 
