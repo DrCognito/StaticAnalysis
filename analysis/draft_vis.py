@@ -533,7 +533,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     return out_box
 
 
-def replay_draft_image(replays: List[Replay], team: Team, team_name: str):
+def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, first_pick=True, second_pick=True):
     lines = list()
     tot_height = 0
     max_width = 0
@@ -541,6 +541,20 @@ def replay_draft_image(replays: List[Replay], team: Team, team_name: str):
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
+        # Check to see if our team is picked first
+        # If it is our team then this is true if they had first pick too, else false
+        if (replay.teams[0].teamID == team.team_id or
+            replay.teams[0].stackID == team.stack_id):
+            team_num = 0
+        else:
+            team_num = 1
+        is_first = replay.teams[team_num].firstPick
+
+        if is_first and not first_pick:
+            continue
+        if not is_first and not second_pick:
+            continue
+ 
         line = pickban_line_image(replay, team, add_team_name=True)
         if line is None:
             continue
