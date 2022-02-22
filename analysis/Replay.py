@@ -181,7 +181,7 @@ def get_ptbase_tslice_side(session, r_query, Type,
     return out
 
 
-def get_rune_control(r_query, team: TeamInfo):
+def get_rune_control(r_query, team: TeamInfo, limit=None):
     '''Gets runes collected over time for team and opposition.'''
     runes_bounty_opp = Series()
     runes_power_opp = Series()
@@ -193,6 +193,9 @@ def get_rune_control(r_query, team: TeamInfo):
     runes_power_opp[timedelta(seconds=0)] = 0
     runes_bounty_team[timedelta(seconds=0)] = 0
     runes_power_team[timedelta(seconds=0)] = 0
+
+    if limit is not None:
+        r_query = r_query.limit(limit)
 
     match: Replay
     for match in r_query:
