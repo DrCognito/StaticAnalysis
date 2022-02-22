@@ -108,6 +108,9 @@ def hero_win_rate(r_query, team, limit=None):
     if limit is not None:
         replays = replays.limit(limit)
 
+    debug_win = []
+    debug_loss = []
+
     for r in replays:
         if r.teams[0].teamID == team.team_id and r.teams[0].stackID == team.stack_id:
             team_num = 0
@@ -119,6 +122,11 @@ def hero_win_rate(r_query, team, limit=None):
         picks = [p.hero for p in r.teams[team_num].draft if p.is_pick]
 
         for hero in picks:
+            if hero == "npc_dota_hero_storm_spirit":
+                if is_win:
+                    debug_win.append(r.replayID)
+                else:
+                    debug_loss.append(r.replayID)
             column = 'Win' if is_win else 'Loss'
 
             if hero in output[column]:
@@ -132,6 +140,14 @@ def hero_win_rate(r_query, team, limit=None):
     output['Total'] = output['Win'] + output['Loss']
     output['Rate'] = output['Win']/output['Total']
 
+    if limit is not None:
+        print(f"Limit: {limit}")
+    print(f"Wins:\n")
+    for i in debug_win:
+        print(i)
+    print(f"Loss:\n")
+    for i in debug_loss:
+        print(i)
     return output
 
 
