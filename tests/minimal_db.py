@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from lib.important_times import ImportantTimes
 from sqlalchemy import and_, or_
 from lib.team_info import InitTeamDB, TeamInfo
+from replays.TeamSelections import TeamSelections, PickBans
 
 
 load_dotenv(dotenv_path="../setup.env")
@@ -50,3 +51,14 @@ except SQLAlchemyError as e:
 
 liquid = get_team(2163)
 print(liquid.players[0].name)
+
+hero = "npc_dota_hero_puck"
+latest5 = [r.replayID for r in r_query.order_by(Replay.replayID.desc()).limit(5)]
+pick_filter = and_(or_(TeamSelections.teamID == team.team_id, TeamSelections.stackID == team.stack_id),
+                       TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick)))
+
+full_filter = and_(TeamSelections.replay_ID.in_(latest5), pick_filter)
+
+t_filter = r_query.limit(5).subquery()
+# replays = r_query.join(t_filter, Replay.replayID == t_filter.c.replayID).filter(pick_filter)
+replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replayID).filter(full_filter)
