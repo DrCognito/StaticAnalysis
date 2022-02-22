@@ -101,30 +101,32 @@ def get_side_replays(r_query, session, team: TeamInfo):
     return dire, radiant
 
 
-def hero_win_rate(r_query, team):
+def hero_win_rate(r_query, team, limit=None):
     output = DataFrame(columns=['Win', 'Loss'])
 
-    def _process(side):
-        side_filt = Replay.get_side_filter(team, side)
-        replays = r_query.filter(side_filt)
+    replays = r_query.order_by(Replay.replayID.desc())
+    if limit is not None:
+        replays = replays.limit(limit)
 
-        for r in replays:
-            is_win = r.winner == side
+    for r in replays:
+        if r.teams[0].teamID == team.team_id and r.teams[0].stackID == team.stack_id:
+            team_num = 0
+        else:
+            team_num = 1
+        
+        is_win = r.winner == r.teams[team_num].team
 
-            picks = [p.hero for t in r.teams if t.team == side for p in t.draft if p.is_pick]
+        picks = [p.hero for p in r.teams[team_num].draft if p.is_pick]
 
-            for hero in picks:
-                column = 'Win' if is_win else 'Loss'
+        for hero in picks:
+            column = 'Win' if is_win else 'Loss'
 
-                if hero in output[column]:
-                    output.loc[hero, column] += 1
-                else:
-                    output.loc[hero, column] = 1
-                    other_col = 'Loss' if is_win else 'Win'
-                    output.loc[hero, other_col] = 0
-
-    _process(Team.DIRE)
-    _process(Team.RADIANT)
+            if hero in output[column]:
+                output.loc[hero, column] += 1
+            else:
+                output.loc[hero, column] = 1
+                other_col = 'Loss' if is_win else 'Win'
+                output.loc[hero, other_col] = 0
 
     output.fillna(0, inplace=True)
     output['Total'] = output['Win'] + output['Loss']
@@ -235,13 +237,14 @@ def get_rune_control(r_query, team: TeamInfo):
     return output
 
 
-def pair_rate(session, r_query, team):
+def pair_rate(session, r_query, team, limit=None):
     output = {}
 
     def _pairs_by_side(pick_bans: List[PickBans]):
         last_team = None
         last_was_pick = None
         last_hero = None
+        last_order = -99
         pick_pair_ordinal = 0
         dire_out = {}
         radiant_out = {}
@@ -249,8 +252,9 @@ def pair_rate(session, r_query, team):
             team = p.team
             hero = p.hero
             is_pick = p.is_pick
+            order = p.order
             # If its the same team, a pick and last one was a pick, thats a pair!
-            if last_team == team and is_pick and last_was_pick:
+            if last_team == team and is_pick and last_was_pick and order == last_order + 1:
                 sorted = [last_hero, hero]
                 sorted.sort()
                 if team == Team.DIRE:
@@ -262,26 +266,28 @@ def pair_rate(session, r_query, team):
             last_team = team
             last_was_pick = is_pick
             last_hero = hero
+            last_order = order
 
         return dire_out, radiant_out
 
-    def _process(side):
-        side_filt = Replay.get_side_filter(team, side)
-        replays = r_query.filter(side_filt)
+    r_query = r_query.order_by(Replay.replayID.desc())
+    if limit is not None:
+        r_query = r_query.limit(limit)
 
-        for replay in replays:
-            pick_pair = session.query(PickBans)\
-                               .filter(PickBans.replayID == replay.replayID)\
-                               .order_by(PickBans.order)\
-                               .all()
+    for replay in r_query:
+        all_picks = session.query(PickBans)\
+                           .filter(PickBans.replayID == replay.replayID)\
+                           .order_by(PickBans.order)\
+                           .all()
+        for t in replay.teams:
+            if t.teamID != team.team_id and t.stackID != team.stack_id:
+                continue
 
-            dire, radiant = _pairs_by_side(pick_pair)
-            if side == Team.DIRE:
+            dire, radiant = _pairs_by_side(all_picks)
+            if t.team == Team.DIRE:
                 pick_pairs = dire
-            if side == Team.RADIANT:
+            if t.team == Team.RADIANT:
                 pick_pairs = radiant
-            # print(f"{replay.replayID}: {pick_pairs}")
-            # pick_pair.sort()
             for i, pair in pick_pairs.items():
                 if i not in output:
                     output[i] = Series()
@@ -290,56 +296,52 @@ def pair_rate(session, r_query, team):
                 else:
                     output[i][pair] = 1
 
-    _process(Team.DIRE)
-    _process(Team.RADIANT)
     for out in output:
         output[out].sort_values(ascending=False, inplace=True)
 
     return output
 
 
-def draft_summary(session, r_query, team) -> (DataFrame, DataFrame):
+def draft_summary(session, r_query, team, limit=None) -> (DataFrame, DataFrame):
     '''Returns a count of picks and bans at each draft stage for team.
        Return type is Pandas DataFrame.
     '''
 
-    def _process(side):
-        output_pick = DataFrame()
-        output_ban = DataFrame()
+    output_pick = DataFrame()
+    output_ban = DataFrame()
 
-        side_filt = Replay.get_side_filter(team, side)
-        replays = r_query.filter(side_filt)
+    r_query = r_query.order_by(Replay.replayID.desc())
+    if limit is not None:
+        r_query = r_query.limit(limit)
 
-        replay = (t.draft for r in replays for t in r.teams if t.team == side)
-        # for replay in replays:
-        #     for t in replay.team:
-        for draft in replay:
-            picks = {}
-            bans = {}
-            pick_count = 0
-            ban_count = 0
+    team_res = (t for r in r_query for t in r.teams)
+    # replay = (t.draft for r in replays for t in r.teams if t.team == side)
+    # for replay in replays:
+    #     for t in replay.team:
 
-            for selection in draft:
-                if selection.is_pick:
-                    column = "Pick" + str(pick_count)
-                    picks[column] = selection.hero
-                    pick_count += 1
-                else:
-                    column = "Ban" + str(ban_count)
-                    bans[column] = selection.hero
-                    ban_count += 1
+    for t in team_res:
+        if t.teamID != team.team_id and t.stackID != team.stack_id:
+            continue
+        # for draft in t.draft:
+        picks = {}
+        bans = {}
+        pick_count = 0
+        ban_count = 0
 
-            output_pick = output_pick.append(picks, ignore_index=True)
-            output_ban = output_ban.append(bans, ignore_index=True)
+        for selection in t.draft:
+            if selection.is_pick:
+                column = "Pick" + str(pick_count)
+                picks[column] = selection.hero
+                pick_count += 1
+            else:
+                column = "Ban" + str(ban_count)
+                bans[column] = selection.hero
+                ban_count += 1
 
-        return output_pick, output_ban
+        output_pick = output_pick.append(picks, ignore_index=True)
+        output_ban = output_ban.append(bans, ignore_index=True)
 
-    dire = _process(Team.DIRE)
-    radiant = _process(Team.RADIANT)
-
-    output_pick = concat([dire[0], radiant[0]], ignore_index=True, sort=False)
     output_pick = output_pick.apply(Series.value_counts)
-    output_ban = concat([dire[1], radiant[1]], ignore_index=True, sort=False)
     output_ban = output_ban.apply(Series.value_counts)
 
     return output_pick, output_ban
