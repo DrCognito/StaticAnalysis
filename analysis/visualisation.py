@@ -238,7 +238,7 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
        Returns axis and extra artists for extending bounding box.
     '''
 
-    nplots = len(data)
+    nplots = max(data.keys()) + 1
     fig.set_size_inches(8, 4*nplots)
     axes = fig.subplots(nplots)
     # Matplotlib will return a collection if nplots > 1, or a single object if 1
