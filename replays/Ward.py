@@ -53,7 +53,10 @@ def populate_from_JSON(json, replay_in, session):
         id += 1
 
         new_ward.ward_type = WardType(w['wardType'])
-        new_ward.player = replay_in.get_player_by_hero(w['cName'])
+        try:
+            new_ward.player = replay_in.get_player_by_hero(w['cName'])
+        except KeyError as err:
+            print(f"Bad ward hero key!: {w}")
         if new_ward.player is None:
             new_ward.steamID = None
         else:
