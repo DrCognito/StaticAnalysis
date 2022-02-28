@@ -31,4 +31,5 @@ ImportantTimes = {
     'Patch_7_26': datetime.datetime(2020, 4, 17, 0, 0, 0, 0),
     'TI2021': datetime.datetime(2021, 10, 7, 0, 0, 0, 0),
     'PostTI2021': datetime.datetime(2021, 10, 18, 0, 0, 0, 0),
+    'Patch_7_31': datetime.datetime(2022, 2, 23, 0, 0, 0, 0),
 }
