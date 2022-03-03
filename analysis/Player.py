@@ -40,7 +40,7 @@ def player_heroes(session, team, summarise=10,
     player_series = []
 
     if r_filt is None:
-            r_filt = team.filter
+        r_filt = team.filter
     else:
         r_filt = and_(team.filter, r_filt)
 
@@ -55,7 +55,7 @@ def player_heroes(session, team, summarise=10,
 
         replays = session.query(Replay).filter(r_filt)
         if limit is not None:
-            replays = replays.limit(limit)
+            replays = replays.order_by(Replay.replayID.desc()).limit(limit)
         p_picks = session.query(Player.hero).filter(p_f)\
                                             .join(replays)
 
@@ -143,7 +143,7 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
 
         r_filter = Replay.get_side_filter(team, side)
         replays = r_query.filter(r_filter).subquery()
-        replays_limited = r_query.filter(r_filter).limit(recent_limit).subquery()
+        replays_limited = r_query.filter(r_filter).order_by(Replay.replayID.desc()).limit(recent_limit).subquery()
 
         p_filter = t_filter + (PlayerStatus.steamID == steam_id,)
 

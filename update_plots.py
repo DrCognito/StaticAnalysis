@@ -226,7 +226,7 @@ def do_positioning(team: TeamInfo, r_query,
             plt.close(fig)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
-
+            fig.clf()
 
         if update_radiant:
             if pos_radiant.count() == 0:
@@ -259,7 +259,8 @@ def do_positioning(team: TeamInfo, r_query,
             plt.close(fig)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_radiant'].append(relpath)
-    fig.clf()
+            fig.clf()
+    # fig.clf()
     return metadata
 
 

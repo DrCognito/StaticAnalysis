@@ -71,7 +71,7 @@ def simple_side_filter(r_query, session, team: TeamInfo,
     #replays = r_query.filter(r_filter).subquery()
     replays = r_query.filter(r_filter)
     if limit:
-        replays = replays.limit(limit)
+        replays = replays.order_by(Replay.replayID.desc()).limit(limit)
 
     typeFilter = Type.team.__eq__(side)
     if extra_filter is not None:
@@ -195,7 +195,7 @@ def get_rune_control(r_query, team: TeamInfo, limit=None):
     runes_power_team[timedelta(seconds=0)] = 0
 
     if limit is not None:
-        r_query = r_query.limit(limit)
+        r_query = r_query.order_by(Replay.replayID.desc()).limit(limit)
 
     match: Replay
     for match in r_query:
