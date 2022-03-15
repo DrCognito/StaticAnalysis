@@ -17,7 +17,7 @@ def cumulative_player(session, prop_name, team, filt):
     players = session.query(Player).filter(filt)\
                                    .join(Replay).filter(team.filter)
 
-    output = Series()
+    output = Series(dtype='UInt16')
     count = team.replay_count(session)
 
     for p in players:
@@ -59,7 +59,7 @@ def player_heroes(session, team, summarise=10,
         p_picks = session.query(Player.hero).filter(p_f)\
                                             .join(replays)
 
-        p_res = Series(name=player.name)
+        p_res = Series(name=player.name, dtype='UInt16')
         for pick in p_picks:
             if pick[0] in p_res:
                 p_res[pick[0]] += 1
