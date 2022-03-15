@@ -16,12 +16,13 @@ def cumulative_statistic(properties, index=None, conversion=None):
     return output
 
 
-def x_vs_time(collection_methods, start=0, end=None, conversion=None):
+def x_vs_time(collection_methods, start=0, end=None, conversion=None, dtype='float64'):
     '''Returns a pandas Series for the property in collection over time.
        Property is a function that accepts a time parameter.
        Index is time.
-       Conversion is a function that converts property to the desired format'''
-    output = Series()
+       Conversion is a function that converts property to the desired format
+       dtype is the Series data type'''
+    output = Series(dtype=dtype)
 
     for method in collection_methods:
         time_it = range(start) if end is None else range(start, end)
