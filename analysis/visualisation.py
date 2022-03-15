@@ -249,7 +249,7 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
 
     final_icon = []
     for i, axis in zip(range(nplots), axes):
-        working = data.get(i, Series())
+        working = data.get(i, Series(dtype='UInt16'))
         working = working[:num_heroes]
         if working.empty:
             axis.text(0.5, 0.5, "No Data", fontsize=14,
