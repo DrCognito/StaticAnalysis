@@ -35,7 +35,7 @@ def win_rate_table(r_query, team):
                 firsttotal += 1
             else:
                 secondtotal += 1
-        output = Series()
+        output = Series(dtype='UInt16')
         output['First Wins'] = firstwins
         output['First Losses'] = firsttotal - firstwins
         output['Second Wins'] = secondwins
@@ -183,10 +183,10 @@ def get_ptbase_tslice_side(session, r_query, Type,
 
 def get_rune_control(r_query, team: TeamInfo, limit=None):
     '''Gets runes collected over time for team and opposition.'''
-    runes_bounty_opp = Series()
-    runes_power_opp = Series()
-    runes_bounty_team = Series()
-    runes_power_team = Series()
+    runes_bounty_opp = Series(dtype='UInt16')
+    runes_power_opp = Series(dtype='UInt16')
+    runes_bounty_team = Series(dtype='UInt16')
+    runes_power_team = Series(dtype='UInt16')
 
     # Establish base line to help rebinning consistently
     runes_bounty_opp[timedelta(seconds=0)] = 0
@@ -294,7 +294,7 @@ def pair_rate(session, r_query, team, limit=None):
                 pick_pairs = radiant
             for i, pair in pick_pairs.items():
                 if i not in output:
-                    output[i] = Series()
+                    output[i] = Series(dtype='UInt16')
                 if pair in output[i]:
                     output[i][pair] += 1
                 else:
@@ -311,8 +311,8 @@ def draft_summary(session, r_query, team, limit=None) -> (DataFrame, DataFrame):
        Return type is Pandas DataFrame.
     '''
 
-    output_pick = DataFrame()
-    output_ban = DataFrame()
+    list_picks = []
+    list_bans = []
 
     r_query = r_query.order_by(Replay.replayID.desc())
     if limit is not None:
@@ -342,10 +342,13 @@ def draft_summary(session, r_query, team, limit=None) -> (DataFrame, DataFrame):
                 bans[column] = selection.hero
                 ban_count += 1
 
-        output_pick = output_pick.append(picks, ignore_index=True)
-        output_ban = output_ban.append(bans, ignore_index=True)
+        list_picks.append(picks)
+        list_bans.append(bans)
 
+    output_pick = DataFrame.from_dict(list_picks)
     output_pick = output_pick.apply(Series.value_counts)
+
+    output_ban = DataFrame.from_dict(list_bans)
     output_ban = output_ban.apply(Series.value_counts)
 
     return output_pick, output_ban
