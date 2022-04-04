@@ -13,5 +13,6 @@ pytz = "*"
 flake8 = "*"
 matplotlib = "*"
 pygsheets = "*"
+scipy = "*"
 
 [dev-packages]
