@@ -27,6 +27,7 @@ team_session = team_maker()
 
 time = ImportantTimes['PostTI2021']
 replay_list = None
+# OG
 team_id = 2586976
 
 t_filter = Replay.endTimeUTC >= time
@@ -38,6 +39,7 @@ def get_team(name):
     return team
 team = get_team(team_id)
 
+
 r_filter = Replay.endTimeUTC >= time
 
 if replay_list is not None:
@@ -48,6 +50,11 @@ except SQLAlchemyError as e:
     print(e)
     print("Failed to retrieve replays for team {}".format(team.name))
     quit()
+
+# Dire example
+rq_dire = team.get_replays(session).filter(Replay.replayID == 6505724028)
+# Radiant example
+rq_radiant = team.get_replays(session).filter(Replay.replayID == 6505843663)
 
 liquid = get_team(2163)
 print(liquid.players[0].name)
