@@ -26,6 +26,8 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
 from os import environ as environment
 from dotenv import load_dotenv
 from analysis.ward_vis import colour_list
+import pandas as pd
+from replays.Replay import Replay, Team
 
 load_dotenv(dotenv_path="setup.env")
 
@@ -50,6 +52,8 @@ pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, db.session)
 
 test_radiant_out = pathlib.Path("./tests/")
 test_dire_out = pathlib.Path("./tests/")
+
+cell_size = 1/64
 
 
 def do_positioning(team: TeamInfo, r_query,
@@ -126,21 +130,24 @@ def do_positioning(team: TeamInfo, r_query,
 
 # do_positioning(db.team, db.r_query, start=-2*60, end=0)
 
-def add_map(axis, origin=(0, 0)):
+def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1]):
     img = mpimg.imread(environment['MAP_PATH'])
-    extent_test = [0.005, 0.995, 0.005, 0.995]
-    axis.imshow(img, extent=extent_test, zorder=0)
+    # extent_test = [0.005, 0.995, 0.005, 0.995]
+    axis.imshow(img, extent=extent, zorder=0)
     # ax_in.axis('off')
 
     return axis
 
-# Dire for now
-def plot_player_path(team: TeamInfo, r_query, pos, start: int, end: int, filter = None):
-    (_, _),\
-            (positions, _) = player_position(db.session, r_query, team,
-                                     player_slot=pos,
-                                     start=start, end=end,
-                                     recent_limit=1)
+
+def plot_player_path(team: TeamInfo, r_query,
+                     pos, start: int, end: int, side: Team,
+                     filter=None):
+    (dire, _),\
+            (radiant, _) = player_position(db.session, r_query, team,
+                                           player_slot=pos,
+                                           start=start, end=end,
+                                           recent_limit=1)
+    positions = dire if side == Team.DIRE else radiant
 
     if filter is not None:
         positions = positions.filter(filter)
@@ -153,21 +160,21 @@ def plot_player_path(team: TeamInfo, r_query, pos, start: int, end: int, filter 
     return positions_df
 
 
-test = plot_player_path(db.team, db.rq_dire, pos=0, start=-90, end=0)
+test = plot_player_path(db.team, db.rq_dire, pos=0, start=-90, end=0, side=Team.DIRE)
 
 print(test.columns)
 
 positions = []
 for p in range(0, 5):
-    t = plot_player_path(db.team, db.rq_radiant, pos=p, start=-2*60, end=0)
+    t = plot_player_path(db.team, db.rq_dire, pos=p, start=-2*60, end=0, side=Team.DIRE)
     positions.append(t)
 
 fig, axis = plt.subplots(1, 1, figsize=(7, 10))
 
 
-def plot_player_paths(paths, colours, axis, ax_off=(0, 0)):
+def plot_player_paths(paths, colours, axis):
     assert(len(paths) <= len(colours))
-    add_map(axis, ax_off)
+    add_map(axis)
     for colour, path in zip(colours, paths):
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
@@ -176,5 +183,35 @@ def plot_player_paths(paths, colours, axis, ax_off=(0, 0)):
                     scale_units='xy', angles='xy', scale=1,
                     zorder=2, color=colour)
         axis.axis('off')
+    axis.set_ylim(0, 1)
+    axis.set_xlim(0, 1)
 
-plot_player_paths(positions, colour_list, axis, (-0.02, 0))
+
+plot_player_paths(positions, colour_list, axis)
+
+
+def plot_some_wards(r_query, n_wards=4, extent=[-cell_size, 1-cell_size, 0, 1]):
+    data = {
+            'xCoordinate': [],
+            'yCoordinate': [],
+    }
+    for ward, _ in zip(r_query.one().wards, range(n_wards)):
+        data['xCoordinate'].append(ward.xCoordinate)
+        data['yCoordinate'].append(ward.yCoordinate)
+
+    fig, axis = plt.subplots(1, 1, figsize=(7, 10))
+    axis.scatter(data['xCoordinate'], data['yCoordinate'])
+    axis.set_ylim(0, 1)
+    axis.set_xlim(0, 1)
+    add_map(axis, extent)
+    axis.axis('off')
+    plt.show()
+    # fig.savefig('./tests/ward_pos.png')
+
+
+plot_some_wards(db.rq_radiant)
+
+# fig, axis = plt.subplots(1, 1, figsize=(7, 10))
+# add_map(axis)
+# axis.axis('off')
+# fig.savefig('./tests/map_render.png')
