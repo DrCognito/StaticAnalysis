@@ -139,4 +139,5 @@ pstat_res.py
 profile.out
 current_process.bsh
 *.out
+*.webp
 current_test.ps1
