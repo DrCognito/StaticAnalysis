@@ -1,6 +1,7 @@
 import os
 import pathlib
 import sys
+from typing import Tuple
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import tests.minimal_db as db
@@ -8,7 +9,7 @@ from analysis.Player import (cumulative_player, pick_context, player_heroes,
                              player_position)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
-from replays.Player import PlayerStatus
+from replays.Player import Player, PlayerStatus
 from analysis.visualisation import dataframe_xy, get_binning_percentile_xy
 from lib.team_info import TeamInfo
 import matplotlib.image as mpimg
@@ -28,6 +29,16 @@ from dotenv import load_dotenv
 from analysis.ward_vis import colour_list
 import pandas as pd
 from replays.Replay import Replay, Team
+from analysis.Replay import (draft_summary, get_ptbase_tslice,
+                             get_ptbase_tslice_side,
+                             get_rune_control, get_smoke, hero_win_rate,
+                             pair_rate, win_rate_table, get_side_replays,
+                             counter_picks)
+from replays.Ward import Ward, WardType
+from analysis.ward_vis import build_ward_table, plot_image_scatter
+from PIL.Image import open as Image_open
+from lib.Common import seconds_to_nice, get_player_map,get_player_name
+import matplotlib.patheffects as PathEffects
 
 load_dotenv(dotenv_path="setup.env")
 
@@ -139,7 +150,7 @@ def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1]):
     return axis
 
 
-def plot_player_path(team: TeamInfo, r_query,
+def get_player_path(team: TeamInfo, r_query,
                      pos, start: int, end: int, side: Team,
                      filter=None):
     (dire, _),\
@@ -160,34 +171,34 @@ def plot_player_path(team: TeamInfo, r_query,
     return positions_df
 
 
-test = plot_player_path(db.team, db.rq_dire, pos=0, start=-90, end=0, side=Team.DIRE)
+test = get_player_path(db.team, db.rq_dire, pos=0, start=-90, end=0, side=Team.DIRE)
 
 print(test.columns)
 
 positions = []
 for p in range(0, 5):
-    t = plot_player_path(db.team, db.rq_dire, pos=p, start=-2*60, end=0, side=Team.DIRE)
+    t = get_player_path(db.team, db.rq_dire, pos=p, start=-2*60, end=0, side=Team.DIRE)
     positions.append(t)
 
 fig, axis = plt.subplots(1, 1, figsize=(7, 10))
 
 
-def plot_player_paths(paths, colours, axis):
+def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
-    add_map(axis)
-    for colour, path in zip(colours, paths):
+    # add_map(axis)
+    for colour, path, name in zip(colours, paths, names):
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
 
         axis.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1],
                     scale_units='xy', angles='xy', scale=1,
-                    zorder=2, color=colour)
+                    zorder=2, color=colour, label=name)
         axis.axis('off')
     axis.set_ylim(0, 1)
     axis.set_xlim(0, 1)
 
 
-plot_player_paths(positions, colour_list, axis)
+# plot_player_paths(positions, colour_list, axis)
 
 
 def plot_some_wards(r_query, n_wards=4, extent=[-cell_size, 1-cell_size, 0, 1]):
@@ -209,9 +220,94 @@ def plot_some_wards(r_query, n_wards=4, extent=[-cell_size, 1-cell_size, 0, 1]):
     # fig.savefig('./tests/ward_pos.png')
 
 
-plot_some_wards(db.rq_radiant)
+# plot_some_wards(db.rq_radiant)
 
 # fig, axis = plt.subplots(1, 1, figsize=(7, 10))
 # add_map(axis)
 # axis.axis('off')
 # fig.savefig('./tests/map_render.png')
+
+
+def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
+                         axis, ward_size: Tuple[int, int] = (8, 7)):
+    # Add the map
+    add_map(axis)
+    player_list = [p.name for p in db.team.players]
+    # Pregame player positions
+    positions = []
+    names = []
+    colour_cache = {}
+    iColour = 0
+    order = []
+    colours = colour_list
+    player: Player
+    for player in replay.players:
+        if player.team != side:
+            continue
+        try:
+            name = get_player_name(db.team_session, player.steamID)
+            order.append(player_list.index(name))
+        except ValueError:
+            name = player.steamID
+            order.append(-1*player.steamID)
+        p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
+                            PlayerStatus, db.session)
+        positions.append(p_df)
+        names.append(name)
+        colour_cache[player.steamID] = colour_list[iColour]
+        iColour += 1
+    # Change the order to make it consistent
+    positions = [p for _, p in sorted(zip(order, positions))]
+    names = [n for _, n in sorted(zip(order, names))]
+    colours = [c for _, c in sorted(zip(order, colours))]
+
+    plot_player_paths(positions, colours, names, axis)
+    if side == Team.DIRE:
+        axis.legend(loc='lower left', frameon=True)
+    else:
+        axis.legend(loc='upper right', frameon=True)
+
+    # Wards
+    wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.team == side)
+
+    for ward in wards:
+        x1 = ward.xCoordinate
+        y1 = ward.yCoordinate
+        t = ward.time
+
+        x2 = ward.player.get_position_at(t).xCoordinate
+        y2 = ward.player.get_position_at(t).yCoordinate
+        colour = colour_cache[ward.player.steamID]
+
+        axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
+
+    data = build_ward_table(wards, db.session, db.team_session)
+
+    w_icons = {
+        WardType.OBSERVER: Image_open(environment['WARD_ICON']),
+        WardType.SENTRY: Image_open(environment['SENTRY_ICON'])
+    }
+    for w_type in (WardType):
+        w = wards.filter(Ward.ward_type == w_type)
+        data = build_ward_table(w, db.session, db.team_session)
+        if data.empty:
+            print(f"Ward table for {w_type} empty!")
+            continue
+        w_icon = w_icons[w_type]
+        w_icon.thumbnail(ward_size)
+        plot_image_scatter(data, axis, w_icon)
+
+    # Replay ID Text
+    axis.text(s=str(replay.replayID), x=0, y=1.0,
+              ha='left', va='top', zorder=5,
+              path_effects=[PathEffects.withStroke(linewidth=3,
+                            foreground="w")],
+              color='black')
+
+
+fig, axis = plt.subplots(1, 1, figsize=(7, 7))
+r = db.rq_dire.one()
+plot_pregame_players(r, db.team, Team.DIRE, axis)
+fig.tight_layout()
+fig.savefig("./tests/route_test.jpg")
+plt.show()
