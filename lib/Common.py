@@ -1,6 +1,8 @@
 from sqlalchemy import not_, and_
 from sqlalchemy.orm import Session
 from typing import List
+import matplotlib.image as mpimg
+from os import environ as environment
 
 
 def relativeCellCord(cell):
@@ -166,3 +168,13 @@ def get_player_init(names: List[str])-> List[str]:
             fixed[i] = s
 
     return fixed
+
+
+cell_size = 1/64
+
+
+def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1], zorder=0):
+    img = mpimg.imread(environment['MAP_PATH'])
+    axis.imshow(img, extent=extent, zorder=zorder)
+
+    return axis
