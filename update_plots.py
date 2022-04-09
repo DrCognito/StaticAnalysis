@@ -803,6 +803,11 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
+def do_pregame_routes(team: TeamInfo, r_query, metadata:dict,
+                      update_dire: Boolean, update_radiant: Boolean):
+    pass
+
+
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, replay_list=None):
 
