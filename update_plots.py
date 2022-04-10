@@ -50,6 +50,8 @@ from replays.TeamSelections import TeamSelections
 from replays.Ward import Ward, WardType
 from analysis.ward_vis import build_ward_table
 from analysis.ward_vis import plot_eye_scatter, plot_drafts_above
+from analysis.route_vis import plot_pregame_players
+import shutil
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -109,6 +111,7 @@ arguments.add_argument("--draft", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--positioning", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--wards", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--wards_separate", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--pregame_positioning", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--smoke", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--scans", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
@@ -803,9 +806,49 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
-def do_pregame_routes(team: TeamInfo, r_query, metadata:dict,
-                      update_dire: Boolean, update_radiant: Boolean):
-    pass
+def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
+                      update_dire: bool, update_radiant: bool, limit=5):
+    d_replays, r_replays = get_side_replays(r_query, session, team)
+    d_replays = d_replays.order_by(Replay.replayID.desc())
+    r_replays = r_replays.order_by(Replay.replayID.desc())
+
+    plot_base = Path(PLOT_BASE_PATH)
+    team_path: Path = plot_base / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
+
+    fig = plt.figure(figsize=(7, 7))
+    cache_dire = Path(environment["CACHE"])
+
+    def _process_side(replays, side: Team):
+        s_string = "dire" if side == Team.DIRE else "radiant"
+        saved_paths = []
+        r: Replay
+        for r, i in zip(replays, range(limit)):
+            r_file = f"{r.replayID}_route_{s_string}.png"
+            cache_path = cache_dire / r_file
+            destination = team_path / s_string / f"pregame_route_{i}.png"
+
+            if cache_path.exists():
+                shutil.copyfile(cache_path, destination)
+                saved_paths.append(str(destination.relative_to(plot_base)))
+                continue
+
+            plot_pregame_players(r, team, side, session, team_session, fig)
+            fig.tight_layout()
+            fig.savefig(cache_path)
+            shutil.copyfile(cache_path, destination)
+            saved_paths.append(str(destination.relative_to(plot_base)))
+            fig.clf()
+        return saved_paths
+
+    if update_dire:
+        metadata[f'pregame_routes_dire'] = _process_side(d_replays, Team.DIRE)
+    if update_radiant:
+        metadata[f'pregame_routes_radiant'] = _process_side(r_replays, Team.RADIANT)
+
+    return metadata
 
 
 def process_team(team: TeamInfo, metadata, time: datetime,
@@ -863,6 +906,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("Processing individual ward replays.")
         metadata = do_wards_separate(team, r_query, metadata, new_dire,
                                     new_radiant)
+        plt.close('all')
+    if args.pregame_positioning:
+        print("Processing pregame positioning.")
+        metadata = do_pregame_routes(team, r_query, metadata, new_dire,
+                                     new_radiant)
         plt.close('all')
     if args.smoke:
         print("Processing smoke.")
@@ -1050,6 +1098,8 @@ if __name__ == "__main__":
         args.wards = default_process
     if args.wards_separate is None:
         args.wards_separate = default_process
+    if args.pregame_positioning is None:
+        args.pregame_positioning = default_process
     if args.smoke is None:
         args.smoke = default_process
     if args.scans is None:
