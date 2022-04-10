@@ -83,7 +83,18 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         if ward.player is not None:
             x2 = ward.player.get_position_at(t).xCoordinate
             y2 = ward.player.get_position_at(t).yCoordinate
-            colour = colour_cache[ward.player.steamID]
+            try:
+                colour = colour_cache[ward.player.steamID]
+            except KeyError:
+                usable_time = t - replay.creepSpawn
+                print(f"KeyError retrieving {ward.player.steamID}")
+                print(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
+                print(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
+                print(f"Colour cache:{colour_cache}")
+                if ward.ward_type == WardType.OBSERVER:
+                    print("Ward is an obs ward!")
+                    raise
+                continue
 
             axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
         else:
@@ -98,7 +109,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     for w_type in (WardType):
         w = wards.filter(Ward.ward_type == w_type)
         data = build_ward_table(w, session, team_session)
-        if data.empty:
+        if data.empty and w_type == WardType.OBSERVER:
             print(f"Ward table for {w_type} empty!")
             continue
         w_icon = w_icons[w_type]
