@@ -361,6 +361,17 @@ def do_draft(team: TeamInfo, metadata,
             relpath = str(output_second.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_drafts_second'] = relpath
 
+        output_all = team_path / 'drafts_all.png'
+        drafts_all = replay_draft_image(replays,
+                                        team,
+                                        team.name,)
+        if drafts_all is not None:
+            drafts_all = drafts_all.convert("RGB")
+            drafts_all = drafts_all.resize((drafts_all.size[0] // draft_resize, drafts_all.size[1] // draft_resize))
+            drafts_all.save(output_all, dpi=(50, 50), optimize=True)
+            relpath = str(output_all.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_drafts_all'] = relpath
+
     return metadata
 
 
