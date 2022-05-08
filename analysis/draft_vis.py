@@ -446,7 +446,6 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, caching=True):
-                       #wtf
     if caching:
         cache_dir = Path(environment["CACHE"])
         file_name = f"{replay.replayID}_{team.name}.png"
@@ -473,6 +472,10 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         else:
             opposition_line = process_team_dotabuff(replay, t)
             opp_name = SCRIM_REPLAY_DICT.get(str(replay.replayID), t.teamName)
+            try:
+                opp_name = SCRIM_REPLAY_DICT[str(t.teamID)][str(replay.replayID)]
+            except KeyError:
+                opp_name = "Unknown"
             if team_win:
                 opp_name += " (winner)"
 
