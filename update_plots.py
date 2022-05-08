@@ -99,14 +99,6 @@ arguments.add_argument('--process_all',
 arguments.add_argument('--skip_datasummary',
                        help='''Skip processing the data set summary plots.''',
                        action='store_true')
-arguments.add_argument('--scrim_list',
-                       help='''Specify a location for scrim list.''',
-                       default='./scrims.json',
-                       type=str)
-arguments.add_argument('--scrim_teamid',
-                       help='''Team ID for scrims.''',
-                       type=int)
-#region
 arguments.add_argument("--draft", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--positioning", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--wards", action=argparse.BooleanOptionalAction)
@@ -118,6 +110,7 @@ arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
+arguments.add_argument('--process_scrims', action=argparse.BooleanOptionalAction)
 #endregion
 
 
@@ -1124,9 +1117,8 @@ if __name__ == "__main__":
     try:
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)
-            scrim_list = list(SCRIM_REPLAY_DICT.keys())
     except IOError:
-        print(f"Failed to read scrim_list {scims_json} for {args.scrim_teamid}")
+        print(f"Failed to read scrim_list {scims_json}")
 
     if args.process_teams is not None:
         for proc_team in args.process_teams:
@@ -1143,16 +1135,17 @@ if __name__ == "__main__":
 
             process_team(team, metadata, TIME_CUT, args)
 
-    if args.scrim_teamid is not None:
-        team = get_team(args.scrim_teamid)
-        if team is None:
-            print(f"Unable to find team {args.scrim_teamid} in database!")
-        print(f"Processing scrims from {args.scrim_list} for team {team.name}.")
+            if args.process_scrims:
+                team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
+                # print(SCRIM_REPLAY_DICT["2163"])
+                # print(team_scrims, team.team_id)
+                if team_scrims is None:
+                    continue
+                scrim_list = list(team_scrims.keys())
+                metadata = get_create_metadata(team, "Scrims")
+                metadata['time_cut'] = TIME_CUT.timestamp()
 
-        metadata = get_create_metadata(team, "Scrims")
-        metadata['time_cut'] = TIME_CUT.timestamp()
-
-        process_team(team, metadata, TIME_CUT, args, replay_list=scrim_list)
+                process_team(team, metadata, TIME_CUT, args, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
