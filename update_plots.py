@@ -877,8 +877,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         quit()
     new_dire, dire_list, new_radiant, radiant_list = is_updated(r_query, team, metadata)
     if reprocess:
-        new_dire = True
-        new_radiant = True
+        if r_query.count() != 0:
+            new_dire = True
+            new_radiant = True
     if not new_dire and not new_radiant:
         print("No new updates for {}".format(team.name))
 
