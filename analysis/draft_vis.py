@@ -473,7 +473,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
             opposition_line = process_team_dotabuff(replay, t)
             opp_name = SCRIM_REPLAY_DICT.get(str(replay.replayID), t.teamName)
             try:
-                opp_name = SCRIM_REPLAY_DICT[str(t.teamID)][str(replay.replayID)]
+                opp_name = SCRIM_REPLAY_DICT[str(team.team_id)][str(replay.replayID)]
             except KeyError:
                 opp_name = "Unknown"
             if team_win:
