@@ -475,7 +475,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
             try:
                 opp_name = SCRIM_REPLAY_DICT[str(team.team_id)][str(replay.replayID)]
             except KeyError:
-                opp_name = "Unknown"
+                opp_name = t.teamName
             if team_win:
                 opp_name += " (winner)"
 
