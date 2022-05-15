@@ -245,7 +245,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         if player.team != side:
             continue
         try:
-            name = get_player_name(db.team_session, player.steamID)
+            name = get_player_name(db.team_session, player.steamID, team)
             order.append(player_list.index(name))
         except ValueError:
             name = player.steamID

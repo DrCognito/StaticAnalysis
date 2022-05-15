@@ -4,7 +4,6 @@ from typing import List
 import matplotlib.image as mpimg
 from os import environ as environment
 
-
 def relativeCellCord(cell):
     return (cell - 64)/128
 
@@ -62,7 +61,7 @@ def seconds_to_nice(s):
 player_cache = {}
 
 
-def get_player_name(team_session: Session, steam_id: int) -> str:
+def get_player_name(team_session: Session, steam_id: int, team=None) -> str:
     from lib.team_info import TeamPlayer, TeamInfo
     """Returns a known players name from a steamID.
 
@@ -79,9 +78,14 @@ def get_player_name(team_session: Session, steam_id: int) -> str:
     if steam_id in player_cache:
         return player_cache[steam_id]
 
-    player = team_session.query(TeamPlayer.name)\
-                         .filter(TeamPlayer.player_id == steam_id)\
-                         .first()
+    if team is not None:
+        player = team_session.query(TeamPlayer.name)\
+                     .filter(and_(TeamPlayer.player_id == steam_id, TeamPlayer.team_id == team.team_id))\
+                     .one_or_none()
+    else:
+        player = team_session.query(TeamPlayer.name)\
+                             .filter(TeamPlayer.player_id == steam_id)\
+                             .first()
 
     if player is None:
         print("Steam id {} not found.".format(steam_id))
