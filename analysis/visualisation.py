@@ -208,8 +208,8 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
 
     # Bans
     ban_stage = []
-    ban_stage.append(_combine_results(bans, (0, 3)))
-    ban_stage.append(_combine_results(bans, (3, 5)))
+    ban_stage.append(_combine_results(bans, (0, 2)))
+    ban_stage.append(_combine_results(bans, (2, 5)))
     ban_stage.append(_combine_results(bans, (5, None)))
 
     for i, i_ax in enumerate(axes[1]):
