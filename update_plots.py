@@ -724,21 +724,23 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     metadata[f'plot_hero_picks{postfix}'] = relpath
 
     pick_pair_df = pair_rate(session, r_query, team, limit=limit)
-    fig, extra = plot_pick_pairs(pick_pair_df, fig)
-    output = team_path / f'pick_pairs{postfix}.png'
-    fig.tight_layout(h_pad=7.0)
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_pair_picks{postfix}'] = relpath
+    if pick_pair_df:
+        fig, extra = plot_pick_pairs(pick_pair_df, fig)
+        output = team_path / f'pick_pairs{postfix}.png'
+        fig.tight_layout(h_pad=7.0)
+        fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+        fig.clf()
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata[f'plot_pair_picks{postfix}'] = relpath
 
-    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
-    output = team_path / f'pick_context{postfix}.png'
-    fig.tight_layout(h_pad=3.0)
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_pick_context{postfix}'] = relpath
+    if not draft_summary_df[0].empty:
+        fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
+        output = team_path / f'pick_context{postfix}.png'
+        fig.tight_layout(h_pad=3.0)
+        fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
+        fig.clf()
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata[f'plot_pick_context{postfix}'] = relpath
 
     hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
     fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
@@ -880,6 +882,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         if r_query.count() != 0:
             new_dire = True
             new_radiant = True
+        elif replay_list is not None:
+            print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
+            print(replay_list)
     if not new_dire and not new_radiant:
         print("No new updates for {}".format(team.name))
 
