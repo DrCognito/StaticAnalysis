@@ -69,3 +69,8 @@ full_filter = and_(TeamSelections.replay_ID.in_(latest5), pick_filter)
 t_filter = r_query.limit(5).subquery()
 # replays = r_query.join(t_filter, Replay.replayID == t_filter.c.replayID).filter(pick_filter)
 replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replayID).filter(full_filter)
+
+new_cut_time = ImportantTimes['Patch_7_31']
+t_filter = (Replay.endTimeUTC >= new_cut_time)
+test = session.query(Replay).filter(t_filter).order_by(Replay.replayID)
+print(test.first().replayID)
