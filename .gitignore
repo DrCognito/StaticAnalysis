@@ -141,3 +141,4 @@ current_process.bsh
 *.out
 *.webp
 current_test.ps1
+data/archive.7z
