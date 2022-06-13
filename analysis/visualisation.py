@@ -130,7 +130,7 @@ def x_label_icon(axis, y_pos=-0.15, size=1.0):
             # Get and resize the hero icon.
             icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
-        except ValueError:
+        except (ValueError, KeyError):
             print("Unable to find hero icon for: " + hero)
             continue
         x_rel = (float(x) - x_min)/x_range
@@ -237,8 +237,11 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
        num_heroes determines the number of paris to consider.
        Returns axis and extra artists for extending bounding box.
     '''
-
-    nplots = max(data.keys()) + 1
+    # Is false if empty
+    if data:
+        nplots = max(data.keys()) + 1
+    else:
+        nplots = 1
     fig.set_size_inches(8, 4*nplots)
     axes = fig.subplots(nplots)
     # Matplotlib will return a collection if nplots > 1, or a single object if 1
