@@ -1,3 +1,4 @@
+import re
 from typing import Set
 import minimal_db as db
 import pathlib
@@ -79,3 +80,57 @@ for r in replays:
 print(f"Good: {good}, Bad: {bad}")
 
 
+def assign_team(main_team: TeamInfo, other_team: TeamInfo, replay: Replay, min_members=3):
+    for t in replay.teams:
+        if t.team == Team.DIRE:
+            dire_team: TeamSelections = t
+        else:
+            radiant_team: TeamSelections = t
+
+    dire_main = main_team.team_id == dire_team.teamID
+    radiant_main = main_team.team_id == radiant_team.teamID
+    assert(not(dire_main and radiant_main))
+
+    if dire_main:
+        radiant_team.teamID = other_team.team_id
+        print("Assigned opposition to radiant from existing main ID.")
+        return
+    if radiant_main:
+        dire_team.teamID = other_team.team_id
+        print("Assigned opposition to dire from existing main ID.")
+        return
+
+    dire_players = {x.steamID for x in replay.get_players(Team.DIRE)}
+    radiant_players = {x.steamID for x in replay.get_players(Team.RADIANT)}
+
+    main_players = {x.player_id for x in main_team.players}
+    main_dire = is_player_match(main_players, dire_players, min_members)
+    main_radiant = is_player_match(main_players, radiant_players, min_members)
+
+    other_players = {x.player_id for x in other_team.players}
+    other_dire = is_player_match(other_players, dire_players, min_members)
+    other_radiant = is_player_match(other_players, radiant_players, min_members)
+
+    # Can not have a team match both teams
+    assert(not(main_dire and main_radiant))
+    assert(not(other_radiant and other_dire))
+
+    # Can not have teams match the same team
+    assert(not(main_dire and other_dire))
+    assert(not(main_radiant and other_radiant))
+
+    if main_dire:
+        dire_team.teamID = main_team.team_id
+    elif main_radiant:
+        radiant_team.teamID = main_team.team_id
+
+    if other_dire:
+        dire_team.teamID = other_team.team_id
+    elif other_radiant:
+        radiant_team.teamID = other_team.team_id
+
+    # We found a main team but not the opposition at all, we can just go round
+    if (main_dire or main_radiant) and not (other_dire or other_radiant):
+        assign_team(main_team, other_team, replay, min_members)
+
+    db.session.commit()
