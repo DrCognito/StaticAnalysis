@@ -52,6 +52,7 @@ from analysis.ward_vis import build_ward_table
 from analysis.ward_vis import plot_eye_scatter, plot_drafts_above
 from analysis.route_vis import plot_pregame_players
 import shutil
+from PIL import Image
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -256,6 +257,52 @@ def do_positioning(team: TeamInfo, r_query,
             fig.clf()
     # fig.clf()
     return metadata
+
+
+def get_draft_cache(team: TeamInfo, metadata, r_query, side: Team = None):
+    if side == Team.DIRE:
+        try:
+            max_id = metadata['replays_dire'][0]
+        except IndexError:
+            max_id = 0
+        past_replays = set(metadata['replays_dire'])
+        cache_name = f"{team.name}_dire_draft"
+    elif side == Team.RADIANT:
+        try:
+            max_id = metadata['replays_radiant'][0]
+        except IndexError:
+            max_id = 0
+        past_replays = set(metadata['replays_radiant'])
+        cache_name = f"{team.name}_radiant_draft"
+    else:
+        try:
+            max_r = metadata['replays_radiant'][0]
+        except IndexError:
+            max_r = 0
+        try:
+            max_d = metadata['replays_dire'][0]
+        except IndexError:
+            max_d = 0
+        max_id = max(max_r, max_d)
+        past_replays = set(metadata['replays_radiant'] + metadata['replays_dire'])
+        cache_name = f"{team.name}_both_draft"
+
+    r_bellow = set(r_query.with_entities(Replay.replayID)
+                          .filter(Replay.replayID <= max_id).all())
+
+    if r_bellow != past_replays:
+        print(f"Cache miss for {cache_name}")
+        return None
+
+    cache_dir = Path(environment["CACHE"])
+    file_name = f"{cache_name}.png"
+    file_path = cache_dir / file_name
+    if file_path.exists():
+        return Image.open(file_path)
+    else:
+        print(f"Failed to open draft cache {file_path}")
+        return None
+
 
 
 def do_draft(team: TeamInfo, metadata,
@@ -888,11 +935,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
         return
 
-    # l_query = r_query.order_by(Replay.replayID.desc()).limit(5)
-
-    metadata['replays_dire'] = list(dire_list)
-    metadata['replays_radiant'] = list(radiant_list)
-
     print("Process {}.".format(team.name))
     if args.draft:
         print("Processing drafts.")
@@ -941,6 +983,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     print("Processing statistics.")
     metadata = do_statistics(team, r_query, metadata)
 
+    metadata['replays_dire'] = list(dire_list)
+    metadata['replays_radiant'] = list(radiant_list)
     path = store_metadata(team, metadata)
     print("Metadata file updated at {}".format(str(path)))
 
