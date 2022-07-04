@@ -73,4 +73,5 @@ replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replay
 new_cut_time = ImportantTimes['Patch_7_31']
 t_filter = (Replay.endTimeUTC >= new_cut_time)
 test = session.query(Replay).filter(t_filter).order_by(Replay.replayID)
+test = test.with_entities(Replay.replayID)
 print(test.first().replayID)
