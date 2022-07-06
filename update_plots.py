@@ -37,7 +37,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_player_positioning, plot_runes,
                                     get_binning_percentile_xy)
 from lib.Common import (dire_ancient_cords, location_filter,
-                        radiant_ancient_cords)
+                        radiant_ancient_cords, DraftCoverage)
 from lib.important_times import ImportantTimes
 from lib.metadata import is_updated, make_meta
 from lib.team_info import InitTeamDB, TeamInfo
@@ -259,21 +259,21 @@ def do_positioning(team: TeamInfo, r_query,
     return metadata
 
 
-def get_draft_cache(team: TeamInfo, metadata, r_query, side: Team = None):
+def get_draft_cache(team: TeamInfo, metadata, r_query, side: Team = None) -> Image:
     if side == Team.DIRE:
         try:
             max_id = metadata['replays_dire'][0]
         except IndexError:
             max_id = 0
         past_replays = set(metadata['replays_dire'])
-        cache_name = f"{team.name}_dire_draft"
+        cache_name = f"{team.name}_{metadata['name']}_dire_draft"
     elif side == Team.RADIANT:
         try:
             max_id = metadata['replays_radiant'][0]
         except IndexError:
             max_id = 0
         past_replays = set(metadata['replays_radiant'])
-        cache_name = f"{team.name}_radiant_draft"
+        cache_name = f"{team.name}_{metadata['name']}_radiant_draft"
     else:
         try:
             max_r = metadata['replays_radiant'][0]
@@ -298,16 +298,16 @@ def get_draft_cache(team: TeamInfo, metadata, r_query, side: Team = None):
     file_name = f"{cache_name}.png"
     file_path = cache_dir / file_name
     if file_path.exists():
+        print(f"Using cache {file_path}")
         return Image.open(file_path)
     else:
         print(f"Failed to open draft cache {file_path}")
         return None
 
 
-
 def do_draft(team: TeamInfo, metadata,
              update_dire=True, update_radiant=True,
-             r_filter=None, per_side_limit=None):
+             r_filter=None, per_side_limit=None, cache=True):
     '''Produces draft images from the replays in r_query.
        Will only proceed for sides with update = True.
     '''
@@ -331,35 +331,72 @@ def do_draft(team: TeamInfo, metadata,
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     draft_resize = 3
+    previous_dire = set()
+
+    def _draft(replays, side: Team, draft_type: DraftCoverage, output: str) -> str:
+        if side == Team.DIRE:
+            replays = replays.filter(dire_filter).order_by(Replay.replayID.desc())
+            previous = set(metadata['replays_dire'])
+        if side == Team.RADIANT:
+            replays = replays.filter(radiant_filter).order_by(Replay.replayID.desc())
+            previous = set(metadata['replays_radiant'])
+        if per_side_limit is not None:
+            replays = replays.limit(per_side_limit)
+
+        cached_draft = None
+        if cache:
+            cached_draft = get_draft_cache(team, metadata, replays, Team.DIRE)
+        if cached_draft is not None:
+            replays = replays.filter(Replay.replayID.not_in(previous_dire))
+
+        drafts = replay_draft_image(replays.all(),
+                                    team,
+                                    team.name,
+                                    draft_type=draft_type,
+                                    cached_draft=cached_draft)
     if update_dire:
         output = team_path / 'dire/drafts.png'
         if per_side_limit is not None:
             replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
-                               .all()
-        dire_drafts = replay_draft_image(replays,
+            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())
+
+        cached_draft = None
+        if cache:
+            previous_dire = set(metadata['replays_dire'])
+            cached_draft = get_draft_cache(team, metadata, replays, Team.DIRE)
+        if cached_draft is not None:
+            replays = replays.filter(Replay.replayID.not_in(previous_dire))
+        dire_drafts = replay_draft_image(replays.all(),
                                          team,
-                                         team.name)
+                                         team.name,
+                                         cached_draft=cached_draft)
         if dire_drafts is not None:
             dire_drafts = dire_drafts.convert("RGB")
             dire_drafts = dire_drafts.resize((dire_drafts.size[0] // draft_resize, dire_drafts.size[1] // draft_resize))
             dire_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_dire_drafts'] = relpath
-
+    previous_radiant = set()
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
         if per_side_limit is not None:
             replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
-                               .all()
-        radiant_drafts = replay_draft_image(replays,
+            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())
+
+        cached_draft = None
+        if cache:
+            previous_radiant = set(metadata['replays_radiant'])
+            cached_draft = get_draft_cache(team, metadata, replays, Team.RADIANT)
+        if cached_draft is not None:
+            replays = replays.filter(Replay.replayID.not_in(previous_radiant))
+        radiant_drafts = replay_draft_image(replays.all(),
                                             team,
-                                            team.name)
+                                            team.name,
+                                            cached_draft=cached_draft)
         if radiant_drafts is not None:
             radiant_drafts = radiant_drafts.convert("RGB")
             radiant_drafts = radiant_drafts.resize((radiant_drafts.size[0] // draft_resize, radiant_drafts.size[1] // draft_resize))
@@ -370,28 +407,44 @@ def do_draft(team: TeamInfo, metadata,
     if update_radiant or update_dire:
         if per_side_limit is not None:
             replays = r_drafted.order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.order_by(Replay.replayID.desc())\
-                               .all()
-
+            replays = r_drafted.order_by(Replay.replayID.desc())
         output_first = team_path / 'drafts_first.png'
-        drafts_first = replay_draft_image(replays,
+
+        cached_draft = None
+        if cache:
+            cached_draft = get_draft_cache(team, metadata, replays, tag="first")
+        if cached_draft is not None:
+            replays_first = replays.filter(Replay.replayID.not_in(previous_radiant + previous_dire))
+        else:
+            replays_first = replays
+        drafts_first = replay_draft_image(replays_first.all(),
                                           team,
                                           team.name,
-                                          second_pick=False)
+                                          second_pick=False,
+                                          cached_draft=cached_draft)
         if drafts_first is not None:
             drafts_first = drafts_first.convert("RGB")
             drafts_first = drafts_first.resize((drafts_first.size[0] // draft_resize, drafts_first.size[1] // draft_resize))
             drafts_first.save(output_first, dpi=(50, 50), optimize=True)
             relpath = str(output_first.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_drafts_first'] = relpath
-        
+
         output_second = team_path / 'drafts_second.png'
-        drafts_second = replay_draft_image(replays,
+
+        cached_draft = None
+        if cache:
+            cached_draft = get_draft_cache(team, metadata, replays, tag="second")
+        if cached_draft is not None:
+            replays_second = replays.filter(Replay.replayID.not_in(previous_radiant + previous_dire))
+        else:
+            replays_second = replays
+        drafts_second = replay_draft_image(replays_second.all(),
                                            team,
                                            team.name,
-                                           first_pick=False)
+                                           first_pick=False,
+                                           cached_draft=cached_draft)
         if drafts_second is not None:
             drafts_second = drafts_second.convert("RGB")
             drafts_second = drafts_second.resize((drafts_second.size[0] // draft_resize, drafts_second.size[1] // draft_resize))
@@ -400,7 +453,15 @@ def do_draft(team: TeamInfo, metadata,
             metadata['plot_drafts_second'] = relpath
 
         output_all = team_path / 'drafts_all.png'
-        drafts_all = replay_draft_image(replays,
+
+        cached_draft = None
+        if cache:
+            cached_draft = get_draft_cache(team, metadata, replays, tag="second")
+        if cached_draft is not None:
+            replays_all = replays.filter(Replay.replayID.not_in(previous_radiant + previous_dire))
+        else:
+            replays_all = replays
+        drafts_all = replay_draft_image(replays_all.all(),
                                         team,
                                         team.name,)
         if drafts_all is not None:
