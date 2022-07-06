@@ -5,6 +5,7 @@ import sys
 import json
 
 from sqlalchemy.sql.operators import op
+from lib.Common import DraftCoverage
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.HeroTools import (convertName, HeroIDType, HeroIconPrefix,
@@ -536,12 +537,18 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     return out_box
 
 
-def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, first_pick=True, second_pick=True):
+def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
+                       draft_type: DraftCoverage, cached_draft=None) -> Image:
     lines = list()
     tot_height = 0
     max_width = 0
     vert_spacing = 20
 
+    if cached_draft is not None:
+        lines.append(cached_draft)
+        tot_height += cached_draft.size[1]
+        tot_height += vert_spacing
+        max_width = max(max_width, cached_draft.size[0])
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
         # Check to see if our team is picked first
@@ -553,9 +560,9 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
             team_num = 1
         is_first = replay.teams[team_num].firstPick
 
-        if is_first and not first_pick:
+        if is_first and not draft_type == DraftCoverage.FIRST:
             continue
-        if not is_first and not second_pick:
+        if not is_first and not draft_type == DraftCoverage.SECOND:
             continue
  
         line = pickban_line_image(replay, team, add_team_name=True)
@@ -583,6 +590,14 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
         sheet.paste(line, (off_set, y_off), line)
         y_off += line.size[1]
         y_off += vert_spacing
+
+    # Cache the sheet
+    if caching:
+        cache_dir = Path(environment["CACHE"])
+        file_name = f"{replay.replayID}_{team.name}.png"
+        file_path = cache_dir / file_name
+        assert file_path.exists() is False
+        sheet.save(file_path)
 
     # Finally add a title
     font_size = 40
