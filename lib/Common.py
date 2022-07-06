@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import matplotlib.image as mpimg
 from os import environ as environment
+from enum import Enum
 
 def relativeCellCord(cell):
     return (cell - 64)/128
@@ -182,3 +183,9 @@ def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1], zorder=0):
     axis.imshow(img, extent=extent, zorder=zorder)
 
     return axis
+
+
+class DraftCoverage(str, Enum):
+    FIRST = "first"
+    SECOND = "second"
+    BOTH = "both"
