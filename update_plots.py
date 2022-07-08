@@ -295,8 +295,9 @@ def get_draft_cache(team: TeamInfo, metadata, r_query, draft_type: DraftCoverage
     r_bellow = {r for (r, ) in query}
     if r_bellow != past_replays:
         print(f"Cache miss for {cache_name}")
-        print(r_bellow - past_replays)
-        print(past_replays - r_bellow)
+        # print(r_bellow - past_replays)
+        # print(past_replays - r_bellow)
+        print(f"{len(r_bellow)}")
         # print(r_bellow == past_replays)
         return None
 

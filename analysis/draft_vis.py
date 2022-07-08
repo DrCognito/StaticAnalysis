@@ -538,17 +538,18 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
 
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
-                       draft_type: DraftCoverage, cached_draft=None) -> Image:
+                       draft_type: DraftCoverage, cached_draft: Path = None) -> Image:
     lines = list()
     tot_height = 0
     max_width = 0
     vert_spacing = 20
 
-    if cached_draft is not None:
-        lines.append(cached_draft)
-        tot_height += cached_draft.size[1]
+    if cached_draft is not None and cached_draft.exists():
+        cache_image = Image.open(cached_draft)
+        lines.append(cache_image)
+        tot_height += cache_image.size[1]
         tot_height += vert_spacing
-        max_width = max(max_width, cached_draft.size[0])
+        max_width = max(max_width, cache_image.size[0])
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
         # Check to see if our team is picked first
@@ -592,12 +593,8 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         y_off += vert_spacing
 
     # Cache the sheet
-    if caching:
-        cache_dir = Path(environment["CACHE"])
-        file_name = f"{replay.replayID}_{team.name}.png"
-        file_path = cache_dir / file_name
-        assert file_path.exists() is False
-        sheet.save(file_path)
+    if cached_draft is not None:
+        sheet.save(cached_draft)
 
     # Finally add a title
     font_size = 40
