@@ -262,44 +262,42 @@ def do_positioning(team: TeamInfo, r_query,
     return metadata
 
 
-def get_draft_cache(team: TeamInfo, metadata, r_query, draft_type: DraftCoverage, side: Team = None) -> Path:
+def get_draft_cache(team: TeamInfo, metadata, r_query,
+                    draft_type: DraftCoverage, side: Team = None,
+                    per_side_limit: int = None, cache: bool = True) -> Path:
+
+    dire_filter = Replay.get_side_filter(team, Team.DIRE)
+    radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
     if side == Team.DIRE:
-        try:
-            max_id = metadata['replays_dire'][0]
-        except IndexError:
-            max_id = 0
-        past_replays = set(metadata['replays_dire'])
+        r_query = r_query.filter(dire_filter).order_by(Replay.replayID.desc())
         cache_name = f"{team.name}_{metadata['name']}_dire_{draft_type.value}_draft"
     elif side == Team.RADIANT:
-        try:
-            max_id = metadata['replays_radiant'][0]
-        except IndexError:
-            max_id = 0
-        past_replays = set(metadata['replays_radiant'])
+        r_query = r_query.filter(radiant_filter).order_by(Replay.replayID.desc())
         cache_name = f"{team.name}_{metadata['name']}_radiant_{draft_type.value}_draft"
     else:
-        try:
-            max_r = metadata['replays_radiant'][0]
-        except IndexError:
-            max_r = 0
-        try:
-            max_d = metadata['replays_dire'][0]
-        except IndexError:
-            max_d = 0
-        max_id = max(max_r, max_d)
-        past_replays = set(metadata['replays_radiant'] + metadata['replays_dire'])
+        r_query = r_query.order_by(Replay.replayID.desc())
         cache_name = f"{team.name}_both_draft"
+    try:
+        past_replays = set(metadata[cache_name])
+        max_id = max(past_replays)
+    except KeyError:
+        max_id = 0
 
-    query = r_query.with_entities(Replay.replayID)\
-                   .filter(Replay.replayID <= max_id).all()
-    r_bellow = {r for (r, ) in query}
-    if r_bellow != past_replays:
-        print(f"Cache miss for {cache_name}")
-        # print(r_bellow - past_replays)
-        # print(past_replays - r_bellow)
-        print(f"{len(r_bellow)}")
-        # print(r_bellow == past_replays)
-        return None
+    if cache:
+        query = r_query.with_entities(Replay.replayID)\
+                    .filter(Replay.replayID <= max_id).all()
+        r_bellow = {r for (r, ) in query}
+        if r_bellow != past_replays:
+            print(f"Cache miss for {cache_name}")
+            # print(r_bellow - past_replays)
+            print(past_replays ^ r_bellow)
+            print(f"{max_id}")
+            # print(r_bellow == past_replays)
+            use_cache = False
+        else:
+            use_cache = True
+    else:
+        use_cache = False
 
     cache_dir = Path(environment["CACHE"])
     file_name = f"{cache_name}.png"
@@ -308,7 +306,22 @@ def get_draft_cache(team: TeamInfo, metadata, r_query, draft_type: DraftCoverage
         print(f"Using cache {file_path}")
     else:
         print(f"Failed to open draft cache {file_path}")
-    return file_path
+
+    if use_cache is True and file_path.exists():
+        final_query = r_query.filter(Replay.replayID.not_in(past_replays))
+        if per_side_limit is not None:
+            final_query = final_query.limit(per_side_limit)
+
+    drafts = replay_draft_image(final_query.all(),
+                                team,
+                                team.name,
+                                draft_type=draft_type,
+                                cached_draft=file_path)
+
+    if drafts is not None:
+        r_ids = [r for (r, ) in r_query.with_entities(Replay.replayID).all()]
+        metadata[cache_name] = r_ids
+    return drafts
 
 
 def do_draft(team: TeamInfo, metadata,
@@ -329,40 +342,12 @@ def do_draft(team: TeamInfo, metadata,
                                      .filter(TeamSelections.draft.any())\
                                      .order_by(Replay.replayID.desc())
 
-    dire_filter = Replay.get_side_filter(team, Team.DIRE)
-    radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     draft_resize = 3
-
-    def _draft(replays, side: Team, draft_type: DraftCoverage) -> Image:
-        if side == Team.DIRE:
-            replays = replays.filter(dire_filter).order_by(Replay.replayID.desc())
-            previous = set(metadata['replays_dire'])
-        elif side == Team.RADIANT:
-            replays = replays.filter(radiant_filter).order_by(Replay.replayID.desc())
-            previous = set(metadata['replays_radiant'])
-        else:
-            replays = replays.order_by(Replay.replayID.desc())
-            previous = set(metadata['replays_dire'] + metadata['replays_radiant'])
-        if per_side_limit is not None:
-            replays = replays.limit(per_side_limit)
-
-        if cache:
-            cached_draft = get_draft_cache(team, metadata, replays, Team.DIRE)
-        if cached_draft is not None and cached_draft.exists():
-            replays = replays.filter(Replay.replayID.not_in(previous))
-
-        drafts = replay_draft_image(replays.all(),
-                                    team,
-                                    team.name,
-                                    draft_type=draft_type,
-                                    cached_draft=cached_draft)
-
-        return drafts
 
     def _post_proc(draft: Image, output: str, meta_key: str):
         draft = draft.convert("RGB")
@@ -374,39 +359,49 @@ def do_draft(team: TeamInfo, metadata,
 
     if update_dire:
         output = team_path / 'dire/drafts.png'
-        dire_drafts = _draft(r_drafted,
-                             Team.DIRE,
-                             DraftCoverage.BOTH)
+        dire_drafts = get_draft_cache(
+                                      team, metadata,
+                                      r_drafted,
+                                      DraftCoverage.BOTH, Team.DIRE,
+                                      per_side_limit, cache)
         if dire_drafts is not None:
             _post_proc(dire_drafts, output, "plot_dire_drafts")
 
     if update_radiant:
         output = team_path / 'radiant/drafts.png'
-        radiant_drafts = _draft(r_drafted,
-                                Team.RADIANT,
-                                DraftCoverage.BOTH)
+        radiant_drafts = get_draft_cache(
+                                         team, metadata,
+                                         r_drafted,
+                                         DraftCoverage.BOTH, Team.RADIANT,
+                                         per_side_limit, cache)
         if radiant_drafts is not None:
             _post_proc(radiant_drafts, output, "plot_radiant_drafts")
 
     if update_radiant or update_dire:
         output_first = team_path / 'drafts_first.png'
-        drafts_first = _draft(r_drafted,
-                              None,
-                              DraftCoverage.FIRST)
+        drafts_first = get_draft_cache(
+                                      team, metadata,
+                                      r_drafted,
+                                      DraftCoverage.FIRST, None,
+                                      per_side_limit, cache)
         if drafts_first is not None:
             _post_proc(drafts_first, output_first, "plot_drafts_first")
 
         output_second = team_path / 'drafts_second.png'
-        drafts_second = _draft(r_drafted,
-                               None,
-                               DraftCoverage.SECOND)
+        drafts_second = get_draft_cache(
+                                        team, metadata,
+                                        r_drafted,
+                                        DraftCoverage.SECOND, None,
+                                        per_side_limit, cache)
         if drafts_second is not None:
             _post_proc(drafts_second, output_second, "plot_drafts_second")
 
         output_all = team_path / 'drafts_all.png'
-        drafts_all = _draft(r_drafted,
-                            None,
-                            DraftCoverage.BOTH)
+        drafts_all = get_draft_cache(
+                                     team, metadata,
+                                     r_drafted,
+                                     DraftCoverage.BOTH, None,
+                                     per_side_limit, cache)
         if drafts_all is not None:
             _post_proc(drafts_all, output_all, "plot_drafts_all")
 
