@@ -565,7 +565,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
             continue
         if not is_first and not draft_type == DraftCoverage.SECOND:
             continue
- 
+
         line = pickban_line_image(replay, team, add_team_name=True)
         if line is None:
             continue
