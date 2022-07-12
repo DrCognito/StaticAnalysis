@@ -264,7 +264,7 @@ def do_positioning(team: TeamInfo, r_query,
 
 def get_draft_cache(team: TeamInfo, metadata, r_query,
                     draft_type: DraftCoverage, side: Team = None,
-                    per_side_limit: int = None, cache: bool = True) -> Path:
+                    per_side_limit: int = None, cache: bool = False) -> Path:
 
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
@@ -282,6 +282,7 @@ def get_draft_cache(team: TeamInfo, metadata, r_query,
         max_id = max(past_replays)
     except KeyError:
         max_id = 0
+        past_replays = set()
 
     if cache:
         query = r_query.with_entities(Replay.replayID)\
@@ -307,19 +308,19 @@ def get_draft_cache(team: TeamInfo, metadata, r_query,
     else:
         print(f"Failed to open draft cache {file_path}")
 
+    r_ids = [r for (r, ) in r_query.with_entities(Replay.replayID).all()]
     if use_cache is True and file_path.exists():
-        final_query = r_query.filter(Replay.replayID.not_in(past_replays))
+        r_query = r_query.filter(Replay.replayID.not_in(past_replays))
         if per_side_limit is not None:
-            final_query = final_query.limit(per_side_limit)
+            r_query = r_query.limit(per_side_limit)
 
-    drafts = replay_draft_image(final_query.all(),
+    drafts = replay_draft_image(r_query.all(),
                                 team,
                                 team.name,
                                 draft_type=draft_type,
-                                cached_draft=file_path)
+                                cached_draft=None)
 
     if drafts is not None:
-        r_ids = [r for (r, ) in r_query.with_entities(Replay.replayID).all()]
         metadata[cache_name] = r_ids
     return drafts
 
@@ -344,21 +345,23 @@ def do_draft(team: TeamInfo, metadata,
 
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
+    test_path = Path('E:/Python/StaticAnalysis/cache_test/')
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     draft_resize = 3
 
     def _post_proc(draft: Image, output: str, meta_key: str):
-        draft = draft.convert("RGB")
-        draft = draft.resize((draft.size[0] // draft_resize, draft.size[1] // draft_resize))
+        # draft = draft.convert("RGB")
+        # draft = draft.resize((draft.size[0] // draft_resize, draft.size[1] // draft_resize))
         if not TEST_RUN:
             draft.save(output, dpi=(50, 50), optimize=True)
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[meta_key] = relpath
+        draft.save(output, dpi=(50, 50), optimize=True)
+        # relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        # metadata[meta_key] = relpath
 
     if update_dire:
-        output = team_path / 'dire/drafts.png'
+        output = test_path / 'dire/drafts.png'
         dire_drafts = get_draft_cache(
                                       team, metadata,
                                       r_drafted,
@@ -368,7 +371,7 @@ def do_draft(team: TeamInfo, metadata,
             _post_proc(dire_drafts, output, "plot_dire_drafts")
 
     if update_radiant:
-        output = team_path / 'radiant/drafts.png'
+        output = test_path / 'radiant/drafts.png'
         radiant_drafts = get_draft_cache(
                                          team, metadata,
                                          r_drafted,
@@ -378,7 +381,7 @@ def do_draft(team: TeamInfo, metadata,
             _post_proc(radiant_drafts, output, "plot_radiant_drafts")
 
     if update_radiant or update_dire:
-        output_first = team_path / 'drafts_first.png'
+        output_first = test_path / 'drafts_first.png'
         drafts_first = get_draft_cache(
                                       team, metadata,
                                       r_drafted,
@@ -387,7 +390,7 @@ def do_draft(team: TeamInfo, metadata,
         if drafts_first is not None:
             _post_proc(drafts_first, output_first, "plot_drafts_first")
 
-        output_second = team_path / 'drafts_second.png'
+        output_second = test_path / 'drafts_second.png'
         drafts_second = get_draft_cache(
                                         team, metadata,
                                         r_drafted,
@@ -396,7 +399,7 @@ def do_draft(team: TeamInfo, metadata,
         if drafts_second is not None:
             _post_proc(drafts_second, output_second, "plot_drafts_second")
 
-        output_all = team_path / 'drafts_all.png'
+        output_all = test_path / 'drafts_all.png'
         drafts_all = get_draft_cache(
                                      team, metadata,
                                      r_drafted,
