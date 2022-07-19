@@ -276,7 +276,7 @@ def get_draft_cache(team: TeamInfo, metadata, r_query,
         cache_name = f"{team.name}_{metadata['name']}_radiant_{draft_type.value}_draft"
     else:
         r_query = r_query.order_by(Replay.replayID.desc())
-        cache_name = f"{team.name}_both_draft"
+        cache_name = f"{team.name}_{metadata['name']}_both_{draft_type.value}_draft"
     try:
         past_replays = set(metadata[cache_name])
         max_id = max(past_replays)
