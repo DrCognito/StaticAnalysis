@@ -298,7 +298,6 @@ def do_draft(team: TeamInfo, metadata,
                                          team.name)
         if dire_drafts is not None:
             dire_drafts = dire_drafts.convert("RGB")
-            dire_drafts = dire_drafts.resize((dire_drafts.size[0] // draft_resize, dire_drafts.size[1] // draft_resize))
             dire_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_dire_drafts'] = relpath
@@ -316,7 +315,6 @@ def do_draft(team: TeamInfo, metadata,
                                             team.name)
         if radiant_drafts is not None:
             radiant_drafts = radiant_drafts.convert("RGB")
-            radiant_drafts = radiant_drafts.resize((radiant_drafts.size[0] // draft_resize, radiant_drafts.size[1] // draft_resize))
             radiant_drafts.save(output, dpi=(50, 50), optimize=True)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_radiant_drafts'] = relpath
@@ -336,7 +334,6 @@ def do_draft(team: TeamInfo, metadata,
                                           second_pick=False)
         if drafts_first is not None:
             drafts_first = drafts_first.convert("RGB")
-            drafts_first = drafts_first.resize((drafts_first.size[0] // draft_resize, drafts_first.size[1] // draft_resize))
             drafts_first.save(output_first, dpi=(50, 50), optimize=True)
             relpath = str(output_first.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_drafts_first'] = relpath
@@ -348,7 +345,6 @@ def do_draft(team: TeamInfo, metadata,
                                            first_pick=False)
         if drafts_second is not None:
             drafts_second = drafts_second.convert("RGB")
-            drafts_second = drafts_second.resize((drafts_second.size[0] // draft_resize, drafts_second.size[1] // draft_resize))
             drafts_second.save(output_second, dpi=(50, 50), optimize=True)
             relpath = str(output_second.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_drafts_second'] = relpath
@@ -359,7 +355,6 @@ def do_draft(team: TeamInfo, metadata,
                                         team.name,)
         if drafts_all is not None:
             drafts_all = drafts_all.convert("RGB")
-            drafts_all = drafts_all.resize((drafts_all.size[0] // draft_resize, drafts_all.size[1] // draft_resize))
             drafts_all.save(output_all, dpi=(50, 50), optimize=True)
             relpath = str(output_all.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_drafts_all'] = relpath

@@ -421,10 +421,10 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     pick_ban_box = process_team_portrait_dotabuff(replay, team, spacing=0)
     tot_width += pick_ban_box.size[0]
     # First pick indicator, y scaling to pick_ban_box
-    firstpick_box = draw_firstpick_box(team, size=(40, pick_ban_box.size[1]))
+    firstpick_box = draw_firstpick_box(team, size=(17, pick_ban_box.size[1]))
     tot_width += firstpick_box.size[0]
     tot_width += spacing
-    height = pick_ban_box.size[1] + 4 * spacing
+    height = pick_ban_box.size[1] + 2 * spacing
 
     team_win = team.team == replay.winner
     #b_colour = (255, 255, 0, 255) if team_win else (255, 255, 255, 0)
@@ -486,7 +486,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     # Opposition team name text, size concerns?
     if add_team_name:
-        font_size = 40
+        font_size = 17
         height = team_line.size[1] + font_size + 2*spacing
         font = ImageFont.truetype('arialbd.ttf', font_size)
         # Opposition name
@@ -585,7 +585,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
         y_off += vert_spacing
 
     # Finally add a title
-    font_size = 40
+    font_size = 20
     final_image = Image.new('RGBA',
                             (sheet.size[0], sheet.size[1]+font_size+5),
                             (255, 255, 255, 255))
