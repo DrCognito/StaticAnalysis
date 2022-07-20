@@ -538,13 +538,18 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
 
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
-                       draft_type: DraftCoverage, cached_draft: Path = None) -> Image:
+                       draft_type: DraftCoverage, cache_name: str = None) -> Image:
     lines = list()
     tot_height = 0
     max_width = 0
     vert_spacing = 20
 
-    if cached_draft is not None and cached_draft.exists():
+    if cache_name is not None:
+        cache_dir = Path(environment["CACHE"])
+        file_name = f"{cache_name}.png"
+        cached_draft = cache_dir / file_name
+
+    if cached_draft.exists():
         cache_image = Image.open(cached_draft)
         lines.append(cache_image)
         tot_height += cache_image.size[1]
