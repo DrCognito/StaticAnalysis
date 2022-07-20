@@ -568,7 +568,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
             if is_first:
                 continue
 
-        line = pickban_line_image(replay, team, add_team_name=True, caching=False)
+        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
         if line is None:
             continue
         lines.append(line)
