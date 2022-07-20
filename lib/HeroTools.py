@@ -651,7 +651,7 @@ SheetHeroMap = {
 }
 
 hero_portrait_prefix = Path(environment['PORTRAIT_PATH'])
-with open(Path('./lib/hero_portraits.json'), 'r') as f:
+with open(Path('./data/hero_portraits.json'), 'r') as f:
     hero_portrait = load(f)
 
 convDict = {
