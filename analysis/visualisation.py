@@ -225,7 +225,7 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
     y_min, y_max = axe.get_ylim()
     y_range = y_max - y_min
     size = 0.9
-    x_pos = -0.15
+    x_pos = -0.2
     extra_artists = []
     for hero in hero_icons:
         try:
