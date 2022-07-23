@@ -35,7 +35,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
                                     plot_player_positioning, plot_runes,
-                                    get_binning_percentile_xy)
+                                    get_binning_percentile_xy, plot_flex_picks)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from lib.important_times import ImportantTimes
@@ -721,6 +721,27 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_picks{postfix}'] = relpath
+
+    def _is_flex(*args):
+        pass_count = 0
+        for p in args:
+            if p >= 1:
+                pass_count += 1
+        return pass_count
+    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=200)
+    flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
+    flex_picks = flex_picks.query('Counts > 1')
+    temp = flex_picks.copy(deep=True)
+    flex_picks['std'] = temp.iloc[:, 0:-1].std(axis=1)
+    # flex_picks['std'] = flex.iloc[:].std(axis=1)
+    flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
+    fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
+    output = team_path / f'hero_flex{postfix}.png'
+    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=50)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight',)
+    fig.clf()
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata[f'plot_hero_flex{postfix}'] = relpath
 
     pick_pair_df = pair_rate(session, r_query, team, limit=limit)
     if pick_pair_df:
