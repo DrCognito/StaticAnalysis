@@ -37,7 +37,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_player_positioning, plot_runes,
                                     get_binning_percentile_xy, plot_flex_picks)
 from lib.Common import (dire_ancient_cords, location_filter,
-                        radiant_ancient_cords)
+                        radiant_ancient_cords, ChainedAssignent)
 from lib.important_times import ImportantTimes
 from lib.metadata import is_updated, make_meta
 from lib.team_info import InitTeamDB, TeamInfo
@@ -731,8 +731,8 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=200)
     flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
     flex_picks = flex_picks.query('Counts > 1')
-    temp = flex_picks.copy(deep=True)
-    flex_picks['std'] = temp.iloc[:, 0:-1].std(axis=1)
+    with ChainedAssignent():
+        flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
     # flex_picks['std'] = flex.iloc[:].std(axis=1)
     flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
     fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
