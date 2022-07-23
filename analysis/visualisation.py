@@ -174,6 +174,77 @@ def plot_player_heroes(data: DataFrame, fig: Figure):
     return fig, extra_artists
 
 
+def plot_flex_picks(data: DataFrame, fig: Figure):
+    player_bars_x = {p: list() for p in data.columns}
+    player_bars_y = {p: list() for p in data.columns}
+    x_ticks = []
+    x_labels = []
+
+    hero_icons = {}
+    b_width = 0.5
+    set_gap = 2*b_width
+    position = 0.0
+
+    # iterrows tuple, [0] is index, [1] series for row
+    for row in data.iterrows():
+        entries = 0
+        row_pos = []
+        hero_icons[row[0]] = position
+        for player, count in row[1].iteritems():
+            if count == 0:
+                continue
+            player_bars_x[player].append(position)
+            player_bars_y[player].append(count)
+            row_pos.append(position)
+
+            x_ticks.append(position)
+            x_labels.append(player)
+
+            position += b_width
+            entries += 1
+        # In a long set add a little padding to the icon
+        # if entries > 2:
+        #     hero_icons[row[0]] += b_width
+        # Add gap between heroes
+        hero_icons[row[0]] = sum(row_pos) / len(row_pos) - b_width/2
+        position += set_gap
+
+    position -= set_gap
+    # fig.set_dpi(50)
+    # fig.set_size_inches(6, 20)
+    fig.set_size_inches(6, max(0.36*position, 6))
+    axe = fig.subplots()
+
+    for player in player_bars_x:
+        axe.barh(player_bars_x[player], player_bars_y[player],
+                height=0.7*b_width, label=player)
+        axe.set_yticks(x_ticks, x_labels, rotation=45, fontsize=7)
+    # axe.yaxis.labelpad = 20
+    # axe.xticks(rotation=45)
+    # Add heroes
+    y_min, y_max = axe.get_ylim()
+    y_range = y_max - y_min
+    size = 0.9
+    x_pos = -0.15
+    extra_artists = []
+    for hero in hero_icons:
+        try:
+            # Get and resize the hero icon.
+            icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+        except (ValueError, KeyError):
+            print("Unable to find hero icon for: " + hero)
+            continue
+        y_rel = (float(hero_icons[hero]) - y_min)/y_range
+        artist = make_image_annotation(icon, axe, x_pos, y_rel, size)
+        extra_artists.append(artist)
+    # axe.invert_yaxis() 
+    axe.legend()
+    fig.subplots_adjust(left=0.2)
+
+    return fig, extra_artists
+
+
 def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
     '''Plot an abbreviated pick and ban count for a team.
        Stages will be combined.
