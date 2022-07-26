@@ -111,6 +111,31 @@ def make_image_annotation2(image, axes, x, y, size=1.0, bbox=None):
     return imagebox
 
 
+def make_image_annotation_flex(icon, axes, x, y, size=1.0, bbox=None):
+    icon = Image.open(icon)
+    icon = icon.convert("RGBA")
+    if size != 1.0:
+        width, height = icon.size
+        width = width*size
+        height = height*size
+        icon.thumbnail((width, height))
+
+    imagebox = OffsetImage(icon)
+    imagebox.image.axes = axes
+
+    ab = AnnotationBbox(imagebox, (x, y),
+                        xycoords='data',
+                        boxcoords="data",
+                        pad=0,
+                        frameon=False,
+                        box_alignment=(1.15, 0.5)
+                        )
+
+    axes.add_artist(ab)
+
+    return imagebox
+
+
 def x_label_icon(axis, y_pos=-0.15, size=1.0):
     x_axis = axis.get_xaxis()
 
@@ -217,7 +242,7 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
 
     for player in player_bars_x:
         axe.barh(player_bars_x[player], player_bars_y[player],
-                height=0.7*b_width, label=player)
+                 height=0.7*b_width, label=player)
         axe.set_yticks(x_ticks, x_labels, rotation=45, fontsize=7)
     # axe.yaxis.labelpad = 20
     # axe.xticks(rotation=45)
