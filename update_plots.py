@@ -733,12 +733,11 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     flex_picks = flex_picks.query('Counts > 1')
     with ChainedAssignent():
         flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
-    # flex_picks['std'] = flex.iloc[:].std(axis=1)
     flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
     fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
     output = team_path / f'hero_flex{postfix}.png'
-    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=50)
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight',)
+    fig.savefig(output, bbox_extra_artists=extra,
+                bbox_inches='tight', dpi=150)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_flex{postfix}'] = relpath
