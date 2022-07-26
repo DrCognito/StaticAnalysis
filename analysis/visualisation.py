@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib import ticker
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, FormatStrFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
@@ -212,45 +212,42 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
 
     # iterrows tuple, [0] is index, [1] series for row
     for row in data.iterrows():
+        row_pos = 0
         entries = 0
-        row_pos = []
-        hero_icons[row[0]] = position
+
         for player, count in row[1].iteritems():
             if count == 0:
                 continue
             player_bars_x[player].append(position)
             player_bars_y[player].append(count)
-            row_pos.append(position)
+            row_pos += position
 
             x_ticks.append(position)
             x_labels.append(player)
 
             position += b_width
             entries += 1
-        # In a long set add a little padding to the icon
-        # if entries > 2:
-        #     hero_icons[row[0]] += b_width
+
+        hero_icons[row[0]] = row_pos / entries
+
         # Add gap between heroes
-        hero_icons[row[0]] = sum(row_pos) / len(row_pos) - b_width/2
         position += set_gap
 
     position -= set_gap
-    # fig.set_dpi(50)
-    # fig.set_size_inches(6, 20)
-    fig.set_size_inches(6, max(0.36*position, 6))
+    fig.set_size_inches(6, max(0.5*position, 6))
     axe = fig.subplots()
 
+    # colours = ['c', 'g', 'b', 'm', 'k']
+    # for player, c in zip(player_bars_x, colours):
     for player in player_bars_x:
         axe.barh(player_bars_x[player], player_bars_y[player],
                  height=0.7*b_width, label=player)
-        axe.set_yticks(x_ticks, x_labels, rotation=45, fontsize=7)
-    # axe.yaxis.labelpad = 20
-    # axe.xticks(rotation=45)
+        axe.set_yticks(x_ticks, x_labels)
+    axe.yaxis.set_tick_params(pad=33)
+
     # Add heroes
-    y_min, y_max = axe.get_ylim()
-    y_range = y_max - y_min
     size = 0.9
-    x_pos = -0.2
+    x_pos = 0.0
     extra_artists = []
     for hero in hero_icons:
         try:
@@ -260,11 +257,17 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
         except (ValueError, KeyError):
             print("Unable to find hero icon for: " + hero)
             continue
-        y_rel = (float(hero_icons[hero]) - y_min)/y_range
-        artist = make_image_annotation(icon, axe, x_pos, y_rel, size)
+        artist = make_image_annotation_flex(icon, axe, x_pos, hero_icons[hero], size)
         extra_artists.append(artist)
-    # axe.invert_yaxis() 
+    axe.set_ylim([-1*set_gap, None])
+    # axe.xaxis.set_major_formatter(FormatStrFormatter('%i'))
+    axe.xaxis.set_major_locator(MaxNLocator(integer=True))
     axe.legend()
+    axe2 = axe.twiny()
+    axe2.set_xticks(axe.get_xticks())
+    axe2.set_xbound(axe.get_xbound())
+    axe2.xaxis.set_major_locator(MaxNLocator(integer=True))
+    # axe2.xaxis.set_major_formatter(FormatStrFormatter('%i'))
     fig.subplots_adjust(left=0.2)
 
     return fig, extra_artists
