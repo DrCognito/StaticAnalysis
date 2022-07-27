@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import matplotlib.image as mpimg
 from os import environ as environment
+import pandas as pd
 
 def relativeCellCord(cell):
     return (cell - 64)/128
@@ -182,3 +183,19 @@ def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1], zorder=0):
     axis.imshow(img, extent=extent, zorder=zorder)
 
     return axis
+
+
+# https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
+class ChainedAssignent:
+    def __init__(self, chained=None):
+        acceptable = [None, 'warn', 'raise']
+        assert chained in acceptable, "chained must be in " + str(acceptable)
+        self.swcw = chained
+
+    def __enter__(self):
+        self.saved_swcw = pd.options.mode.chained_assignment
+        pd.options.mode.chained_assignment = self.swcw
+        return self
+
+    def __exit__(self, *args):
+        pd.options.mode.chained_assignment = self.saved_swcw

@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib import ticker
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, FormatStrFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
@@ -111,6 +111,31 @@ def make_image_annotation2(image, axes, x, y, size=1.0, bbox=None):
     return imagebox
 
 
+def make_image_annotation_flex(icon, axes, x, y, size=1.0, bbox=None):
+    icon = Image.open(icon)
+    icon = icon.convert("RGBA")
+    if size != 1.0:
+        width, height = icon.size
+        width = width*size
+        height = height*size
+        icon.thumbnail((width, height))
+
+    imagebox = OffsetImage(icon)
+    imagebox.image.axes = axes
+
+    ab = AnnotationBbox(imagebox, (x, y),
+                        xycoords='data',
+                        boxcoords="data",
+                        pad=0,
+                        frameon=False,
+                        box_alignment=(1.15, 0.5)
+                        )
+
+    axes.add_artist(ab)
+
+    return imagebox
+
+
 def x_label_icon(axis, y_pos=-0.15, size=1.0):
     x_axis = axis.get_xaxis()
 
@@ -170,6 +195,80 @@ def plot_player_heroes(data: DataFrame, fig: Figure):
     for i_ax, player in enumerate(data.columns):
         ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colour_list[i_ax])
         extra_artists += extra
+
+    return fig, extra_artists
+
+
+def plot_flex_picks(data: DataFrame, fig: Figure):
+    player_bars_x = {p: list() for p in data.columns}
+    player_bars_y = {p: list() for p in data.columns}
+    x_ticks = []
+    x_labels = []
+
+    hero_icons = {}
+    b_width = 0.5
+    set_gap = 2*b_width
+    position = 0.0
+
+    # iterrows tuple, [0] is index, [1] series for row
+    for row in data.iterrows():
+        row_pos = 0
+        entries = 0
+
+        for player, count in row[1].iteritems():
+            if count == 0:
+                continue
+            player_bars_x[player].append(position)
+            player_bars_y[player].append(count)
+            row_pos += position
+
+            x_ticks.append(position)
+            x_labels.append(player)
+
+            position += b_width
+            entries += 1
+
+        hero_icons[row[0]] = row_pos / entries
+
+        # Add gap between heroes
+        position += set_gap
+
+    position -= set_gap
+    fig.set_size_inches(6, max(0.5*position, 6))
+    axe = fig.subplots()
+
+    # colours = ['c', 'g', 'b', 'm', 'k']
+    # for player, c in zip(player_bars_x, colours):
+    for player in player_bars_x:
+        axe.barh(player_bars_x[player], player_bars_y[player],
+                 height=0.7*b_width, label=player)
+        axe.set_yticks(x_ticks, x_labels)
+    axe.yaxis.set_tick_params(pad=33)
+
+    # Add heroes
+    size = 0.9
+    x_pos = 0.0
+    extra_artists = []
+    for hero in hero_icons:
+        try:
+            # Get and resize the hero icon.
+            icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+        except (ValueError, KeyError):
+            print("Unable to find hero icon for: " + hero)
+            continue
+        artist = make_image_annotation_flex(icon, axe, x_pos, hero_icons[hero], size)
+        extra_artists.append(artist)
+    axe.set_ylim([-1*set_gap, None])
+    # axe.xaxis.set_major_formatter(FormatStrFormatter('%i'))
+    axe.xaxis.set_major_locator(MaxNLocator(integer=True))
+    axe.legend()
+    axe2 = axe.twiny()
+    axe2.set_xticks(axe.get_xticks())
+    axe2.set_xbound(axe.get_xbound())
+    axe2.xaxis.set_major_locator(MaxNLocator(integer=True))
+    # axe2.xaxis.set_major_formatter(FormatStrFormatter('%i'))
+    fig.subplots_adjust(left=0.2)
 
     return fig, extra_artists
 
