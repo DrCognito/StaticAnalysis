@@ -493,7 +493,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
                                (255, 255, 255, 0))
         text_canv = ImageDraw.Draw(text_image)
-        first_pick_box_offset = 40
+        first_pick_box_offset = 17
         text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
                        font=font, fill=(0, 0, 0))
         # Faction text
@@ -540,7 +540,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
     lines = list()
     tot_height = 0
     max_width = 0
-    vert_spacing = 20
+    vert_spacing = 3
 
     # Get the lines for each replay and store so we can build our sheet
     for replay in replays:
@@ -558,7 +558,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
         if not is_first and not second_pick:
             continue
  
-        line = pickban_line_image(replay, team, add_team_name=True)
+        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
         if line is None:
             continue
         lines.append(line)
