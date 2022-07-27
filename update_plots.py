@@ -284,7 +284,6 @@ def do_draft(team: TeamInfo, metadata,
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
-    draft_resize = 3
     if update_dire:
         output = team_path / 'dire/drafts.png'
         if per_side_limit is not None:
