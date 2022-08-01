@@ -77,22 +77,21 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
         str -- Player name.
     """
     if steam_id in player_cache:
-        return player_cache[f"{steam_id}_{team}"]
+        return player_cache[f"{steam_id}_{team.team_id}"]
 
-    if team is not None:
-        player = team_session.query(TeamPlayer.name)\
-                     .filter(and_(TeamPlayer.player_id == steam_id, TeamPlayer.team_id == team.team_id))\
-                     .one_or_none()
-    else:
+    player = team_session.query(TeamPlayer.name)\
+                         .filter(and_(TeamPlayer.player_id == steam_id, TeamPlayer.team_id == team.team_id))\
+                         .one_or_none()
+
+    if player is None:
+        print(f"Steam id {steam_id} not found for {team.name}.")
         player = team_session.query(TeamPlayer.name)\
                              .filter(TeamPlayer.player_id == steam_id)\
                              .first()
-
     if player is None:
-        print("Steam id {} not found.".format(steam_id))
         raise ValueError
     else:
-        player_cache[f"{steam_id}_{team}"] = player[0]
+        player_cache[f"{steam_id}_{team.team_id}"] = player[0]
         return player[0]
 
 
