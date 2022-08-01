@@ -36,8 +36,8 @@ wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
 
 
 from analysis.ward_vis import build_ward_table
-data = build_ward_table(wards_radiant, session, team_session)
-ddata = build_ward_table(wards_dire, session, team_session)
+data = build_ward_table(wards_radiant, session, team_session, team)
+ddata = build_ward_table(wards_dire, session, team_session, team)
 from analysis.ward_vis import plot_full_text, plot_num_table, plot_eye_scatter, plot_drafts, plot_drafts_above
 
 fig, ax = plt.subplots(figsize=(10, 13))

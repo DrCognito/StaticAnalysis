@@ -100,7 +100,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         else:
             print(f"Failed to find player for ward {x1}, {y1} at {t}")
 
-    data = build_ward_table(wards, session, team_session)
+    data = build_ward_table(wards, session, team_session, team)
 
     w_icons = {
         WardType.OBSERVER: Image_open(environment['WARD_ICON']),
@@ -108,7 +108,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     }
     for w_type in (WardType):
         w = wards.filter(Ward.ward_type == w_type)
-        data = build_ward_table(w, session, team_session)
+        data = build_ward_table(w, session, team_session, team)
         if data.empty and w_type == WardType.OBSERVER:
             print(f"Ward table for {w_type} empty!")
             continue

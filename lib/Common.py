@@ -62,7 +62,7 @@ def seconds_to_nice(s):
 player_cache = {}
 
 
-def get_player_name(team_session: Session, steam_id: int, team=None) -> str:
+def get_player_name(team_session: Session, steam_id: int, team) -> str:
     from lib.team_info import TeamPlayer, TeamInfo
     """Returns a known players name from a steamID.
 
@@ -77,7 +77,7 @@ def get_player_name(team_session: Session, steam_id: int, team=None) -> str:
         str -- Player name.
     """
     if steam_id in player_cache:
-        return player_cache[steam_id]
+        return player_cache[f"{steam_id}_{team}"]
 
     if team is not None:
         player = team_session.query(TeamPlayer.name)\
@@ -92,11 +92,11 @@ def get_player_name(team_session: Session, steam_id: int, team=None) -> str:
         print("Steam id {} not found.".format(steam_id))
         raise ValueError
     else:
-        player_cache[steam_id] = player[0]
+        player_cache[f"{steam_id}_{team}"] = player[0]
         return player[0]
 
 
-def get_player_map(team_session: Session, steam_ids: set)-> dict():
+def get_player_map(team_session: Session, steam_ids: set, team)-> dict():
     """Takes a set of steam_ids and returns a dictionary map to their name.
     Unknown players are labeled as "Un" + an incrementing number.
     
@@ -111,7 +111,7 @@ def get_player_map(team_session: Session, steam_ids: set)-> dict():
     output = {}
     for i in steam_ids:
         try:
-            output[i] = get_player_name(team_session, int(i))
+            output[i] = get_player_name(team_session, int(i), team)
         except ValueError:
             output[i] = "Un" + str(unknown_count)
             unknown_count += 1

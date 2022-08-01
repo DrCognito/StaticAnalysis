@@ -428,7 +428,7 @@ def do_wards_separate(team: TeamInfo, r_query,
             print(f"Failed to process slice! wards for. Error:\n{e}")
         wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
 
-        data = build_ward_table(wards, session, team_session)
+        data = build_ward_table(wards, session, team_session, team)
         if data.empty:
             print(f"Ward table empty! {replay_id}: {side}")
             return None
@@ -826,7 +826,8 @@ def do_statistics(team: TeamInfo, r_query, metadata: dict):
 
 
 def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
-                      update_dire: bool, update_radiant: bool, limit=5):
+                      update_dire: bool, update_radiant: bool, limit=5,
+                      cache=True):
     d_replays, r_replays = get_side_replays(r_query, session, team)
     d_replays = d_replays.order_by(Replay.replayID.desc())
     r_replays = r_replays.order_by(Replay.replayID.desc())
@@ -849,7 +850,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
             cache_path = cache_dire / r_file
             destination = team_path / s_string / f"pregame_route_{i}.png"
 
-            if cache_path.exists():
+            if cache and cache_path.exists():
                 shutil.copyfile(cache_path, destination)
                 saved_paths.append(str(destination.relative_to(plot_base)))
                 continue
@@ -944,7 +945,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("Processing pregame positioning.", end=" ")
         start = t.process_time()
         metadata = do_pregame_routes(team, r_query, metadata, new_dire,
-                                     new_radiant)
+                                     new_radiant, cache=True)
         plt.close('all')
         print(f"Processed in {start - t.process_time()}")
     if args.smoke:

@@ -1,3 +1,4 @@
+from lib.team_info import TeamInfo
 from replays.Replay import Replay, Team
 from replays.TeamSelections import TeamSelections
 from replays.Ward import Ward
@@ -25,7 +26,7 @@ colour_list = ['black', 'red', 'blue', 'magenta', 'purple']
 
 
 def build_ward_table(query: Query, session: Session,
-                     team_session: Session) -> DataFrame:
+                     team_session: Session, team: TeamInfo) -> DataFrame:
     """Build a table of wards with coordinates, IDs, names and times.
 
     Arguments:
@@ -45,7 +46,7 @@ def build_ward_table(query: Query, session: Session,
     data = read_sql(sql_query, session.bind)
     data.sort_values(['game_time'], ascending=True)
 
-    name_map = get_player_map(team_session, set(data['steamID'].unique()))
+    name_map = get_player_map(team_session, set(data['steamID'].unique()), team)
     data['Name'] = data['steamID'].map(name_map)
     data['time'] = data['game_time'].map(seconds_to_nice)
 
