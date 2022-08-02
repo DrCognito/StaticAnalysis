@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, ForeignKey, or_
 from sqlalchemy.types import Enum, Integer
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship
+from lib.team_info import TeamInfo
 from replays import Base
 from datetime import datetime
 from . import Player
@@ -101,6 +102,43 @@ class Replay(Base):
             return self.teams[0].team
         else:
             return self.teams[1].team
+
+    def is_first_pick(self, team: TeamInfo):
+        """Helper function to test if team has first pick."""
+        if self.first_pick().teamID == team.team_id:
+            return True
+        else:
+            return False
+
+    def get_side(self, team: TeamInfo) -> Team:
+        """Get side that a team is on or None if not found."""
+        if self.teams[0].teamID == team.team_id:
+            return self.teams[0].team
+        if self.teams[1].teamID == team.team_id:
+            return self.teams[1].team
+
+        return None
+
+    def is_radiant(self, team: TeamInfo) -> bool:
+        """Helper function to check if team is radiant."""
+
+        if self.get_side(team) == Team.RADIANT:
+            return True
+        return False
+
+    def is_dire(self, team: TeamInfo) -> bool:
+        """Helper function to check if team is dire."""
+
+        if self.get_side(team) == Team.DIRE:
+            return True
+        return False
+
+    def matching_players(self, player_set: set[int], side: Team) -> int:
+        """Get number of matching players from a set for a side."""
+        replay_set = {p.steamID for p in self.get_players(side)}
+        intersection = player_set & replay_set
+
+        return len(intersection)
 
 
 def InitDB(path):
