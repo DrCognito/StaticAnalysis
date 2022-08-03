@@ -3,7 +3,6 @@ from sqlalchemy import create_engine, ForeignKey, or_
 from sqlalchemy.types import Enum, Integer
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import relationship
-from lib.team_info import TeamInfo
 from replays import Base
 from datetime import datetime
 from . import Player
@@ -103,14 +102,15 @@ class Replay(Base):
         else:
             return self.teams[1].team
 
-    def is_first_pick(self, team: TeamInfo):
+    def is_first_pick(self, team: 'TeamInfo'):
         """Helper function to test if team has first pick."""
-        if self.first_pick().teamID == team.team_id:
-            return True
+        first_pick_side = self.first_pick()
+        if self.teams[0].teamID == team.team_id:
+            return self.teams[0].team == first_pick_side
         else:
-            return False
+            return self.teams[1].team == first_pick_side
 
-    def get_side(self, team: TeamInfo) -> Team:
+    def get_side(self, team: 'TeamInfo') -> Team:
         """Get side that a team is on or None if not found."""
         if self.teams[0].teamID == team.team_id:
             return self.teams[0].team
@@ -119,14 +119,14 @@ class Replay(Base):
 
         return None
 
-    def is_radiant(self, team: TeamInfo) -> bool:
+    def is_radiant(self, team: 'TeamInfo') -> bool:
         """Helper function to check if team is radiant."""
 
         if self.get_side(team) == Team.RADIANT:
             return True
         return False
 
-    def is_dire(self, team: TeamInfo) -> bool:
+    def is_dire(self, team: 'TeamInfo') -> bool:
         """Helper function to check if team is dire."""
 
         if self.get_side(team) == Team.DIRE:
@@ -139,6 +139,15 @@ class Replay(Base):
         intersection = player_set & replay_set
 
         return len(intersection)
+
+    def get_team_dict(self) -> dict[Team, TeamSelections.TeamSelections]:
+        for t in self.teams:
+            if t.team == Team.DIRE:
+                dire_team: TeamSelections = t
+            else:
+                radiant_team: TeamSelections = t
+
+        return {Team.DIRE: dire_team, Team.RADIANT: radiant_team}
 
 
 def InitDB(path):
