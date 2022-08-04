@@ -169,7 +169,7 @@ def x_label_icon(axis, y_pos=-0.15, size=1.0):
 
 def plot_player_heroes(data: DataFrame, fig: Figure):
 
-    fig.set_size_inches(6, 10)
+    fig.set_size_inches(8, 11)
     axes = fig.subplots(5)
 
     def _plot_player(column: Series, name: str, axis, colour: str):

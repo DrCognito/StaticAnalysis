@@ -709,9 +709,9 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
-    fig.tight_layout(h_pad=3.0)
+    fig.tight_layout(h_pad=2.0)
     output = team_path / f'hero_picks{postfix}.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=100)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_picks{postfix}'] = relpath
