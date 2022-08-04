@@ -35,4 +35,5 @@ ImportantTimes = {
     'Stockholm2022': datetime.datetime(2022, 5, 12, 0, 0, 0, 0),
     'DPC2022_T3': datetime.datetime(2022, 6, 7, 0, 0, 0, 0),
     'RIYADH_2022': datetime.datetime(2022, 7, 20, 0, 0, 0, 0),
+    'Arlington_2022': datetime.datetime(2022, 8, 4, 0, 0, 0, 0),
 }
