@@ -143,3 +143,4 @@ current_process.bsh
 current_test.ps1
 data/archive.7z
 data
+*.svg
