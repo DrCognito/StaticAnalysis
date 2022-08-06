@@ -916,8 +916,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         start = t.process_time()
         metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
         plt.close('all')
-        end = t.process_time()
-        print(f"Processed in {start - end}")
+        print(f"Processed in {t.process_time() - start}")
     if args.positioning:
         print("Processing positioning.", end=" ")
         start = t.process_time()
@@ -927,39 +926,39 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                   new_dire, new_radiant
                                   )
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.wards:
         print("Processing wards.", end=" ")
         start = t.process_time()
         metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.wards_separate:
         print("Processing individual ward replays.", end=" ")
         start = t.process_time()
         metadata = do_wards_separate(team, r_query, metadata, new_dire,
                                     new_radiant)
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.pregame_positioning:
         print("Processing pregame positioning.", end=" ")
         start = t.process_time()
         metadata = do_pregame_routes(team, r_query, metadata, new_dire,
                                      new_radiant, cache=True)
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.smoke:
         print("Processing smoke.", end=" ")
         start = t.process_time()
         metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.scans:
         print("Processing scans.", end=" ")
         start = t.process_time()
         metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.summary:
         print("Processing summary.", end=" ")
         start = t.process_time()
@@ -967,17 +966,17 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
         plt.close('all')
-        print(f"Processed in {start - t.process_time()}")
+        print(f"Processed in {t.process_time() - start}")
     if args.counters:
         if new_dire or new_radiant:
             print("Processing counter picks.", end=" ")
             start = t.process_time()
             metadata = do_counters(team, r_query, metadata)
-            print(f"Processed in {start - t.process_time()}")
+            print(f"Processed in {t.process_time() - start}")
     print("Processing statistics.", end=" ")
     start = t.process_time()
     metadata = do_statistics(team, r_query, metadata)
-    print(f"Processed in {start - t.process_time()}")
+    print(f"Processed in {t.process_time() - start}")
 
     path = store_metadata(team, metadata)
     print("Metadata file updated at {}".format(str(path)))
