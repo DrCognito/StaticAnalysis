@@ -536,69 +536,83 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     return out_box
 
 
+# https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
+def chunks(lst: list, n: int):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, first_pick=True, second_pick=True):
-    lines = list()
+    line_sets = list()
+    line_lengths = list()
     tot_height = 0
     max_width = 0
     vert_spacing = 3
 
     # Get the lines for each replay and store so we can build our sheet
-    for replay in replays:
-        # Check to see if our team is picked first
-        # If it is our team then this is true if they had first pick too, else false
-        if (replay.teams[0].teamID == team.team_id or
-            replay.teams[0].stackID == team.stack_id):
-            team_num = 0
-        else:
-            team_num = 1
-        is_first = replay.teams[team_num].firstPick
+    for r in chunks(replays, 20):
+        lines = []
+        for replay in r:
+            # Check to see if our team is picked first
+            # If it is our team then this is true if they had first pick too, else false
+            if (replay.teams[0].teamID == team.team_id or
+               replay.teams[0].stackID == team.stack_id):
+                team_num = 0
+            else:
+                team_num = 1
+            is_first = replay.teams[team_num].firstPick
 
-        if is_first and not first_pick:
-            continue
-        if not is_first and not second_pick:
-            continue
- 
-        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
-        if line is None:
-            continue
-        lines.append(line)
-        tot_height += line.size[1]
-        tot_height += vert_spacing
-        max_width = max(max_width, line.size[0])
-    # Remove one to trim the bottom
-    tot_height -= vert_spacing
+            if is_first and not first_pick:
+                continue
+            if not is_first and not second_pick:
+                continue
+
+            line = pickban_line_image(replay, team, add_team_name=True, caching=True)
+            if line is None:
+                continue
+            lines.append(line)
+            tot_height += line.size[1]
+            tot_height += vert_spacing
+            max_width = max(max_width, line.size[0])
+        # Remove one to trim the bottom
+        tot_height -= vert_spacing
+        line_sets.append(lines)
+        line_lengths.append(tot_height)
 
     # Drop out early if there were no replays to process, tot_height of <0
     # throws errors
-    if tot_height < 0:
-        return None
+    if not line_sets:
+        return []
+    # if not line_sets[0]:
+    #     return []
 
     # Add them to the sheet image
-    sheet = Image.new('RGBA', (max_width, tot_height), (255, 255, 255, 255))
-    y_off = 0
-    for line in lines:
-        off_set = 0
-        if line.size[0] < max_width:
-            off_set = math.floor((max_width - line.size[0])/2)
-        sheet.paste(line, (off_set, y_off), line)
-        y_off += line.size[1]
-        y_off += vert_spacing
-
-    # Finally add a title
+    sheets = []
     font_size = 20
-    final_image = Image.new('RGBA',
-                            (sheet.size[0], sheet.size[1]+font_size+5),
-                            (255, 255, 255, 255))
-    canvas = ImageDraw.Draw(final_image)
+    first_sheet = True  # Then we add names
+    for lines, tot_height in zip(line_sets, line_lengths):
+        if first_sheet:
+            sheet = Image.new('RGBA', (max_width, tot_height+font_size+5),
+                              (255, 255, 255, 255))
+            canvas = ImageDraw.Draw(sheet)
 
-    font = ImageFont.truetype('arialbd.ttf', font_size)
-    left_size = font.getsize(team_name)
-    right_size = font.getsize("Opponent")
+            font = ImageFont.truetype('arialbd.ttf', font_size)
+            canvas.text((5, 0), team_name, fill='black', font=font)
+            canvas.text((sheet.size[0]/2 + 5, 0), 'Opponent', fill='black',
+                        font=font)
+            first_sheet = False
+        else:
+            sheet = Image.new('RGBA', (max_width, tot_height),
+                              (255, 255, 255, 255))
+        y_off = 0
+        for line in lines:
+            off_set = 0
+            if line.size[0] < max_width:
+                off_set = math.floor((max_width - line.size[0])/2)
+            sheet.paste(line, (off_set, y_off), line)
+            y_off += line.size[1]
+            y_off += vert_spacing
+        sheets.append[sheet]
 
-    canvas.text((5, 0), team_name, fill='black', font=font)
-    canvas.text((sheet.size[0]/2 + 5, 0), 'Opponent', fill='black', font=font)
-
-    # Paste the old thing in
-    final_image.paste(sheet, (0, font_size + 5), sheet)
-
-    return final_image
+    return sheets
