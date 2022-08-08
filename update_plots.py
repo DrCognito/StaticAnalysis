@@ -66,8 +66,8 @@ team_engine = InitTeamDB()
 team_maker = sessionmaker(bind=team_engine)
 team_session = team_maker()
 
-TIME_CUT = ImportantTimes['PreviousMonth']
-
+# TIME_CUT = [ImportantTimes['PreviousMonth'], ]
+TIME_CUT = {}
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
 
@@ -82,15 +82,16 @@ arguments.add_argument('--extra_stackid',
                        help='''Extra stack id matching,
                                only one team allowed.''',
                        type=str)
-arguments.add_argument('--use_dataset',
-                       help='''Use this or create a new dataset
-                               for these options.''')
+# arguments.add_argument('--use_dataset',
+#                        help='''Use this or create a new dataset
+#                                for these options.''')
 arguments.add_argument('--reprocess',
                        help='''Remake plots regardless of metadata''',
                        action='store_true')
 arguments.add_argument('--use_time',
                        help='''Specify a time from lib.important_times
-                               to use for cut.''')
+                               to use for cut.''',
+                       nargs='+')
 arguments.add_argument('--custom_time',
                        help='''Specity a unix time to over-ride time cut.''',
                        type=int)
@@ -111,7 +112,8 @@ arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
-arguments.add_argument('--process_scrims', action=argparse.BooleanOptionalAction)
+arguments.add_argument('--process_scrims',
+                       help='''Time cut for the scrims to be processed at.''')
 #endregion
 
 
@@ -1118,21 +1120,22 @@ if __name__ == "__main__":
     print(args)
 
     if args.use_time is not None:
-        if args.use_time not in ImportantTimes:
-            print("--use_time must correspond to a time in ImportantTimes:")
-            print(*(k for k in ImportantTimes.keys()))
-            exit()
-        TIME_CUT = ImportantTimes[args.use_time]
-
+        for time in args.use_time:
+            try:
+                TIME_CUT[time] = ImportantTimes[time]
+            except ValueError:
+                print("--use_time must correspond to a time in ImportantTimes:")
+                print(*(k for k in ImportantTimes.keys()))
+                exit()
     if args.custom_time is not None:
-        TIME_CUT = datetime.utcfromtimestamp(args.custom_time)
+        TIME_CUT = {"custom": datetime.utcfromtimestamp(args.custom_time),}
 
-    if args.use_dataset:
-        data_set_name = args.use_dataset
-    elif args.use_time:
-        data_set_name = args.use_time
-    else:
-        data_set_name = "default"
+    # if args.use_dataset:
+    #     data_set_name = args.use_dataset
+    # elif args.use_time:
+    #     data_set_name = args.use_time
+    # else:
+    #     data_set_name = "default"
 
     default_process = not args.default_off
     if args.draft is None:
@@ -1171,22 +1174,23 @@ if __name__ == "__main__":
                 print("Unable to find team {} in database!"
                       .format(proc_team))
 
-            metadata = get_create_metadata(team, data_set_name)
-            metadata['time_cut'] = TIME_CUT.timestamp()
+            for time in TIME_CUT:
+                data_set_name = time
+                metadata = get_create_metadata(team, data_set_name)
+                metadata['time_cut'] = TIME_CUT[time].timestamp()
 
-            process_team(team, metadata, TIME_CUT, args)
+                process_team(team, metadata, TIME_CUT[time], args)
 
             if args.process_scrims:
+                done_scrims = True
                 team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
-                # print(SCRIM_REPLAY_DICT["2163"])
-                # print(team_scrims, team.team_id)
+
                 if team_scrims is None:
                     continue
                 scrim_list = list(team_scrims.keys())
                 metadata = get_create_metadata(team, "Scrims")
-                metadata['time_cut'] = TIME_CUT.timestamp()
-
-                process_team(team, metadata, TIME_CUT, args, replay_list=scrim_list)
+                metadata['time_cut'] = ImportantTimes[args.process_scrims].timestamp()
+                process_team(team, metadata, ImportantTimes[args.process_scrims], args, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
