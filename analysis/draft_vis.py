@@ -480,7 +480,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                 opp_name += " (winner)"
 
     # Team spacer
-    spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
+    spacer = Image.new('RGB', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
@@ -490,14 +490,14 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         height = team_line.size[1] + font_size + 2*spacing
         font = ImageFont.truetype('arialbd.ttf', font_size)
         # Opposition name
-        text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+        text_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                (255, 255, 255, 0))
         text_canv = ImageDraw.Draw(text_image)
         first_pick_box_offset = 17
         text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
                        font=font, fill=(0, 0, 0))
         # Faction text
-        faction_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+        faction_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                   (255, 255, 255, 0))
         faction_canv = ImageDraw.Draw(faction_image)
         if main_team_faction == Team.DIRE:
@@ -510,21 +510,19 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         height = team_line.size[1]
 
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
-    out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    out_box = Image.new('RGB', (width, height), (255, 255, 255, 0))
     if add_team_name:
-        out_box.paste(faction_image, (0, 0), faction_image)
-        out_box.paste(team_line, (0, text_image.size[1]), team_line)
+        out_box.paste(faction_image, (0, 0))
+        out_box.paste(team_line, (0, text_image.size[1]))
 
-        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0), text_image)
+        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0))
         out_box.paste(opposition_line,
-                      (team_line.size[0] + spacer.size[0], text_image.size[1]),
-                      opposition_line)
+                      (team_line.size[0] + spacer.size[0], text_image.size[1]))
     else:
         out_box.paste(team_line, (0, 0), team_line)
 
         out_box.paste(opposition_line,
-                    (team_line.size[0] + spacer.size[0], 0),
-                    opposition_line)
+                    (team_line.size[0] + spacer.size[0], 0))
 
     if caching:
         cache_dir = Path(environment["CACHE"])
@@ -546,13 +544,13 @@ def chunks(lst: list, n: int):
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, first_pick=True, second_pick=True):
     line_sets = list()
     line_lengths = list()
-    tot_height = 0
     max_width = 0
     vert_spacing = 3
 
     # Get the lines for each replay and store so we can build our sheet
     for r in chunks(replays, 20):
         lines = []
+        tot_height = 0
         for replay in r:
             # Check to see if our team is picked first
             # If it is our team then this is true if they had first pick too, else false
@@ -593,7 +591,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
     first_sheet = True  # Then we add names
     for lines, tot_height in zip(line_sets, line_lengths):
         if first_sheet:
-            sheet = Image.new('RGBA', (max_width, tot_height+font_size+5),
+            sheet = Image.new('RGB', (max_width, tot_height+font_size+5),
                               (255, 255, 255, 255))
             canvas = ImageDraw.Draw(sheet)
 
@@ -601,18 +599,19 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
             canvas.text((5, 0), team_name, fill='black', font=font)
             canvas.text((sheet.size[0]/2 + 5, 0), 'Opponent', fill='black',
                         font=font)
+            y_off = font_size + 5
             first_sheet = False
         else:
-            sheet = Image.new('RGBA', (max_width, tot_height),
+            sheet = Image.new('RGB', (max_width, tot_height),
                               (255, 255, 255, 255))
-        y_off = 0
+            y_off = 0
         for line in lines:
             off_set = 0
             if line.size[0] < max_width:
                 off_set = math.floor((max_width - line.size[0])/2)
-            sheet.paste(line, (off_set, y_off), line)
+            sheet.paste(line, (off_set, y_off))
             y_off += line.size[1]
             y_off += vert_spacing
-        sheets.append[sheet]
+        sheets.append(sheet)
 
     return sheets
