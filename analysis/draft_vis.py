@@ -480,7 +480,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                 opp_name += " (winner)"
 
     # Team spacer
-    spacer = Image.new('RGBA', (10, team_line.size[1]), (255,255,255,0))
+    spacer = Image.new('RGB', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
@@ -490,14 +490,14 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         height = team_line.size[1] + font_size + 2*spacing
         font = ImageFont.truetype('arialbd.ttf', font_size)
         # Opposition name
-        text_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+        text_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                (255, 255, 255, 0))
         text_canv = ImageDraw.Draw(text_image)
         first_pick_box_offset = 17
         text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
                        font=font, fill=(0, 0, 0))
         # Faction text
-        faction_image = Image.new('RGBA', (team_line.size[0], font_size + 2*spacing),
+        faction_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                   (255, 255, 255, 0))
         faction_canv = ImageDraw.Draw(faction_image)
         if main_team_faction == Team.DIRE:
@@ -510,21 +510,19 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         height = team_line.size[1]
 
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
-    out_box = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    out_box = Image.new('RGB', (width, height), (255, 255, 255, 0))
     if add_team_name:
-        out_box.paste(faction_image, (0, 0), faction_image)
-        out_box.paste(team_line, (0, text_image.size[1]), team_line)
+        out_box.paste(faction_image, (0, 0))
+        out_box.paste(team_line, (0, text_image.size[1]))
 
-        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0), text_image)
+        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0))
         out_box.paste(opposition_line,
-                      (team_line.size[0] + spacer.size[0], text_image.size[1]),
-                      opposition_line)
+                      (team_line.size[0] + spacer.size[0], text_image.size[1]))
     else:
         out_box.paste(team_line, (0, 0), team_line)
 
         out_box.paste(opposition_line,
-                    (team_line.size[0] + spacer.size[0], 0),
-                    opposition_line)
+                    (team_line.size[0] + spacer.size[0], 0))
 
     if caching:
         cache_dir = Path(environment["CACHE"])
@@ -543,55 +541,66 @@ def chunks(lst: list, n: int):
         yield lst[i:i + n]
 
 
-def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, first_pick=True, second_pick=True):
+def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
+                       first_pick=True, second_pick=True, line_limit=20):
     line_sets = list()
     line_lengths = list()
     max_width = 0
     vert_spacing = 3
 
     # Get the lines for each replay and store so we can build our sheet
-    for r in chunks(replays, 20):
-        lines = []
-        tot_height = 0
-        for replay in r:
-            # Check to see if our team is picked first
-            # If it is our team then this is true if they had first pick too, else false
-            if (replay.teams[0].teamID == team.team_id or
-               replay.teams[0].stackID == team.stack_id):
-                team_num = 0
-            else:
-                team_num = 1
-            is_first = replay.teams[team_num].firstPick
+    lines = []
+    tot_height = 0
+    for replay in replays:
+        # Check to see if our team is picked first
+        # If it is our team then this is true if they had first pick too, else false
+        if (replay.teams[0].teamID == team.team_id or
+            replay.teams[0].stackID == team.stack_id):
+            team_num = 0
+        else:
+            team_num = 1
+        is_first = replay.teams[team_num].firstPick
 
-            if is_first and not first_pick:
-                continue
-            if not is_first and not second_pick:
-                continue
+        if is_first and not first_pick:
+            continue
+        if not is_first and not second_pick:
+            continue
 
-            line = pickban_line_image(replay, team, add_team_name=True, caching=True)
-            if line is None:
-                continue
-            lines.append(line)
-            tot_height += line.size[1]
-            tot_height += vert_spacing
-            max_width = max(max_width, line.size[0])
-        # Remove one to trim the bottom
-        tot_height -= vert_spacing
-        line_sets.append(lines)
-        line_lengths.append(tot_height)
+        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
+        if line is None:
+            continue
+
+        max_width = max(max_width, line.size[0])
+        lines.append(line)
+        tot_height += line.size[1]
+        tot_height += vert_spacing
+        if len(lines) >= line_limit:
+            line_sets.append(lines)
+            lines = []
+
+            # Remove one to trim the bottom
+            tot_height -= vert_spacing
+            line_lengths.append(tot_height)
+            tot_height = 0
+    # Last batch
+    line_sets.append(lines)
+    tot_height -= vert_spacing
+    line_lengths.append(tot_height)
 
     # Drop out early if there were no replays to process, tot_height of <0
     # throws errors
     if not line_sets:
         return []
-    # if not line_sets[0]:
-    #     return []
+    if not line_sets[0]:
+        return []
 
     # Add them to the sheet image
     sheets = []
     font_size = 20
     first_sheet = True  # Then we add names
     for lines, tot_height in zip(line_sets, line_lengths):
+        if tot_height <= 0:
+            continue
         if first_sheet:
             sheet = Image.new('RGB', (max_width, tot_height+font_size+5),
                               (255, 255, 255, 255))
@@ -616,4 +625,4 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str, fi
             y_off += vert_spacing
         sheets.append(sheet)
 
-    return final_image
+    return sheets
