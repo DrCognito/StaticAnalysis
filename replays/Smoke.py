@@ -100,6 +100,8 @@ def populate_from_JSON(json, replay_in, session):
         players = list(replay_in.get_players(team))
 
         smoke_startend = get_smoke_summary(json, team)
+        if smoke_startend is None:
+            return smoke_summaries
 
         id = 0
         for start, end in smoke_startend:
