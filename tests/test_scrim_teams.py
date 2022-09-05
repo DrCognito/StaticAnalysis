@@ -8,7 +8,7 @@ import json
 from replays.Replay import InitDB, Replay, Team
 from replays.TeamSelections import TeamSelections
 
-load_dotenv(dotenv_path="setup.env")
+load_dotenv(dotenv_path="test.env")
 SCRIMS_JSON_PATH = environment['SCRIMS_JSON']
 TEAMS_JSON_PATH = environment['SCRIMS_TEAMS']
 main_team_id = 2586976

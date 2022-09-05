@@ -7,7 +7,7 @@ from lib.team_info import InitTeamDB, TeamInfo
 import pygsheets
 import json
 
-load_dotenv(dotenv_path="setup.env")
+load_dotenv(dotenv_path="test.env")
 SCRIMS_JSON_PATH = environment['SCRIMS_JSON']
 TEAMS_JSON_PATH = environment['SCRIMS_TEAMS']
 SCRIMS_METAJSON_PATH = environment['SCRIMS_META']
