@@ -40,7 +40,7 @@ from PIL.Image import open as Image_open
 from lib.Common import seconds_to_nice, get_player_map,get_player_name
 import matplotlib.patheffects as PathEffects
 
-load_dotenv(dotenv_path="setup.env")
+load_dotenv(dotenv_path="test.env")
 
 start, end = (-2*60, 10*60)
 recent_limit = 5
