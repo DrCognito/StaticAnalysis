@@ -17,6 +17,8 @@ def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
     # add_map(axis)
     for colour, path, name in zip(colours, paths, names):
+        if path.empty:
+            continue
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
 
