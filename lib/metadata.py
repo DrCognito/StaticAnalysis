@@ -15,7 +15,9 @@ def make_meta(dataset="default"):
         'time_cut': None,
         'leagues': None,
         'replays_dire': None,
+        'drafts_only_dire': None,
         'replays_radiant': None,
+        'drafts_only_radiant': None,
 
         'plot_dire_drafts': None,
         'plot_radiant_drafts': None,
