@@ -39,7 +39,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords, ChainedAssignent)
 from lib.important_times import ImportantTimes
-from lib.metadata import is_updated, make_meta
+from lib.metadata import is_updated, make_meta, is_full_replay, has_picks
 from lib.team_info import InitTeamDB, TeamInfo
 from replays.Player import Player, PlayerStatus
 from replays.Replay import InitDB, Replay, Team
@@ -902,7 +902,17 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
-    new_dire, dire_list, new_radiant, radiant_list = is_updated(r_query, team, metadata)
+
+    new_dire, dire_list = is_updated(session, r_query, team, Team.DIRE,
+                                     metadata.get('replays_dire'), is_full_replay)
+    new_radiant, radiant_list = is_updated(session, r_query, team, Team.RADIANT,
+                                           metadata.get('replays_radiant'), is_full_replay)
+
+    new_draft_dire, dire_drafts = is_updated(session, r_query, team, Team.DIRE,
+                                     metadata.get('drafts_only_dire'), has_picks)
+    new_draft_radiant, radiant_drafts = is_updated(session, r_query, team, Team.RADIANT,
+                                     metadata.get('drafts_only_radiant'), has_picks)
+
     if reprocess:
         if r_query.count() != 0:
             new_dire = True
@@ -915,17 +925,17 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
         return
 
-    # l_query = r_query.order_by(Replay.replayID.desc()).limit(5)
-
     metadata['replays_dire'] = list(dire_list)
+    metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
+    metadata['drafts_only_radiant'] = list(radiant_drafts)
 
     print("Process {}.".format(team.name))
     if args.draft:
         plt.close('all')
         print("Processing drafts.", end=" ")
         start = t.process_time()
-        metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+        metadata = do_draft(team, metadata, new_draft_dire, new_draft_radiant, r_filter)
         plt.close('all')
         end = t.process_time()
         print(f"Processed in {start - end}")
