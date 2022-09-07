@@ -156,7 +156,7 @@ def x_label_icon(axis, y_pos=-0.15, size=1.0):
             icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
         except (ValueError, KeyError):
-            print("Unable to find hero icon for: " + hero)
+            print("Unable to find hero icon for 1: " + hero)
             continue
         x_rel = (float(x) - x_min)/x_range
         artist = make_image_annotation(icon, axis, x_rel, y_pos, size)
@@ -255,7 +255,7 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
             icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
         except (ValueError, KeyError):
-            print("Unable to find hero icon for: " + hero)
+            print("Unable to find hero icon for 2: " + hero)
             continue
         artist = make_image_annotation_flex(icon, axe, x_pos, hero_icons[hero], size)
         extra_artists.append(artist)
@@ -377,13 +377,13 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
                 i1 = HeroIconPrefix / convertName(h_pair[0], HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
             except ValueError:
-                print("Unable to find hero icon for: " + hero)
+                print("Unable to find hero icon for 3: " + hero)
                 continue
             try:
                 i2 = HeroIconPrefix / convertName(h_pair[1], HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
             except ValueError:
-                print("Unable to find hero icon for: " + hero)
+                print("Unable to find hero icon for 4: " + hero)
                 continue
 
             y_pos1 = -0.1
