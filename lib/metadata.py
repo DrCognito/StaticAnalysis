@@ -58,7 +58,7 @@ def is_updated(session, r_query, team: TeamInfo,
                side: Team, metadata, has: None) -> tuple[bool, set]:
     side_filt = Replay.get_side_filter(team, side)
     replays = r_query.filter(side_filt)
-    if has is not None:
+    if has is None:
         replay_set = {r.replayID for r in replays}
     else:
         replay_set = {r.replayID for r in replays if has(session, r)}
