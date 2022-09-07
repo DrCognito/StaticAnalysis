@@ -38,8 +38,8 @@ def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
             print("IOError reading {}".format(j))
             session.rollback()
             exit(3)
-        # if base_path != Path(DRAFT_ARCHIVE_PATH):
-        #     rename(j, Path(DRAFT_ARCHIVE_PATH) / j.name)
+        if base_path != Path(DRAFT_ARCHIVE_PATH):
+            rename(j, Path(DRAFT_ARCHIVE_PATH) / j.name)
     session.commit()
 
 
@@ -59,8 +59,8 @@ def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
             print("IOError reading {}".format(j))
             session.rollback()
             exit(3)
-        # if base_path != Path(ARCHIVE_PATH):
-        #     rename(j, Path(ARCHIVE_PATH) / j.name)
+        if base_path != Path(ARCHIVE_PATH):
+            rename(j, Path(ARCHIVE_PATH) / j.name)
     session.commit()
 
 
