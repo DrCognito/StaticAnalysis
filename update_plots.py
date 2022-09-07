@@ -441,7 +441,7 @@ def do_wards_separate(team: TeamInfo, r_query,
 
         data = build_ward_table(wards, session, team_session, team)
         if data.empty:
-            print(f"Ward table empty! {replay_id}: {side}")
+            # print(f"Ward table empty! {replay_id}: {side}")
             return None
         # fig, ax = plt.subplots(figsize=(10, 13))
         if fixed_width is None:
@@ -856,7 +856,10 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         s_string = "dire" if side == Team.DIRE else "radiant"
         saved_paths = []
         r: Replay
-        for r, i in zip(replays, range(limit)):
+        i = 0
+        for r in replays:
+            if not is_full_replay(session, r):
+                continue
             r_file = f"{r.replayID}_route_{s_string}.png"
             cache_path = cache_dire / r_file
             destination = team_path / s_string / f"pregame_route_{i}.png"
@@ -872,6 +875,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
             shutil.copyfile(cache_path, destination)
             saved_paths.append(str(destination.relative_to(plot_base)))
             fig.clf()
+            i += 1
         return saved_paths
 
     if update_dire:
