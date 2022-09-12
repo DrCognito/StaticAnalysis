@@ -27,7 +27,7 @@ from PIL import Image
 # DB Setups
 session = Setup.get_fullDB()
 team_session = Setup.get_team_session()
-load_dotenv(dotenv_path="../test.env")
+load_dotenv(dotenv_path="../setup.env")
 
 
 def nice_time(s):

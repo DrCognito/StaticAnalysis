@@ -13,7 +13,7 @@ engine = InitDB('sqlite:///Data/testing.db')
 Session = sessionmaker(bind=engine)
 session = Session()
 
-load_dotenv(dotenv_path="test.env")
+load_dotenv(dotenv_path="setup.env")
 DB_PATH = environ['PARSED_DB_PATH']
 engine_full = InitDB(DB_PATH)
 Session_full = sessionmaker(bind=engine_full)

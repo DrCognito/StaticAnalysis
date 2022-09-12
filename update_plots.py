@@ -54,7 +54,7 @@ from analysis.route_vis import plot_pregame_players
 import shutil
 import time as t
 
-load_dotenv(dotenv_path="test.env")
+load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 

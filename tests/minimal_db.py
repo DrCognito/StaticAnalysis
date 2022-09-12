@@ -13,7 +13,7 @@ from lib.team_info import InitTeamDB, TeamInfo
 from replays.TeamSelections import TeamSelections, PickBans
 
 
-load_dotenv(dotenv_path="../test.env")
+load_dotenv(dotenv_path="../setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 

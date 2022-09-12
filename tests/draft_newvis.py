@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # DB Setups
 session = Setup.get_fullDB()
 team_session = Setup.get_team_session()
-load_dotenv(dotenv_path="../test.env")
+load_dotenv(dotenv_path="../setup.env")
 
 
 def get_team(name):
