@@ -175,9 +175,14 @@ def get_player_init(names: List[str])-> List[str]:
 
 
 cell_size = 1/64
+x_offset = 0.007997743856013796
+x_scale = 0.9941107943899092
+y_offset = -0.0007035503183143038
+y_scale = 1.005702141386541
 
 
-def add_map(axis, extent=[-cell_size, 1-cell_size, 0, 1], zorder=0):
+# Compared as of 13/09/2022, Patch 7.32
+def add_map(axis, extent=[0, 1, 0, 1], zorder=0):
     img = mpimg.imread(environment['MAP_PATH'])
     axis.imshow(img, extent=extent, zorder=zorder)
 
