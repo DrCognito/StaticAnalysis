@@ -59,4 +59,4 @@ axis.scatter(x, y)
 for i, txt in enumerate(name):
     axis.annotate(txt, (x[i], y[i]))
 
-# plt.show()
+plt.show()
