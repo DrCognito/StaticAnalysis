@@ -22,7 +22,8 @@ from analysis.draft_vis import add_draft_axes, process_team_portrait
 from analysis.visualisation import make_image_annotation2
 
 
-colour_list = ['black', 'red', 'blue', 'magenta', 'purple']
+colour_list = ['black', 'red', 'blue', 'magenta', 'purple',
+               'aqua', 'coral', 'cyan', 'orchid', 'violet' ]
 
 
 def build_ward_table(query: Query, session: Session,

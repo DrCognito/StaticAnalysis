@@ -32,6 +32,8 @@ def populate_from_JSON(json, replay_in, session):
     scans_out = list()
     id = 0
     scan_object = get_scans(json)
+    if scan_object is None:
+        return scans_out
     scan_object = zip(scan_object['xLoc'], scan_object['yLoc'],
                       scan_object['byHero'], scan_object['team'],
                       scan_object['timeList'])

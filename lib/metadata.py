@@ -1,5 +1,12 @@
+from typing import Set
 from replays.Replay import Replay, Team
+from replays.Player import Player
+from replays.Ward import Ward
+from replays.Rune import Rune
+from replays.Scan import Scan
+from replays.Smoke import Smoke
 from lib.team_info import TeamInfo
+from sqlalchemy.sql import exists
 
 
 def make_meta(dataset="default"):
@@ -8,7 +15,9 @@ def make_meta(dataset="default"):
         'time_cut': None,
         'leagues': None,
         'replays_dire': None,
+        'drafts_only_dire': None,
         'replays_radiant': None,
+        'drafts_only_radiant': None,
 
         'plot_dire_drafts': None,
         'plot_radiant_drafts': None,
@@ -45,24 +54,47 @@ def make_meta(dataset="default"):
     return meta
 
 
-def is_updated(r_query, team: TeamInfo, metadata)-> (bool, bool):
-    '''Check if the list of replays for a teams metadata matches
-       the list of replays in the replay query.
-       Returns result for (Dire, Radiant)
-    '''
-    def _test_side(side: Team):
-        side_filt = Replay.get_side_filter(team, side)
-        replays = r_query.filter(side_filt)
+def is_updated(session, r_query, team: TeamInfo,
+               side: Team, metadata, has: None) -> tuple[bool, set]:
+    side_filt = Replay.get_side_filter(team, side)
+    replays = r_query.filter(side_filt)
+    if has is None:
+        replay_set = {r.replayID for r in replays}
+    else:
+        replay_set = {r.replayID for r in replays if has(session, r)}
 
-        id_list = {r.replayID for r in replays}
+    if metadata is None:
+        return len(replay_set) != 0, replay_set
+    else:
+        return replay_set != set(metadata), replay_set
 
-        side_str = 'replays_dire' if side == Team.DIRE else 'replays_radiant'
-        if metadata[side_str] is None:
-            return len(id_list) != 0, id_list
 
-        return id_list != set(metadata[side_str]), id_list
+def has_type(session, replay: Replay, Type) -> bool:
+    return session.query(exists().where(Type.replayID == replay.replayID)).scalar()
 
-    new_dire, dire_list = _test_side(Team.DIRE)
-    new_radiant, radiant_list = _test_side(Team.RADIANT)
 
-    return new_dire, dire_list, new_radiant, radiant_list
+def has_picks(session, replay: Replay) -> bool:
+    return has_type(session, replay, Player)
+
+
+def has_wards(session, replay: Replay) -> bool:
+    return has_type(session, replay, Ward)
+
+
+def has_runes(session, replay: Replay) -> bool:
+    return has_type(session, replay, Rune)
+
+
+def has_scans(session, replay: Replay) -> bool:
+    return has_type(session, replay, Scan)
+
+
+def has_smokes(session, replay: Replay) -> bool:
+    return has_type(session, replay, Smoke)
+
+
+def is_full_replay(session, replay: Replay) -> bool:
+    '''Returns if replay is considered a complete one.
+    At the moment this just requires player picks and wards.'''
+
+    return has_picks(session, replay) and has_wards(session, replay)

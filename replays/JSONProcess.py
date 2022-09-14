@@ -33,6 +33,8 @@ def get_match_times(json_in):
        and end game time as a timedelta.'''
     time_entry = [x for x in json_in if x['type'] == 'TimeInfo']
 
+    if not time_entry:
+        return (None, None, None)
     game_start = round(time_entry[0]['PreGameStart'])
 
     creep_spawn = round(time_entry[0]['CreepSpawn'])
@@ -69,24 +71,24 @@ def get_player_status(hero, json_in):
 
 
 def get_player_created(hero, json_in):
-    created_time = next(x['createdTime'] for x in json_in if x['type'] ==
-                        "HeroEntity" and x['cName'] == hero)
+    created_time = next((x['createdTime'] for x in json_in if x['type'] ==
+                        "HeroEntity" and x['cName'] == hero), None)
     return created_time
 
 
 def get_player_smoketime(hero, json_in):
-    smoke_starts = next(x['smokeStart'] for x in json_in if x['type'] ==
-                        "HeroEntity" and x['cName'] == hero)
+    smoke_starts = next((x['smokeStart'] for x in json_in if x['type'] ==
+                        "HeroEntity" and x['cName'] == hero), None)
 
-    smoke_ends = next(x['smokeEnd'] for x in json_in if x['type'] ==
-                      "HeroEntity" and x['cName'] == hero)
+    smoke_ends = next((x['smokeEnd'] for x in json_in if x['type'] ==
+                      "HeroEntity" and x['cName'] == hero), None)
 
     return zip(smoke_starts, smoke_ends)
 
 
 def get_player_team(hero, json_in):
-    team_name = next(x['entType'] for x in json_in if x['type'] ==
-                     "HeroEntity" and x['cName'] == hero)
+    team_name = next((x['entType'] for x in json_in if x['type'] ==
+                     "HeroEntity" and x['cName'] == hero), None)
 
     if team_name == "DIRE":
         team = Team.DIRE
@@ -100,24 +102,24 @@ def get_player_team(hero, json_in):
 
 
 def get_scans(json_in):
-    return next(x for x in json_in if x['type'] == "ScanSummary")
+    return next((x for x in json_in if x['type'] == "ScanSummary"), None)
 
 
 def get_rune_list(json_in):
-    return next(x['runeList'] for x in json_in if x['type'] == "runeList")
+    return next((x['runeList'] for x in json_in if x['type'] == "runeList"), None)
 
 
 def get_accumulating_lists(hero, json_in):
-    assists = next(x['assistList'] for x in json_in if x['type'] ==
-                   "HeroEntity" and x['cName'] == hero)
-    deaths = next(x['deathList'] for x in json_in if x['type'] ==
-                  "HeroEntity" and x['cName'] == hero)
-    denies = next(x['denyList'] for x in json_in if x['type'] ==
-                  "HeroEntity" and x['cName'] == hero)
-    kills = next(x['killList'] for x in json_in if x['type'] ==
-                 "HeroEntity" and x['cName'] == hero)
-    last_hits = next(x['last_hitList'] for x in json_in if x['type'] ==
-                 "HeroEntity" and x['cName'] == hero)
+    assists = next((x['assistList'] for x in json_in if x['type'] ==
+                   "HeroEntity" and x['cName'] == hero), None)
+    deaths = next((x['deathList'] for x in json_in if x['type'] ==
+                  "HeroEntity" and x['cName'] == hero), None)
+    denies = next((x['denyList'] for x in json_in if x['type'] ==
+                  "HeroEntity" and x['cName'] == hero), None)
+    kills = next((x['killList'] for x in json_in if x['type'] ==
+                 "HeroEntity" and x['cName'] == hero), None)
+    last_hits = next((x['last_hitList'] for x in json_in if x['type'] ==
+                 "HeroEntity" and x['cName'] == hero), None)
 
     return {'assists': assists, 'deaths': deaths, 'denies': denies,
             'kills': kills, 'last_hits': last_hits}
@@ -125,14 +127,15 @@ def get_accumulating_lists(hero, json_in):
 
 def get_smoke_summary(json_in, team):
     assert(team in Team)
-    smoke_summary = next(x for x in json_in if x['type'] == 'SmokeSummary')
+    smoke_summary = next((x for x in json_in if x['type'] == 'SmokeSummary'), None)
     if team == Team.DIRE:
         start = 'direSmokes'
         end = 'direSmokesEnd'
     elif team == Team.RADIANT:
         start = 'radiantSmokes'
         end = 'radiantSmokesEnd'
-
+    if smoke_summary is None:
+        return None
     return zip(smoke_summary[start], smoke_summary[end])
 
 

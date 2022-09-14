@@ -116,7 +116,7 @@ venv.bak/
 # Exclude databases
 *.db
 # Exclude environment files
-setup.env
+test.env
 # Ignore images for now
 *.png
 *.jpg
@@ -143,3 +143,5 @@ current_process.bsh
 current_test.ps1
 data/archive.7z
 data
+test.env
+setup.env

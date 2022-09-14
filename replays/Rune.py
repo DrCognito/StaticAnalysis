@@ -54,10 +54,11 @@ class Rune(Base):
 
 
 def populate_from_JSON(json, replay_in, session):
+    if (rune_list := get_rune_list(json)) is None:
+        return []
     runes_out = list()
-
     id = 0
-    for r in get_rune_list(json):
+    for r in rune_list:
         new_rune = Rune(replay_in)
         new_rune.id = id
         id += 1

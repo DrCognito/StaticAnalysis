@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
 from os import environ as environment
 from os import rename
 from pathlib import Path
@@ -14,18 +14,41 @@ DB_PATH = environment['PARSED_DB_PATH']
 PROCESSING_PATH = environment['JSON_PATH']
 ARCHIVE_PATH = environment['JSON_ARCHIVE']
 
+DRAFT_PROCESSING_PATH = environment['DRAFT_JSON_PATH']
+DRAFT_ARCHIVE_PATH = environment['DRAFT_JSON_ARCHIVE']
+
 engine = InitDB(DB_PATH)
 Session = sessionmaker(bind=engine)
 session = Session()
 
 
-def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
+def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
     json_files = list(Path(base_path).glob('*.json'))
-    print(limit)
-    for j in json_files[:limit]:
+    for j in json_files:
         print(j)
         try:
             populate_from_JSON_file(j, session, skip_existing)
+        except SQLAlchemyError as e:
+            print(e)
+            print("Failed to process {}".format(j))
+            session.rollback()
+            exit(2)
+        except IOError as e:
+            print(e)
+            print("IOError reading {}".format(j))
+            session.rollback()
+            exit(3)
+        if base_path != Path(DRAFT_ARCHIVE_PATH):
+            rename(j, Path(DRAFT_ARCHIVE_PATH) / j.name)
+    session.commit()
+
+
+def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
+    json_files = list(Path(base_path).glob('*.json'))
+    for j in json_files[:limit]:
+        print(j)
+        try:
+            populate_from_JSON_file(j, session, skip_existing=skip_existing)
         except SQLAlchemyError as e:
             print(e)
             print("Failed to process {}".format(j))
@@ -62,10 +85,15 @@ arguments.add_argument('--reprocess_replay',
 arguments.add_argument('--limit',
                        help='''Limit number of replays to process''',
                        type=int)
+arguments.add_argument("--process_drafts", action=BooleanOptionalAction,
+                       default=True)
 
 
 if __name__ == '__main__':
     args = arguments.parse_args()
+
+    if args.process_drafts:
+        drafts_to_db(skip_existing=False, base_path=DRAFT_PROCESSING_PATH)
 
     if args.reprocess_replay is not None:
         reprocess_replay(args.reprocess_replay)
@@ -77,4 +105,4 @@ if __name__ == '__main__':
                          limit=args.limit)
         exit()
 
-    processing_to_db(limit=args.limit)
+    processing_to_db(limit=args.limit, skip_existing=False)

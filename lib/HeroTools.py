@@ -150,6 +150,7 @@ heroShortName["npc_dota_hero_void_spirit"] = "Void Spirit"
 heroShortName["npc_dota_hero_hoodwink"] = "Hoodwink"
 heroShortName["npc_dota_hero_dawnbreaker"] = "Dawn Breaker"
 heroShortName["npc_dota_hero_marci"] = "Marci"
+heroShortName["npc_dota_hero_primal_beast"] = "Primal Beast"
 heroShortName["Other"] = "Other"
 
 heroByID = {}
@@ -275,6 +276,7 @@ heroByID[128] = "npc_dota_hero_snapfire"
 heroByID[123] = "npc_dota_hero_hoodwink"
 heroByID[135] = "npc_dota_hero_dawnbreaker"
 heroByID[136] = "npc_dota_hero_marci"
+heroByID[137] = "npc_dota_hero_primal_beast"
 
 HeroLongName = {}
 HeroLongName["AM"] = "npc_dota_hero_antimage"
@@ -399,6 +401,7 @@ HeroLongName["Snapfire"] = "npc_dota_hero_snapfire"
 HeroLongName["Hoodwink"] = "npc_dota_hero_hoodwink"
 HeroLongName["Dawn Breaker"] = "npc_dota_hero_dawnbreaker"
 HeroLongName["Marci"] = "npc_dota_hero_marci"
+HeroLongName["Primal Beast"] = "npc_dota_hero_primal_beast"
 HeroLongName["Other"] = "Other"
 
 HeroIconPrefix = Path(environment['ICON_PATH'])
@@ -526,6 +529,7 @@ HeroIcon["Void Spirit"] = "void_spirit.png"
 HeroIcon["Hoodwink"] = "hoodwink.png"
 HeroIcon["Dawn Breaker"] = "dawnbreaker.png"
 HeroIcon["Marci"] = "marci.png"
+HeroIcon["Primal Beast"] = "primal_beast.png"
 
 SheetHeroMap = {
                "npc_dota_hero_abaddon": "abaddon",

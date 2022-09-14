@@ -17,6 +17,8 @@ def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
     # add_map(axis)
     for colour, path, name in zip(colours, paths, names):
+        if path.empty:
+            continue
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
 
@@ -110,7 +112,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         w = wards.filter(Ward.ward_type == w_type)
         data = build_ward_table(w, session, team_session, team)
         if data.empty and w_type == WardType.OBSERVER:
-            print(f"Ward table for {w_type} empty!")
+            # print(f"Ward table for {w_type} empty!")
             continue
         w_icon = w_icons[w_type]
         w_icon.thumbnail(ward_size)

@@ -39,7 +39,7 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords, ChainedAssignent)
 from lib.important_times import ImportantTimes
-from lib.metadata import is_updated, make_meta
+from lib.metadata import is_updated, make_meta, is_full_replay, has_picks
 from lib.team_info import InitTeamDB, TeamInfo
 from replays.Player import Player, PlayerStatus
 from replays.Replay import InitDB, Replay, Team
@@ -286,8 +286,33 @@ def do_draft(team: TeamInfo, metadata,
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
+    def _save_store(drafts: list, file_stem: str):
+        outputs = []
+        for count, d in enumerate(drafts):
+            output = team_path / f"{file_stem}_{count}.png"
+
+            # d = d.convert("RGB")
+            d.save(output, dpi=(50, 50), optimize=True)
+
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            outputs.append(relpath)
+
+        return outputs
+
+    def _clean_up_plots(paths: list):
+        """Assumes the path is saved as a relative path"""
+        if not paths:
+            return
+        if type(paths) is not list:
+            paths = [paths, ]
+        for p in paths:
+            plot_path: Path = Path(PLOT_BASE_PATH) / p
+            try:
+                plot_path.unlink()
+            except FileNotFoundError:
+                print(f"Plot not found! {plot_path}")
+
     if update_dire:
-        output = team_path / 'dire/drafts.png'
         if per_side_limit is not None:
             replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
                                .limit(2*per_side_limit).all()
@@ -297,14 +322,11 @@ def do_draft(team: TeamInfo, metadata,
         dire_drafts = replay_draft_image(replays,
                                          team,
                                          team.name)
+        _clean_up_plots(metadata.get('plot_dire_drafts'))
         if dire_drafts is not None:
-            dire_drafts = dire_drafts.convert("RGB")
-            dire_drafts.save(output, dpi=(50, 50), optimize=True)
-            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_dire_drafts'] = relpath
+            metadata['plot_dire_drafts'] = _save_store(dire_drafts, 'dire/drafts')
 
     if update_radiant:
-        output = team_path / 'radiant/drafts.png'
         if per_side_limit is not None:
             replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
                                .limit(2*per_side_limit).all()
@@ -314,11 +336,9 @@ def do_draft(team: TeamInfo, metadata,
         radiant_drafts = replay_draft_image(replays,
                                             team,
                                             team.name)
+        _clean_up_plots(metadata.get('plot_radiant_drafts'))
         if radiant_drafts is not None:
-            radiant_drafts = radiant_drafts.convert("RGB")
-            radiant_drafts.save(output, dpi=(50, 50), optimize=True)
-            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_radiant_drafts'] = relpath
+            metadata['plot_radiant_drafts'] = _save_store(radiant_drafts, 'radiant/drafts')
 
     if update_radiant or update_dire:
         if per_side_limit is not None:
@@ -328,37 +348,28 @@ def do_draft(team: TeamInfo, metadata,
             replays = r_drafted.order_by(Replay.replayID.desc())\
                                .all()
 
-        output_first = team_path / 'drafts_first.png'
         drafts_first = replay_draft_image(replays,
                                           team,
                                           team.name,
                                           second_pick=False)
+        _clean_up_plots(metadata.get('plot_drafts_first'))
         if drafts_first is not None:
-            drafts_first = drafts_first.convert("RGB")
-            drafts_first.save(output_first, dpi=(50, 50), optimize=True)
-            relpath = str(output_first.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_drafts_first'] = relpath
-        
-        output_second = team_path / 'drafts_second.png'
+            metadata['plot_drafts_first'] = _save_store(drafts_first, 'drafts_first')
+
         drafts_second = replay_draft_image(replays,
                                            team,
                                            team.name,
                                            first_pick=False)
+        _clean_up_plots(metadata.get('plot_drafts_second'))
         if drafts_second is not None:
-            drafts_second = drafts_second.convert("RGB")
-            drafts_second.save(output_second, dpi=(50, 50), optimize=True)
-            relpath = str(output_second.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_drafts_second'] = relpath
+            metadata['plot_drafts_second'] = _save_store(drafts_second, 'drafts_second')
 
-        output_all = team_path / 'drafts_all.png'
         drafts_all = replay_draft_image(replays,
                                         team,
                                         team.name,)
+        _clean_up_plots(metadata.get('plot_drafts_all'))
         if drafts_all is not None:
-            drafts_all = drafts_all.convert("RGB")
-            drafts_all.save(output_all, dpi=(50, 50), optimize=True)
-            relpath = str(output_all.relative_to(Path(PLOT_BASE_PATH)))
-            metadata['plot_drafts_all'] = relpath
+            metadata['plot_drafts_all'] = _save_store(drafts_all, 'drafts_all')
 
     return metadata
 
@@ -432,7 +443,7 @@ def do_wards_separate(team: TeamInfo, r_query,
 
         data = build_ward_table(wards, session, team_session, team)
         if data.empty:
-            print(f"Ward table empty! {replay_id}: {side}")
+            # print(f"Ward table empty! {replay_id}: {side}")
             return None
         # fig, ax = plt.subplots(figsize=(10, 13))
         if fixed_width is None:
@@ -711,9 +722,9 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
     fig, extra = plot_player_heroes(hero_picks_df, fig)
-    fig.tight_layout(h_pad=3.0)
+    fig.tight_layout(h_pad=2.0)
     output = team_path / f'hero_picks{postfix}.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=200)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_picks{postfix}'] = relpath
@@ -847,7 +858,10 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         s_string = "dire" if side == Team.DIRE else "radiant"
         saved_paths = []
         r: Replay
-        for r, i in zip(replays, range(limit)):
+        i = 0
+        for r in replays:
+            if not is_full_replay(session, r):
+                continue
             r_file = f"{r.replayID}_route_{s_string}.png"
             cache_path = cache_dire / r_file
             destination = team_path / s_string / f"pregame_route_{i}.png"
@@ -863,6 +877,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
             shutil.copyfile(cache_path, destination)
             saved_paths.append(str(destination.relative_to(plot_base)))
             fig.clf()
+            i += 1
         return saved_paths
 
     if update_dire:
@@ -893,11 +908,25 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
-    new_dire, dire_list, new_radiant, radiant_list = is_updated(r_query, team, metadata)
+
+    start = t.process_time()
+    new_dire, dire_list = is_updated(session, r_query, team, Team.DIRE,
+                                     metadata.get('replays_dire'), is_full_replay)
+    new_radiant, radiant_list = is_updated(session, r_query, team, Team.RADIANT,
+                                           metadata.get('replays_radiant'), is_full_replay)
+
+    new_draft_dire, dire_drafts = is_updated(session, r_query, team, Team.DIRE,
+                                     metadata.get('drafts_only_dire'), has_picks)
+    new_draft_radiant, radiant_drafts = is_updated(session, r_query, team, Team.RADIANT,
+                                     metadata.get('drafts_only_radiant'), has_picks)
+    print(f"Processed replay info in {t.process_time() - start}")
+
     if reprocess:
         if r_query.count() != 0:
             new_dire = True
             new_radiant = True
+            new_draft_radiant = True
+            new_draft_dire = True
         elif replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
             print(replay_list)
@@ -906,17 +935,17 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
         return
 
-    # l_query = r_query.order_by(Replay.replayID.desc()).limit(5)
-
     metadata['replays_dire'] = list(dire_list)
+    metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
+    metadata['drafts_only_radiant'] = list(radiant_drafts)
 
     print("Process {}.".format(team.name))
     if args.draft:
         plt.close('all')
         print("Processing drafts.", end=" ")
         start = t.process_time()
-        metadata = do_draft(team, metadata, new_dire, new_radiant, r_filter)
+        metadata = do_draft(team, metadata, new_draft_dire, new_draft_radiant, r_filter)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.positioning:
