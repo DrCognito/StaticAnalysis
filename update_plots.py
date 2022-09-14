@@ -862,6 +862,8 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         for r in replays:
             if not is_full_replay(session, r):
                 continue
+            if i >= limit:
+                break
             r_file = f"{r.replayID}_route_{s_string}.png"
             cache_path = cache_dire / r_file
             destination = team_path / s_string / f"pregame_route_{i}.png"
@@ -869,14 +871,13 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
             if cache and cache_path.exists():
                 shutil.copyfile(cache_path, destination)
                 saved_paths.append(str(destination.relative_to(plot_base)))
-                continue
-
-            plot_pregame_players(r, team, side, session, team_session, fig)
-            fig.tight_layout()
-            fig.savefig(cache_path)
-            shutil.copyfile(cache_path, destination)
-            saved_paths.append(str(destination.relative_to(plot_base)))
-            fig.clf()
+            else:
+                plot_pregame_players(r, team, side, session, team_session, fig)
+                fig.tight_layout()
+                fig.savefig(cache_path)
+                shutil.copyfile(cache_path, destination)
+                saved_paths.append(str(destination.relative_to(plot_base)))
+                fig.clf()
             i += 1
         return saved_paths
 
