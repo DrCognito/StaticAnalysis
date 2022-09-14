@@ -112,7 +112,7 @@ arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
-arguments.add_argument('--process_scrims',
+arguments.add_argument('--scrim_time',
                        help='''Time cut for the scrims to be processed at.''')
 #endregion
 
@@ -1211,7 +1211,7 @@ if __name__ == "__main__":
 
                 process_team(team, metadata, TIME_CUT[time], args)
 
-            if args.process_scrims:
+            if args.scrim_time:
                 done_scrims = True
                 team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
 
@@ -1219,8 +1219,8 @@ if __name__ == "__main__":
                     continue
                 scrim_list = list(team_scrims.keys())
                 metadata = get_create_metadata(team, "Scrims")
-                metadata['time_cut'] = ImportantTimes[args.process_scrims].timestamp()
-                process_team(team, metadata, ImportantTimes[args.process_scrims], args, replay_list=scrim_list)
+                metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
+                process_team(team, metadata, ImportantTimes[args.scrim_time], args, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
