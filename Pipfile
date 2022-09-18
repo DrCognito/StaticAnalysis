@@ -14,5 +14,6 @@ flake8 = "*"
 matplotlib = "*"
 pygsheets = "*"
 scipy = "*"
+"dogpile.cache" = "*"
 
 [dev-packages]
