@@ -239,11 +239,21 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
 
     # colours = ['c', 'g', 'b', 'm', 'k']
     # for player, c in zip(player_bars_x, colours):
+    has_data = False
     for player in player_bars_x:
-        axe.barh(player_bars_x[player], player_bars_y[player],
-                 height=0.7*b_width, label=player)
-        axe.set_yticks(x_ticks, x_labels)
+        if player_bars_x[player]:
+            has_data = True
+            axe.barh(player_bars_x[player], player_bars_y[player],
+                     height=0.7*b_width, label=player)
+            axe.set_yticks(x_ticks, x_labels)
     axe.yaxis.set_tick_params(pad=33)
+
+    if not has_data:
+        axe.text(0.5, 0.5, "No Data", fontsize=14,
+                 horizontalalignment='center',
+                 verticalalignment='center')
+
+        return fig, []
 
     # Add heroes
     size = 0.9
