@@ -910,7 +910,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
 
-    start = t.process_time()
+    # start = t.process_time()
     new_dire, dire_list = is_updated(session, r_query, team, Team.DIRE,
                                      metadata.get('replays_dire'), is_full_replay)
     new_radiant, radiant_list = is_updated(session, r_query, team, Team.RADIANT,
@@ -920,7 +920,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                      metadata.get('drafts_only_dire'), has_picks)
     new_draft_radiant, radiant_drafts = is_updated(session, r_query, team, Team.RADIANT,
                                      metadata.get('drafts_only_radiant'), has_picks)
-    print(f"Processed replay info in {t.process_time() - start}")
+    # print(f"Processed replay info in {t.process_time() - start}")
 
     if reprocess:
         if r_query.count() != 0:
