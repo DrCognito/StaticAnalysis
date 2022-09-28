@@ -65,6 +65,12 @@ def is_valid_replay(replay: Replay) -> bool:
         return False
     if replay.teams[1].teamName == '':
         return False
+    if replay.teams[0].teamID == replay.teams[1].teamID:
+        print(f"Found duplicate team for {replay.replayID}.")
+        return False
+    if replay.teams[0].teamName == replay.teams[1].teamName:
+        print(f"Found duplicate team for {replay.replayID}.")
+        return False
 
     return True
 
@@ -91,8 +97,8 @@ def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
         team_dict[main_s].teamID = main_team.team_id
         team_dict[main_s].teamName = main_team.name
 
-        team_dict[opp_s].teamID = main_team.team_id
-        team_dict[opp_s].teamName = main_team.name
+        team_dict[opp_s].teamID = opposition.team_id
+        team_dict[opp_s].teamName = opposition.name
 
     main_players = {p.player_id for p in main_team.players}
     main_dire = replay.matching_players(main_players, Team.DIRE) >= n_pmatch
@@ -161,7 +167,7 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         scrim_dict[main_team_id] = {int(scrim_id): name}
     # Validate and fix replays
     replays.add(scrim_id)
-    replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
+    replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
     # No replay found
     if replay is None:
         missing.add(scrim_id)
@@ -176,6 +182,8 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         continue
 
     fixed = fix_replay(replay, get_team(name))
+    fixed = is_valid_replay(replay) and fixed
+
     if fixed:
         session.commit()
         fixed_replays.add(scrim_id)
