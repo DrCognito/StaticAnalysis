@@ -68,11 +68,10 @@ def reprocess_replay(replays):
     for r in replays:
         file = str(r) + '.json'
 
-        process_file = Path(PROCESSING_PATH) / file
+        process_file = Path(ARCHIVE_PATH) / file
         if process_file.exists():
             print("Reprocessing ", process_file)
             populate_from_JSON_file(process_file, session, skip_existing=False)
-            rename(process_file, Path(ARCHIVE_PATH) / process_file.name)
 
 
 arguments = ArgumentParser()
@@ -97,7 +96,6 @@ if __name__ == '__main__':
 
     if args.reprocess_replay is not None:
         reprocess_replay(args.reprocess_replay)
-        exit()
 
     if args.full_reprocess:
         processing_to_db(skip_existing=False,
