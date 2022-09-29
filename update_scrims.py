@@ -6,6 +6,7 @@ from replays.Replay import InitDB, Replay, Team
 from lib.team_info import InitTeamDB, TeamInfo
 import pygsheets
 import json
+from lib.important_times import ImportantTimes
 
 load_dotenv(dotenv_path="setup.env")
 SCRIMS_JSON_PATH = environment['SCRIMS_JSON']
@@ -14,6 +15,7 @@ SCRIMS_METAJSON_PATH = environment['SCRIMS_META']
 DB_PATH = environment['PARSED_DB_PATH']
 main_team_id = 2586976
 main_team_name = "OG"
+time_cut = ImportantTimes['Patch_7_32']
 
 with open(TEAMS_JSON_PATH, 'r') as f:
     team_map = json.load(f)
@@ -168,11 +170,14 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
     # Validate and fix replays
     replays.add(scrim_id)
     replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
+    # Check replay is new enough
     # No replay found
     if replay is None:
         missing.add(scrim_id)
         continue
     if is_valid_replay(replay):
+        continue
+    if replay.endTimeUTC < time_cut:
         continue
 
     # Not much we can do if we dont have a propper team to use
