@@ -32,7 +32,7 @@ team_id = 2586976
 
 t_filter = Replay.endTimeUTC >= time
 
-def get_team(name):
+def get_team(name) -> TeamInfo:
     t_filter = or_(TeamInfo.team_id == name, TeamInfo.name == name)
     team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
