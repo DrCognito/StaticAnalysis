@@ -86,6 +86,36 @@ def make_image_annotation(icon, axes, x, y, size=1.0):
     return imagebox
 
 
+def make_image_annotation_table(icon, axes, x, y, size=1.0):
+    icon = Image.open(icon)
+    icon = icon.convert("RGBA")
+
+    if size != 1.0:
+        icon.thumbnail((size, size))
+
+    imagebox = OffsetImage(icon)
+    imagebox.image.axes = axes
+
+    # ab = AnnotationBbox(imagebox, (x, y),
+    #                     xycoords='data',
+    #                     boxcoords="data",
+    #                     pad=0,
+    #                     frameon=True,
+    #                     box_alignment=(0, 0)
+    #                     )
+    ab = AnnotationBbox(imagebox, (x, y),
+                        # xycoords='data',
+                        # boxcoords="data",
+                        pad=0,
+                        frameon=False,
+                        box_alignment=(0, 1.0)
+                        )
+
+    axes.add_artist(ab)
+
+    return imagebox
+
+
 def make_image_annotation2(image, axes, x, y, size=1.0, bbox=None):
     # mage = Image.open(image)
     # Resize if necessary
