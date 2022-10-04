@@ -5,7 +5,10 @@ from replays import Base
 from sqlalchemy.orm import relationship
 from .Common import Team
 from .JSONProcess import get_pick_ban
-from lib.HeroTools import heroByID 
+from lib.HeroTools import heroByID
+from sqlalchemy.sql import select
+from sqlalchemy.orm import column_property
+
 
 class TeamSelections(Base):
     __tablename__ = "teamselections"
@@ -39,6 +42,19 @@ class PickBans(Base):
                   primary_key=True)
     hero = Column(String)
     is_pick = Column(Boolean)
+
+    teamID = column_property(
+        select(TeamSelections.teamID).
+        where(replayID == TeamSelections.replay_ID).
+        where(team == TeamSelections.team).scalar_subquery()
+    )
+
+    from .Player import Player
+    playerID = column_property(
+        select(Player.steamID).
+        where(replayID == Player.replayID).
+        where(hero == Player.hero).scalar_subquery()
+    )
 
 
 def populate_from_JSON(json, replay_in, session):
