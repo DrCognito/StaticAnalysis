@@ -24,11 +24,12 @@ from itertools import cycle
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 import matplotlib.patches as patches
 from PIL import Image, ImageDraw, ImageFont
+from math import ceil
 
 og_id = 2586976
 entity = 8605863
 psg = 15
-team_id = psg
+team_id = entity
 time = ImportantTimes['Patch_7_32']
 team = db.get_team(team_id)
 r_query = team.get_replays(db.session).filter(Replay.endTimeUTC >= time)
@@ -53,22 +54,21 @@ class Table():
         self.order_size = {}
         self.players_size = {}
         self.order_bounds = []
+        self.order_positions = set()
+        self.double_positions = set()
 
     def tot_height(self):
         return sum(self.players_size.values()) + self.header_size
 
     def tot_width(self):
-        return sum(self.order_size.values()) + (self.double_line_space)*len(self.order_bounds)
+        return sum(self.order_size.values()) + (self.double_line_space)*len(self.order_bounds) + len(self.orders)
 
     def _calc_order_bound(self):
-        for o in self.order_bounds:
-            self.order_size[o] -= self.double_line_space
         self.order_bounds = []
         for first, second in zip(self.orders[:-1], self.orders[1:]):
             if second - first > 1:
                 # print(f"{second}, {first}")
                 self.order_bounds.append(second)
-                self.order_size[first] += self.double_line_space
 
     def _get_bottom_left(self, order: int, steam_id: int) -> Tuple[int, int]:
         # Measure from bottom left as its a graph
@@ -77,7 +77,6 @@ class Table():
             if o == order:
                 break
             x += self.order_size[o]
-
         # Add double lines for bounds
         extra_bounding_space = 0
         for i in self.orders:
@@ -122,13 +121,15 @@ class Table():
         self.cell_table[steam_id][order] = cell
 
         if order not in self.orders:
-            print(f"{hero} {order} {steam_id}")
+            print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
             self.order_size[order] = 0
-            self.order_size = dict(sorted(self.order_size.items()))
+            # self.order_size = dict(sorted(self.order_size.items()))
             self.add_order(order)
         width, height = cell.cell_size()
-        current_width = self.order_size.get(order, 0)
-        current_height = self.players_size.get(steam_id, 0)
+        # Minimum should be the hero width
+        current_width = self.order_size.get(order, self.hero_size)
+        # Minimum should be the player font size
+        current_height = self.players_size.get(steam_id, self.font_size)
         self.order_size[order] = max(current_width, width)
         self.players_size[steam_id] = max(current_height, height)
 
@@ -162,26 +163,45 @@ class Table():
 
     def draw_row_image(self, steam_id, background=(255, 255, 255, 255)):
         height = self.players_size[steam_id]
-        width = self.tot_width()
-        row_image = Image.new('RGBA', (width, height), background)
-        added_lines = ImageDraw.Draw(row_image)
-        x, y = 0, 0
-        c: Cell
+        c: "Cell"
+        cells = []
         for o in self.orders:
             c = self.cell_table[steam_id].get(o, None)
             if c is not None:
                 cell_image = c.draw_cell_image()
-                row_image.paste(cell_image, (x, y), cell_image)
-            cell_width = self.order_size[o]
-            added_lines.line([(x, 0), (x, height)], fill='black', width=1)
-            if o in self.order_bounds:
-                adj_x = x - self.double_line_space
-                added_lines.line([(adj_x, 0), (adj_x, height)], fill='black', width=1)
-                x += self.double_line_space
-            # else:
-            #     added_lines.line([(x, 0), (x, height)], fill='black', width=1)
-            x += cell_width
+                cells.append(cell_image)
+            else:
+                # Add spacer
+                spacer = Image.new('RGBA', (self.order_size[o], height), background)
+                cells.append(spacer)
+
+        height = self.players_size[steam_id]
+        # Sum all the cells
+        # width = sum(x.cell_size()[0] for x in table_test.cell_table[steam_id].values())
+        width = sum(x.size[0] for x in cells)
+        # Add single lines
+        width += len(self.orders)
+        # Add double lines
+        width += self.double_line_space*len(self.order_bounds)
+        row_image = Image.new('RGBA', (width, height), background)
+        added_lines = ImageDraw.Draw(row_image)
+        x, y = 0, 0
         added_lines.line([(x, 0), (x, height)], fill='black', width=1)
+        # self.order_positions.add(x)
+        x += 1
+        c: Image
+        for o, c in zip(self.orders, cells):
+            if o in self.order_bounds:
+                x += self.double_line_space
+                row_image.paste(c, (x, y), c)
+                added_lines.line([(x, 0), (x, height)], fill='black', width=1)
+                self.double_positions.add(x)
+            else:
+                row_image.paste(c, (x, y), c)
+            x += c.size[0]
+            added_lines.line([(x, 0), (x, height)], fill='black', width=1)
+            self.order_positions.add(x)
+            x += 1
 
         return row_image
 
@@ -191,19 +211,22 @@ class Table():
 
         player_names = self.draw_player_names()
         width += player_names.size[0]
+
+        row_bg_cycle = [(255, 255, 255, 255), (128, 128, 128, 255)]
+        x, y = player_names.size[0], self.header_size
+        rows = []
+        for p, rbg in zip(self.player_list, cycle(row_bg_cycle)):
+            row_image = self.draw_row_image(p, rbg)
+            # table_image.paste(row_image, (x, y), row_image)
+            rows.append((row_image, (x, y)))
+            y += self.players_size[p]
         order_labels = self.draw_order_labels()
 
         table_image = Image.new('RGBA', (width, height), (255,255,255,255))
         table_image.paste(player_names, (0, self.header_size), player_names)
         table_image.paste(order_labels, (player_names.size[0], 0), order_labels)
-
-        row_bg_cycle = [(255, 255, 255, 255), (128, 128, 128, 255)]
-        x, y = player_names.size[0], self.header_size
-        for p, rbg in zip(self.player_list, cycle(row_bg_cycle)):
-            row_image = self.draw_row_image(p, rbg)
-            table_image.paste(row_image, (x, y), row_image)
-            y += self.players_size[p]
-
+        for img, pos in rows:
+            table_image.paste(img, pos, img)
         table_canvas = ImageDraw.Draw(table_image)
         table_canvas.line([(0, self.header_size), (table_image.size[0], self.header_size)],
                           fill='black', width=1)
@@ -238,21 +261,26 @@ class Table():
         text_canvas = ImageDraw.Draw(text_image)
         text_canvas.line([(0, 0), (0, self.header_size)],
                          fill='black', width=1)
-        total = 0
-        for o in self.orders:
-            total += self.order_size[o]
-            x = total - self.padding
+        # total = 0
+        positions = sorted(self.order_positions)
+        for o, pos in zip(self.orders, positions):
+            # total += self.order_size[o]
+            x = pos - self.padding
             y = self.header_size - self.padding
-            if o in self.order_bounds:
-                adj_x = total - self.double_line_space
-                text_canvas.line([(adj_x, 0), (adj_x, self.header_size)],
-                                 fill='black', width=1)
-                text_canvas.text((adj_x, y), text=str(o), font=font,
-                                 anchor="rb", fill=(0, 0, 0))
-            else:
-                text_canvas.text((x, y), text=str(o), font=font,
-                                anchor="rb", fill=(0, 0, 0))
-            text_canvas.line([(total, 0), (total, self.header_size)],
+            # if o in self.order_bounds:
+            #     adj_x = total - self.double_line_space
+            #     text_canvas.line([(adj_x, 0), (adj_x, self.header_size)],
+            #                      fill='black', width=1)
+            #     text_canvas.text((adj_x, y), text=str(o), font=font,
+            #                      anchor="rb", fill=(0, 0, 0))
+            # else:
+            text_canvas.text((x, y), text=str(o), font=font,
+                            anchor="rb", fill=(0, 0, 0))
+            text_canvas.line([(pos, 0), (pos, self.header_size)],
+                            fill='black', width=1)
+
+        for pos in sorted(self.double_positions):
+            text_canvas.line([(pos, 0), (pos, self.header_size)],
                             fill='black', width=1)
 
         return text_image
@@ -352,7 +380,7 @@ class Cell():
         height = self.table.padding
         height += self.table.hero_size +\
              (self.table.hero_size + self.table.padding)\
-             * fixed_total//self.table.heroes_per_row
+             * ceil(fixed_total/self.table.heroes_per_row)
         height += self.table.padding
 
         return (width, height)
