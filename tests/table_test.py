@@ -25,29 +25,47 @@ from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 import matplotlib.patches as patches
 from PIL import Image, ImageDraw, ImageFont
 from math import ceil
+from dataclasses import dataclass
+from datetime import datetime
 
 og_id = 2586976
 entity = 8605863
 psg = 15
-team_id = entity
+team_id = og_id
 time = ImportantTimes['Patch_7_32']
 team = db.get_team(team_id)
 r_query = team.get_replays(db.session).filter(Replay.endTimeUTC >= time)
-q_test = db.session.query(PickBans.hero, PickBans.order, PickBans.playerID).\
+q_test = db.session.query(PickBans.hero, PickBans.order, PickBans.playerID, PickBans.replayID).\
                     filter(PickBans.is_pick == True).\
                     filter(PickBans.teamID == team_id).\
                     join(db.r_query.subquery())
 
-test_frame = read_sql(q_test.statement, db.session.bind)
+selection_test = db.session.query(TeamSelections)\
+                    .join(Replay)\
+                    .filter(Replay.endTimeUTC >= time)\
+                    .filter(team.filter)\
+                    .filter(TeamSelections.teamID == team_id)
+
+# selection_test = r_query.join(TeamSelections)\
+#                         .filter(TeamSelections.teamID == team_id)
+
+# test_frame = read_sql(q_test.statement, db.session.bind)
 # PickBans.playerID appears as anon_1
-test_frame.columns = ['hero', 'order', 'steam_id']
+# test_frame.columns = ['hero', 'order', 'steam_id']
 
 # player_list = [{x.player_id: x.name} for x in team.players]
 player_list = {x.player_id: x.name for x in team.players}
 
+@dataclass
+class OrderTimeRegion:
+    start: datetime
+    first_pick: list
+    second_pick: list
+    end: datetime = None
+
 
 class Table():
-    def __init__(self, player_list: dict) -> None:
+    def __init__(self, player_list: dict, add_text=True) -> None:
         self.player_list = player_list
         self.cell_table = {x: dict() for x in player_list}
         self.orders = []
@@ -56,6 +74,40 @@ class Table():
         self.order_bounds = []
         self.order_positions = set()
         self.double_positions = set()
+        self.add_text = add_text
+
+    def add_teamselection(self, selection: TeamSelections, fix_order=True):
+        if fix_order:
+            for order in self.pick_orders:
+                # print(order)
+                t = selection.replay.endTimeUTC
+                match_start = t >= order.start
+                if order.end:
+                    match_end = t < order.end
+                else:
+                    match_end = True
+                # print(f"{match_start} {match_end}, {t}")
+                if match_start and match_end:
+                    first_pick = order.first_pick
+                    second_pick = order.second_pick
+                    if not self.orders:
+                        for i in first_pick + second_pick:
+                            self.add_order(i)
+                    break
+
+        if selection.firstPick:
+            order = first_pick
+        else:
+            order = second_pick
+
+        picks = [x for x in selection.draft if x.is_pick]
+        for p, fixedo in zip(picks, order):
+            if p.playerID not in self.player_list:
+                continue
+            if fix_order:
+                self.add_hero(p.hero, fixedo, p.playerID)
+            else:
+                self.add_hero(p.hero, p.order, p.playerID)
 
     def tot_height(self):
         return sum(self.players_size.values()) + self.header_size
@@ -103,12 +155,19 @@ class Table():
 
     hero_size = 22
     padding = 2
-    summarize_after = 50
+    summarize_after = 150
     heroes_per_row = 5
     add_other = True
     header_size = 22
-    font_size = header_size - padding
+    header_font_size = header_size - padding
+    count_font_size = 16
     double_line_space = 5
+    pick_orders = [
+        OrderTimeRegion(ImportantTimes['Patch_7_32'],
+                        [5, 8, 16, 17, 23],
+                        [6, 7, 15, 18, 24],
+                        None)
+    ]
 
     def add_hero(self, hero, order, steam_id):
         if steam_id not in self.cell_table:
@@ -125,11 +184,12 @@ class Table():
             self.order_size[order] = 0
             # self.order_size = dict(sorted(self.order_size.items()))
             self.add_order(order)
-        width, height = cell.cell_size()
+        width, height = cell.cell_size(include_text=self.add_text)
         # Minimum should be the hero width
-        current_width = self.order_size.get(order, self.hero_size)
+        min_width = (self.hero_size+self.padding)*self.heroes_per_row+self.padding
+        current_width = self.order_size.get(order, min_width)
         # Minimum should be the player font size
-        current_height = self.players_size.get(steam_id, self.font_size)
+        current_height = self.players_size.get(steam_id, self.header_font_size)
         self.order_size[order] = max(current_width, width)
         self.players_size[steam_id] = max(current_height, height)
 
@@ -163,12 +223,12 @@ class Table():
 
     def draw_row_image(self, steam_id, background=(255, 255, 255, 255)):
         height = self.players_size[steam_id]
-        c: "Cell"
+        c: Cell
         cells = []
         for o in self.orders:
             c = self.cell_table[steam_id].get(o, None)
             if c is not None:
-                cell_image = c.draw_cell_image()
+                cell_image = c.draw_cell_image(add_text=self.add_text)
                 cells.append(cell_image)
             else:
                 # Add spacer
@@ -212,7 +272,7 @@ class Table():
         player_names = self.draw_player_names()
         width += player_names.size[0]
 
-        row_bg_cycle = [(255, 255, 255, 255), (128, 128, 128, 255)]
+        row_bg_cycle = [(255, 255, 255, 255), (220, 220, 220, 255)]
         x, y = player_names.size[0], self.header_size
         rows = []
         for p, rbg in zip(self.player_list, cycle(row_bg_cycle)):
@@ -233,7 +293,7 @@ class Table():
         return table_image
 
     def draw_player_names(self):
-        font = ImageFont.truetype('arialbd.ttf', self.font_size)
+        font = ImageFont.truetype('arialbd.ttf', self.header_font_size)
         width = 0
         for name in player_list.values():
             width = max(width, int(font.getlength(name)))
@@ -253,7 +313,7 @@ class Table():
         return text_image
 
     def draw_order_labels(self):
-        font = ImageFont.truetype('arialbd.ttf', self.font_size)
+        font = ImageFont.truetype('arialbd.ttf', self.header_font_size)
         height = self.header_size
         width = self.tot_width()
 
@@ -359,7 +419,7 @@ class Cell():
             self.heroes[hero] = 1
             self.total_heroes += 1
 
-    def cell_size(self) -> Tuple[int, int]:
+    def cell_size(self, include_text=True) -> Tuple[int, int]:
         if self.total_heroes >= self.table.summarize_after:
             if self.table.add_other:
                 fixed_total = self.table.summarize_after + 1
@@ -377,21 +437,30 @@ class Cell():
             width += self.table.padding * self.total_heroes
         width += self.table.padding
 
+        hero_lines = ceil(fixed_total/self.table.heroes_per_row)
         height = self.table.padding
         height += self.table.hero_size +\
              (self.table.hero_size + self.table.padding)\
-             * ceil(fixed_total/self.table.heroes_per_row)
+             * hero_lines
         height += self.table.padding
+        if include_text:
+            height += hero_lines*(self.table.padding + self.table.count_font_size)
 
         return (width, height)
 
     def _get_bottom_left(self) -> Tuple[int, int]:
         return self.table._get_bottom_left(self.order, self.steam_id)
 
-    def draw_cell_image(self) -> Image:
+    def draw_cell_image(self, add_text=True) -> Image:
+        # Sort the heroes by total first
+        self.heroes = { k: v for k, v in
+                        sorted(self.heroes.items(), key=lambda i: i[1],
+                               reverse=True)}
         height = self.table.players_size[self.steam_id]
         width = self.table.order_size[self.order]
         cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+        cell_canvas = ImageDraw.Draw(cell_image)
+        font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
         # cell_canv = ImageDraw.Draw(cell_image)
         x, y = 0, self.table.padding
         tot = 0
@@ -413,11 +482,21 @@ class Cell():
             h_icon = h_icon.resize((self.table.hero_size, self.table.hero_size))
             # cell_image.paste(h_icon, (x, y), h_icon)
             cell_image.paste(h_icon, (x, y))
+
+            if add_text:
+                adj_y = y + self.table.padding + self.table.hero_size
+                adj_x = x + self.table.hero_size//2
+                text = str(self.heroes[h])
+                cell_canvas.text((adj_x, adj_y), text=text, font=font,
+                             anchor="mt", align="right", fill=(0, 0, 0))
             x += self.table.hero_size
 
             if i == self.table.heroes_per_row - 1:
                 y += self.table.padding
                 y += self.table.hero_size
+                if add_text:
+                    y += self.table.padding
+                    y += self.table.hero_size
                 x = 0
             tot += 1
 
@@ -460,9 +539,11 @@ class Cell():
             tot += 1
 
 
-table_test = Table(player_list)
-for h in q_test:
-    table_test.add_hero(*h)
+table_test = Table(player_list, add_text=False)
+# for h in q_test:
+#     table_test.add_hero(*h)
+for t in selection_test:
+    table_test.add_teamselection(t)
 # 1000 x 300 is goal
 fig, ax = plt.subplots(figsize=(20,6))
 fig.set_dpi(100)
