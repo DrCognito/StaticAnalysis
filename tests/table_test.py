@@ -27,6 +27,12 @@ from PIL import Image, ImageDraw, ImageFont
 from math import ceil
 from dataclasses import dataclass
 from datetime import datetime
+from sqlalchemy.orm.query import Query
+
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, TableColumn, DataTable
+from bokeh.io import show
+from bokeh.io import export_png
 
 og_id = 2586976
 entity = 8605863
@@ -40,11 +46,13 @@ q_test = db.session.query(PickBans.hero, PickBans.order, PickBans.playerID, Pick
                     filter(PickBans.teamID == team_id).\
                     join(db.r_query.subquery())
 
-selection_test = db.session.query(TeamSelections)\
-                    .join(Replay)\
-                    .filter(Replay.endTimeUTC >= time)\
-                    .filter(team.filter)\
-                    .filter(TeamSelections.teamID == team_id)
+# selection_test = db.session.query(TeamSelections)\
+#                     .filter((TeamSelections.replay_ID.in_(r_query)))\
+                    # .filter(TeamSelections.teamID == team_id)
+                    # .filter(team.filter)\
+                    # .join(Replay)\
+                    # .filter(Replay.endTimeUTC >= time)\
+
 
 # selection_test = r_query.join(TeamSelections)\
 #                         .filter(TeamSelections.teamID == team_id)
@@ -75,6 +83,7 @@ class Table():
         self.order_positions = set()
         self.double_positions = set()
         self.add_text = add_text
+        self.min_for_text = 2
 
     def add_teamselection(self, selection: TeamSelections, fix_order=True):
         if fix_order:
@@ -168,6 +177,38 @@ class Table():
                         [6, 7, 15, 18, 24],
                         None)
     ]
+
+    def get_dataframe(self) -> DataFrame:
+        phases = ["1st Phase", "2nd Phase", "3rd Phase", "4th Phase"]
+        columns = []
+        bounds = {}
+        accumulating = []
+        for o in self.orders:
+            if o in self.order_bounds:
+                name = phases.pop(0)
+                bounds[name] = accumulating
+                accumulating = []
+                columns.append(name)
+            columns.append(o)
+            accumulating.append(o)
+        bounds["Final Phase"] = accumulating
+        columns.append("Final Phase")
+        print(columns)
+        df = DataFrame(columns=columns)
+        for p in self.cell_table:
+            counts = {x[0]:x[1].total_heroes for x in self.cell_table[p].items()}
+            df.loc[self.player_list[p]] = counts
+        # Missing orders will NaN
+        df = df.fillna(0)
+        # print(df)
+        df[self.orders] = df[self.orders].div(df[self.orders].sum(axis=1), axis=0).multiply(100)
+        for column, bound in bounds.items():
+            print(column)
+            df[column] = df[bound].sum(axis=1)
+        # Nicer number rounding and formatting
+        df = df.round(0).astype(str).replace(r'\.0$', '%', regex=True)
+
+        return df
 
     def add_hero(self, hero, order, steam_id):
         if steam_id not in self.cell_table:
@@ -483,7 +524,7 @@ class Cell():
             # cell_image.paste(h_icon, (x, y), h_icon)
             cell_image.paste(h_icon, (x, y))
 
-            if add_text:
+            if add_text and self.heroes[h] >= self.table.min_for_text:
                 adj_y = y + self.table.padding + self.table.hero_size
                 adj_x = x + self.table.hero_size//2
                 text = str(self.heroes[h])
@@ -538,23 +579,55 @@ class Cell():
                 x = base_x + self.table.padding
             tot += 1
 
+    def total_heroes(self) -> int:
+        return sum(self.heroes.values())
 
-table_test = Table(player_list, add_text=False)
+
+def create_tables(r_query: Query, add_text=True) -> Image:
+    id_query = r_query.with_entities(Replay.replayID)
+    selection = (db.session.query(TeamSelections)
+                        .filter(TeamSelections.replay_ID.in_(id_query)))
+
+    pick_table = Table(player_list, add_text=add_text)
+    for team in selection:
+        pick_table.add_teamselection(team)
+
+    table_image = pick_table.draw_table_image()
+
+    return table_image
+
+
+id_query = r_query.with_entities(Replay.replayID)
+selection = (db.session.query(TeamSelections)
+               .filter(TeamSelections.replay_ID.in_(id_query)))
+
+pick_table = Table(player_list, add_text=True)
+for team in selection:
+    pick_table.add_teamselection(team)
+
+table_image = pick_table.draw_table_image()
+df = pick_table.get_dataframe()
+df.columns = df.columns.astype(str)
+# bokeh columns
+columns = [TableColumn(field=str(Ci), title=str(Ci)) for Ci in df.columns]
+# bokeh table
+data_table = DataTable(columns=columns, source=ColumnDataSource(df))
+# show(data_table)
+# export_png(data_table, filename="test.png")
+
+# table_image = create_tables(r_query)
 # for h in q_test:
 #     table_test.add_hero(*h)
-for t in selection_test:
-    table_test.add_teamselection(t)
 # 1000 x 300 is goal
-fig, ax = plt.subplots(figsize=(20,6))
-fig.set_dpi(100)
-ax.set_ylim(-1, table_test.tot_height() + 1)
-ax.set_xlim(0, table_test.tot_width() + .5)
+# fig, ax = plt.subplots(figsize=(20,6))
+# fig.set_dpi(100)
+# ax.set_ylim(-1, table_test.tot_height() + 1)
+# ax.set_xlim(0, table_test.tot_width() + .5)
 # test_cell: Cell = table_test.cell_table[76561198128242457][24]
 # test_cell.draw_cell(ax)
-print(f"x:{table_test.tot_width()} y:{table_test.tot_height()}")
-print(f"{table_test.players_size}")
+# print(f"x:{table_test.tot_width()} y:{table_test.tot_height()}")
+# print(f"{table_test.players_size}")
 # table_test.draw(ax)
 # plt.show()
 # cell_image = test_cell.draw_cell_image()
 # row_image = table_test.draw_row_image(76561198128242457)
-table_image = table_test.draw_table_image()
