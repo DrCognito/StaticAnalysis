@@ -24,15 +24,14 @@ from itertools import cycle
 from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 import matplotlib.patches as patches
 from PIL import Image, ImageDraw, ImageFont
-from math import ceil
+from math import ceil, floor
 from dataclasses import dataclass
 from datetime import datetime
 from sqlalchemy.orm.query import Query
-
-from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, TableColumn, DataTable
-from bokeh.io import show
-from bokeh.io import export_png
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
+import io
 
 og_id = 2586976
 entity = 8605863
@@ -178,7 +177,7 @@ class Table():
                         None)
     ]
 
-    def get_dataframe(self) -> DataFrame:
+    def get_dataframe(self, as_percent) -> DataFrame:
         phases = ["1st Phase", "2nd Phase", "3rd Phase", "4th Phase"]
         columns = []
         bounds = {}
@@ -193,7 +192,6 @@ class Table():
             accumulating.append(o)
         bounds["Final Phase"] = accumulating
         columns.append("Final Phase")
-        print(columns)
         df = DataFrame(columns=columns)
         for p in self.cell_table:
             counts = {x[0]:x[1].total_heroes for x in self.cell_table[p].items()}
@@ -201,12 +199,12 @@ class Table():
         # Missing orders will NaN
         df = df.fillna(0)
         # print(df)
-        df[self.orders] = df[self.orders].div(df[self.orders].sum(axis=1), axis=0).multiply(100)
+        if as_percent:
+            df[self.orders] = df[self.orders].div(df[self.orders].sum(axis=1), axis=0).multiply(100)
+            df = df.round(0)
         for column, bound in bounds.items():
             print(column)
             df[column] = df[bound].sum(axis=1)
-        # Nicer number rounding and formatting
-        df = df.round(0).astype(str).replace(r'\.0$', '%', regex=True)
 
         return df
 
@@ -594,25 +592,157 @@ def create_tables(r_query: Query, add_text=True) -> Image:
 
     table_image = pick_table.draw_table_image()
 
-    return table_image
+    df = pick_table.get_dataframe(as_percent=True)
+    # Seaborn heatmap
+    summary_table = seaborn_heatmap(df)
+    # image
+    # Nicer number rounding and formatting
+    df = df.round(0).astype(str).replace(r'\.0$', '%', regex=True)
+    avg_cell_width = table_image.size[0]//(len(df.columns)+3)
+    # summary_table = render_percent_table(df, min_width=avg_cell_width)
+
+    spacing = 100
+    width = max(summary_table.size[0], table_image.size[0])
+    height = summary_table.size[1] + table_image.size[1] + spacing
+    final = Image.new('RGBA', (width, height),
+                      (255, 255, 255, 255))
+    x, y = 0, 0
+    final.paste(table_image, (x, y), table_image)
+    y += table_image.size[1] + spacing
+    final.paste(summary_table, (x, y), summary_table)
+
+    return final
 
 
-id_query = r_query.with_entities(Replay.replayID)
-selection = (db.session.query(TeamSelections)
-               .filter(TeamSelections.replay_ID.in_(id_query)))
+# id_query = r_query.with_entities(Replay.replayID)
+# selection = (db.session.query(TeamSelections)
+#                .filter(TeamSelections.replay_ID.in_(id_query)))
 
-pick_table = Table(player_list, add_text=True)
-for team in selection:
-    pick_table.add_teamselection(team)
+# pick_table = Table(player_list, add_text=True)
+# for team in selection:
+#     pick_table.add_teamselection(team)
 
-table_image = pick_table.draw_table_image()
-df = pick_table.get_dataframe()
-df.columns = df.columns.astype(str)
-# bokeh columns
-columns = [TableColumn(field=str(Ci), title=str(Ci)) for Ci in df.columns]
-# bokeh table
-data_table = DataTable(columns=columns, source=ColumnDataSource(df))
-# show(data_table)
+# table_image = pick_table.draw_table_image()
+# df = pick_table.get_dataframe(as_percent=True)
+
+
+def render_percent_table(df: DataFrame, min_width=50,
+                         header_font_size=20, text_font_size=16):
+    header_font = ImageFont.truetype('arialbd.ttf', header_font_size)
+    text_font = ImageFont.truetype('arialbd.ttf', text_font_size)
+    padding = 2
+    widths = {k:min_width for k in df.columns}
+    columns = ['Index'] + list(df.columns)
+    widths['Index'] = 0
+    for row in df.itertuples(name=None):
+        # Use text_font for other
+        for n, t in zip(columns, row):
+            font = header_font if n == 'Index' else text_font
+            text = str(t)
+            length = ceil(font.getlength(text)) + 2*padding
+            widths[n] = max(widths[n], length)
+    # Do column names too!
+    for c in columns:
+        if c == 'Index':
+            continue
+        text = str(c)
+        font = header_font
+        length = ceil(font.getlength(text)) + 2*padding
+        widths[c] = max(widths[n], length)
+    # Now make the table!
+    cell_height = header_font_size + 2*padding
+    font_pos = cell_height//2
+    row_bg_cycle = [(255, 255, 255, 255), (220, 220, 220, 255)]
+    rows = []
+    # Header
+    header_cells = []
+    for c in columns:
+        image = Image.new('RGBA', (widths[c], cell_height),
+                          (255, 255, 255, 255))
+        image_canvas = ImageDraw.Draw(image)
+        image_canvas.line([(widths[c] - 1, 0), (widths[c]  - 1, cell_height)],
+                           fill='black', width=1)
+        image_canvas.line([(0, cell_height - 1), (widths[c], cell_height - 1)],
+                           fill='black', width=1)
+        if c != 'Index':
+            font = header_font
+            x = widths[c] - padding - 1
+            y = font_pos
+            text = str(c)
+            image_canvas.text((x, y), text=text, font=font,
+                              anchor="rm", align="right", fill=(0, 0, 0))
+        header_cells.append(image)
+    full_width = sum(x.size[0] for x in header_cells)
+    image = Image.new('RGBA', (full_width, cell_height),
+                       (255, 255, 255, 255))
+    x, y = 0, 0
+    for c in header_cells:
+        image.paste(c, (x, y), c)
+        x += c.size[0]
+    rows.append(image)
+
+    for row, bg in zip(df.itertuples(), cycle(row_bg_cycle)):
+        cells = []
+        for c, t in zip(columns, row):
+            font = header_font if c == 'Index' else text_font
+            image = Image.new('RGBA', (widths[c], cell_height),
+                              bg)
+            image_canvas = ImageDraw.Draw(image)
+            image_canvas.line([(widths[c] -1, 0), (widths[c]  -1, cell_height)],
+                              fill='black', width=1)
+            x = widths[c] - padding - 1
+            y = font_pos
+            text = str(t)
+            image_canvas.text((x, y), text=text, font=font,
+                              anchor="rm", align="right", fill=(0, 0, 0))
+            cells.append(image)
+
+        full_width = sum(x.size[0] for x in cells)
+        image = Image.new('RGBA', (full_width, cell_height),
+                          bg)
+        x, y = 0, 0
+        for c in cells:
+            image.paste(c, (x, y), c)
+            x += c.size[0]
+        rows.append(image)
+
+    full_width = rows[0].size[0]
+    full_height = sum(x.size[1] for x in rows)
+    image = Image.new('RGBA', (full_width, full_height),
+                      (255, 255, 255, 255))
+    x, y = 0, 0
+    for r in rows:
+        image.paste(r, (x, y), r)
+        y += r.size[1]
+
+    return image
+
+
+def seaborn_heatmap(df: DataFrame, fig=None, cmap="YlGnBu") -> Image:
+    if fig is None:
+        fig = plt.figure()
+    # fig.set_dpi(200)
+    # fig.set_size_inches(10,10)
+    sns.heatmap(df, annot=True, cmap="YlGnBu", cbar=True)
+    # fig = plot.get_figure()
+    img_buf = io.BytesIO()
+    fig.savefig(img_buf, format='png', bbox_inches='tight')
+    image = Image.open(img_buf)
+
+    return image
+# Nicer number rounding and formatting
+# df = df.round(0).astype(str).replace(r'\.0$', '%', regex=True)
+# df.columns = df.columns.astype(str)
+# percent_image = render_percent_table(df)
+# heatmap = seaborn_heatmap(df)
+
+full_image = create_tables(r_query)
+
+# # bokeh columns
+# columns = [TableColumn(field=str(Ci), title=str(Ci)) for Ci in df.columns]
+# # bokeh table
+# data_table = DataTable(columns=columns, source=ColumnDataSource(df))
+# # show(data_table)
 # export_png(data_table, filename="test.png")
 
 # table_image = create_tables(r_query)
