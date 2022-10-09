@@ -86,14 +86,13 @@ class Table():
     def add_teamselection(self, selection: TeamSelections, fix_order=True):
         if fix_order:
             for order in self.pick_orders:
-                # print(order)
                 t = selection.replay.endTimeUTC
                 match_start = t >= order.start
                 if order.end:
                     match_end = t < order.end
                 else:
                     match_end = True
-                # print(f"{match_start} {match_end}, {t}")
+
                 if match_start and match_end:
                     first_pick = order.first_pick
                     second_pick = order.second_pick
@@ -126,7 +125,6 @@ class Table():
         self.order_bounds = []
         for first, second in zip(self.orders[:-1], self.orders[1:]):
             if second - first > 1:
-                # print(f"{second}, {first}")
                 self.order_bounds.append(second)
 
     def _get_bottom_left(self, order: int, steam_id: int) -> Tuple[int, int]:
@@ -197,12 +195,10 @@ class Table():
             df.loc[self.player_list[p]] = counts
         # Missing orders will NaN
         df = df.fillna(0)
-        # print(df)
         if as_percent:
             df[self.orders] = df[self.orders].div(df[self.orders].sum(axis=1), axis=0).multiply(100)
             df = df.round(0)
         for column, bound in bounds.items():
-            print(column)
             df[column] = df[bound].sum(axis=1)
 
         return df
@@ -218,7 +214,7 @@ class Table():
         self.cell_table[steam_id][order] = cell
 
         if order not in self.orders:
-            print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
+            # print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
             self.order_size[order] = 0
             # self.order_size = dict(sorted(self.order_size.items()))
             self.add_order(order)
@@ -233,7 +229,6 @@ class Table():
 
     def highlight_row(self, axe, steam_id, colour):
         x, y = self._get_bottom_left(self.orders[0], steam_id)
-        print(f"Rect at {x}, {y}")
         rect = patches.Rectangle(
                                 (x, y),  # bottom left starting position (x,y)
                                 self.tot_width() + 0.5,  # width
@@ -343,7 +338,6 @@ class Table():
             text = player_list[p]
             x = width - 2*self.padding
             y = total + int(self.players_size[p]/2)
-            print(f"{x}, {y}::{text}")
             text_canvas.text((x, y), text=text, font=font,
                              anchor="rm", align="right", fill=(0, 0, 0))
             total += self.players_size[p]
@@ -403,7 +397,6 @@ class Table():
         for h in self.players_size.values():
             tot_h += h
             y = self.tot_height() - tot_h
-            print(f"Line at {y}")
             axe.plot(
                 [-1, self.tot_width() + 1],
                 [y, y],
@@ -412,7 +405,6 @@ class Table():
                 c='grey'
             )
         # Column lines
-        print(self.order_size)
         axe.plot(
                 [0, 0],
                 [0, self.tot_height() + .5],
@@ -564,7 +556,6 @@ class Cell():
             except (ValueError, KeyError):
                 print("Unable to find hero icon for (table): " + h)
                 continue
-            # print(f"{icon}, {x}, {y}::{self.table.hero_size}, {i}")
             # make_image_annotation(icon, axe, x, y, self.table.hero_size)
             make_image_annotation_table(icon, axe, x, y, self.table.hero_size)
             # x += self.table.padding
