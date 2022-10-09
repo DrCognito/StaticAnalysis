@@ -792,11 +792,12 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_rune_control{postfix}'] = relpath
 
-    output = team_path / "pick_tables.png"
-    table_image = create_tables(r_query, session, team)
-    table_image.save(output)
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['plot_picktables'] = relpath
+    if limit is not None:
+        output = team_path / "pick_tables.png"
+        table_image = create_tables(r_query, session, team)
+        table_image.save(output)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata['plot_picktables'] = relpath
 
     return metadata
 
