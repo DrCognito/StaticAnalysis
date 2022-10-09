@@ -32,27 +32,28 @@ class OrderTimeRegion:
 class Table():
     def __init__(self, player_list: dict, add_text=True) -> None:
         self.player_list = player_list
-        self.cell_table = {x: dict() for x in player_list}
+        self.cell_table = {x: dict() for x in self.player_list}
         self.orders = []
         self.order_size = {}
-        self.players_size = {}
         self.order_bounds = []
         self.order_positions = set()
         self.double_positions = set()
         self.add_text = add_text
         self.min_for_text = 2
+        self.players_size = {}
+        # Set a sensible minimum
+        for p in self.player_list:
+            self.players_size[p] = self.header_font_size + 2*self.padding
 
     def add_teamselection(self, selection: TeamSelections, fix_order=True):
         if fix_order:
             for order in self.pick_orders:
-                # print(order)
                 t = selection.replay.endTimeUTC
                 match_start = t >= order.start
                 if order.end:
                     match_end = t < order.end
                 else:
                     match_end = True
-                # print(f"{match_start} {match_end}, {t}")
                 if match_start and match_end:
                     first_pick = order.first_pick
                     second_pick = order.second_pick
@@ -85,7 +86,6 @@ class Table():
         self.order_bounds = []
         for first, second in zip(self.orders[:-1], self.orders[1:]):
             if second - first > 1:
-                # print(f"{second}, {first}")
                 self.order_bounds.append(second)
 
     def _get_bottom_left(self, order: int, steam_id: int) -> Tuple[int, int]:
@@ -118,6 +118,8 @@ class Table():
         self.orders.append(order)
         self.orders.sort()
         self._calc_order_bound()
+        min_width = (self.hero_size+self.padding)*self.heroes_per_row+self.padding
+        self.order_size[order] = min_width
 
     hero_size = 22
     padding = 2
@@ -155,14 +157,12 @@ class Table():
             counts = {x[0]:x[1].total_heroes for x in self.cell_table[p].items()}
             df.loc[self.player_list[p]] = counts
         # Missing orders will NaN
-        df = df.fillna(0)
-        # print(df)
         if as_percent:
             df[self.orders] = df[self.orders].div(df[self.orders].sum(axis=1), axis=0).multiply(100)
             df = df.round(0)
         for column, bound in bounds.items():
-            print(column)
             df[column] = df[bound].sum(axis=1)
+        df = df.fillna(0)
 
         return df
 
@@ -177,22 +177,22 @@ class Table():
         self.cell_table[steam_id][order] = cell
 
         if order not in self.orders:
-            print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
+            # print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
             self.order_size[order] = 0
             # self.order_size = dict(sorted(self.order_size.items()))
             self.add_order(order)
         width, height = cell.cell_size(include_text=self.add_text)
         # Minimum should be the hero width
-        min_width = (self.hero_size+self.padding)*self.heroes_per_row+self.padding
-        current_width = self.order_size.get(order, min_width)
+        # min_width = (self.hero_size+self.padding)*self.heroes_per_row+self.padding
+        current_width = self.order_size[order]
         # Minimum should be the player font size
-        current_height = self.players_size.get(steam_id, self.header_font_size)
+        # current_height = self.players_size.get(steam_id, self.header_font_size)
+        current_height = self.players_size[steam_id]
         self.order_size[order] = max(current_width, width)
         self.players_size[steam_id] = max(current_height, height)
 
     def highlight_row(self, axe, steam_id, colour):
         x, y = self._get_bottom_left(self.orders[0], steam_id)
-        print(f"Rect at {x}, {y}")
         rect = patches.Rectangle(
                                 (x, y),  # bottom left starting position (x,y)
                                 self.tot_width() + 0.5,  # width
@@ -292,17 +292,16 @@ class Table():
     def draw_player_names(self):
         font = ImageFont.truetype('arialbd.ttf', self.header_font_size)
         width = 0
-        for name in player_list.values():
+        for name in self.player_list.values():
             width = max(width, int(font.getlength(name)))
         width += 4*self.padding
         text_image = Image.new('RGBA', (width, self.tot_height()), (255, 255, 255, 255))
         text_canvas = ImageDraw.Draw(text_image)
         total = 0
-        for p in player_list:
-            text = player_list[p]
+        for p in self.player_list:
+            text = self.player_list[p]
             x = width - 2*self.padding
             y = total + int(self.players_size[p]/2)
-            print(f"{x}, {y}::{text}")
             text_canvas.text((x, y), text=text, font=font,
                              anchor="rm", align="right", fill=(0, 0, 0))
             total += self.players_size[p]
@@ -346,7 +345,7 @@ class Table():
         axe.axis('off')
         self.add_order_text(axe)
         self.add_name_text(axe)
-        for p, highlight in zip(player_list, cycle([False, True])):
+        for p, highlight in zip(self.player_list, cycle([False, True])):
             if highlight:
             # if True:
                 self.highlight_row(axe, p, "grey")
@@ -362,7 +361,6 @@ class Table():
         for h in self.players_size.values():
             tot_h += h
             y = self.tot_height() - tot_h
-            print(f"Line at {y}")
             axe.plot(
                 [-1, self.tot_width() + 1],
                 [y, y],
@@ -371,7 +369,6 @@ class Table():
                 c='grey'
             )
         # Column lines
-        print(self.order_size)
         axe.plot(
                 [0, 0],
                 [0, self.tot_height() + .5],
@@ -523,7 +520,6 @@ class Cell():
             except (ValueError, KeyError):
                 print("Unable to find hero icon for (table): " + h)
                 continue
-            # print(f"{icon}, {x}, {y}::{self.table.hero_size}, {i}")
             # make_image_annotation(icon, axe, x, y, self.table.hero_size)
             make_image_annotation_table(icon, axe, x, y, self.table.hero_size)
             # x += self.table.padding
