@@ -35,7 +35,7 @@ import io
 og_id = 2586976
 entity = 8605863
 psg = 15
-team_id = og_id
+team_id = entity
 time = ImportantTimes['Patch_7_32']
 team = db.get_team(team_id)
 r_query = team.get_replays(db.session).filter(Replay.endTimeUTC >= time)
@@ -584,14 +584,14 @@ def create_tables(r_query: Query, add_text=True) -> Image:
 
     df = pick_table.get_dataframe(as_percent=True)
     # Seaborn heatmap
-    summary_table = seaborn_heatmap(df)
+    # summary_table = seaborn_heatmap(df)
     # image
     # Nicer number rounding and formatting
     df = df.round(0).astype(str).replace(r'\.0$', '%', regex=True)
     avg_cell_width = table_image.size[0]//(len(df.columns)+3)
-    # summary_table = render_percent_table(df, min_width=avg_cell_width)
+    summary_table = render_percent_table(df, min_width=avg_cell_width)
 
-    spacing = 100
+    spacing = 1
     width = max(summary_table.size[0], table_image.size[0])
     height = summary_table.size[1] + table_image.size[1] + spacing
     final = Image.new('RGBA', (width, height),
@@ -629,7 +629,7 @@ def render_percent_table(df: DataFrame, min_width=50,
         for n, t in zip(columns, row):
             font = header_font if n == 'Index' else text_font
             text = str(t)
-            length = ceil(font.getlength(text)) + 2*padding
+            length = ceil(font.getlength(text)) + 4*padding + 1
             widths[n] = max(widths[n], length)
     # Do column names too!
     for c in columns:

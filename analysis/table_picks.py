@@ -580,9 +580,14 @@ def render_percent_table(df: DataFrame, min_width=50,
     for row in df.itertuples(name=None):
         # Use text_font for other
         for n, t in zip(columns, row):
-            font = header_font if n == 'Index' else text_font
+            if n == 'Index':
+                font = header_font
+                pad = 4*padding + 1
+            else:
+                font = text_font
+                pad = 2*padding
             text = str(t)
-            length = ceil(font.getlength(text)) + 2*padding
+            length = ceil(font.getlength(text)) + pad
             widths[n] = max(widths[n], length)
     # Do column names too!
     for c in columns:
