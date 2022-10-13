@@ -1224,6 +1224,7 @@ if __name__ == "__main__":
                 team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
 
                 if team_scrims is None:
+                    print(f"No scrims for {team.name}. Skipping.")
                     continue
                 scrim_list = list(team_scrims.keys())
                 metadata = get_create_metadata(team, "Scrims")
