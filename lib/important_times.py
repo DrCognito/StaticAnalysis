@@ -2,6 +2,9 @@ import datetime
 import pytz
 
 Shanghai = pytz.timezone('Asia/Shanghai')
+Malaysia = pytz.timezone('Asia/Kuala_Lumpur')
+Singapore = pytz.timezone('Asia/Singapore')
+Uk = pytz.timezone('Europe/London')
 ImportantTimes = {
     'Patch_6_88':datetime.datetime(2016, 6, 12, 0, 0, 0, 0),
     'Patch_7_00':datetime.datetime(2016, 12, 13, 0, 0, 0, 0),
@@ -38,4 +41,7 @@ ImportantTimes = {
     'Arlington_2022': datetime.datetime(2022, 8, 4, 0, 0, 0, 0),
     'Malaysia_2022': datetime.datetime(2022, 8, 23, 0, 0, 0, 0),
     'Patch_7_32': datetime.datetime(2022, 8, 24, 0, 0, 0, 0),
+    'Bootcamp': datetime.datetime(2022, 9, 21, 0, 0, 0, 0, tzinfo=Malaysia),
+    'TI_2022': datetime.datetime(2022, 10, 15, 0, 0, 0, 0, tzinfo=Singapore),
+    'TI2022Playoffs': datetime.datetime(2022, 10, 20, 0, 0, 0, 0, tzinfo=Singapore),
 }
