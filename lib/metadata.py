@@ -74,7 +74,21 @@ def has_type(session, replay: Replay, Type) -> bool:
 
 
 def has_picks(session, replay: Replay) -> bool:
-    return has_type(session, replay, Player)
+    try:
+        t0 = len(replay.teams[0].draft) > 0
+        t1 = len(replay.teams[1].draft) > 0
+    except IndexError:
+        print(f"Invalid teams for {replay.replayID}")
+        return False
+
+    if t0 and t1:
+        return True
+    if t0:
+        print("Missing pickbans for one team (1)")
+    if t1:
+        print("Missing pickbans for one team (0)")
+
+    return False
 
 
 def has_wards(session, replay: Replay) -> bool:
