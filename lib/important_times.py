@@ -44,4 +44,6 @@ ImportantTimes = {
     'Bootcamp': datetime.datetime(2022, 9, 21, 0, 0, 0, 0, tzinfo=Malaysia),
     'TI_2022': datetime.datetime(2022, 10, 15, 0, 0, 0, 0, tzinfo=Singapore),
     'TI2022Playoffs': datetime.datetime(2022, 10, 20, 0, 0, 0, 0, tzinfo=Singapore),
+    'Quals2023': datetime.datetime(2022, 11, 28, 0, 0, 0, 0),
+    'Season2023': datetime.datetime(2022, 12, 21, 0, 0, 0, 0),
 }
