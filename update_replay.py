@@ -26,6 +26,10 @@ def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
     json_files = list(Path(base_path).glob('*.json'))
     for j in json_files:
         print(j)
+        archive = Path(DRAFT_ARCHIVE_PATH) / j.name
+        if archive.exists():
+            print(f"File already processed and exists in archive! {archive}")
+            continue
         try:
             populate_from_JSON_file(j, session, skip_existing)
         except SQLAlchemyError as e:
@@ -47,6 +51,10 @@ def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
     json_files = list(Path(base_path).glob('*.json'))
     for j in json_files[:limit]:
         print(j)
+        archive = Path(ARCHIVE_PATH) / j.name
+        if archive.exists():
+            print(f"File already processed and exists in archive! {archive}")
+            continue
         try:
             populate_from_JSON_file(j, session, skip_existing=skip_existing)
         except SQLAlchemyError as e:
