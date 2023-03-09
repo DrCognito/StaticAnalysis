@@ -46,5 +46,6 @@ ImportantTimes = {
     'TI2022Playoffs': datetime.datetime(2022, 10, 20, 0, 0, 0, 0, tzinfo=Singapore),
     'Quals2023': datetime.datetime(2022, 11, 28, 0, 0, 0, 0),
     'Season2023': datetime.datetime(2022, 12, 21, 0, 0, 0, 0),
-    'S2023_Tour2': datetime.datetime(2022, 3, 8, 0, 0, 0, 0),
+    'DPC_T1': datetime.datetime(2023, 9, 1, 0, 0, 0, 0),
+    'S2023_Tour2': datetime.datetime(2023, 3, 8, 0, 0, 0, 0),
 }
