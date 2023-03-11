@@ -19,7 +19,7 @@ def get_replay_id(json_in, path):
             print("Warning, replay {} has an invalid replay ID".format(path))
             replay_id = path.stem
 
-    return replay_id
+    return int(replay_id)
 
 
 def get_end_time_UTC(json_in):
