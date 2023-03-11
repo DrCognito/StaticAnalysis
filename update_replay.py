@@ -79,7 +79,20 @@ def reprocess_replay(replays):
         process_file = Path(ARCHIVE_PATH) / file
         if process_file.exists():
             print("Reprocessing ", process_file)
-            populate_from_JSON_file(process_file, session, skip_existing=False)
+            try:
+                populate_from_JSON_file(process_file, session, skip_existing=False)
+            except SQLAlchemyError as e:
+                print(e)
+                print("Failed to process {}".format(j))
+                session.rollback()
+                exit(2)
+            except IOError as e:
+                print(e)
+                print("IOError reading {}".format(j))
+                session.rollback()
+                exit(3)
+        session.commit()
+
 
 
 arguments = ArgumentParser()
