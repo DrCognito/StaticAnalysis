@@ -59,6 +59,9 @@ def get_team_id(name: str) -> int:
 
 
 def is_valid_replay(replay: Replay) -> bool:
+    if len(replay.teams) != 2:
+        print(f"Warning invalid number of teams in {replay.replayID}.")
+        return False
     if replay.teams[0].teamID == 0:
         return False
     if replay.teams[0].teamName == '':
