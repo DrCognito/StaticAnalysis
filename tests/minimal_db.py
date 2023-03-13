@@ -8,7 +8,7 @@ from replays.Replay import InitDB, Replay, Team
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 from lib.important_times import ImportantTimes
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, any_
 from lib.team_info import InitTeamDB, TeamInfo
 from replays.TeamSelections import TeamSelections, PickBans
 
@@ -61,8 +61,10 @@ print(liquid.players[0].name)
 
 hero = "npc_dota_hero_puck"
 latest5 = [r.replayID for r in r_query.order_by(Replay.replayID.desc()).limit(5)]
-pick_filter = and_(or_(TeamSelections.teamID == team.team_id, TeamSelections.stackID == team.stack_id),
-                       TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick)))
+team_filter = or_(TeamSelections.teamID == team.team_id,
+                  TeamSelections.stackID.in_([team.stack_id, team.extra_stackid]))
+pick_filter = TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick))
+pick_filter = and_(team_filter, pick_filter)
 
 full_filter = and_(TeamSelections.replay_ID.in_(latest5), pick_filter)
 

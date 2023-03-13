@@ -912,7 +912,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if replay_list is not None:
         r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
     try:
-        r_query = team.get_replays(session, extra_stackid).filter(r_filter)
+        r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
         print(e)
         print("Failed to retrieve replays for team {}".format(team.name))

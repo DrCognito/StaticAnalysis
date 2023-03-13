@@ -82,8 +82,10 @@ def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
     output = DataFrame(columns=['Pick', 'Ban',
                                 'Opponent Pick', 'Opponent Ban'])
 
-    pick_filter = and_(or_(TeamSelections.teamID == team.team_id, TeamSelections.stackID == team.stack_id),
-                       TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick)))
+    team_filter = or_(TeamSelections.teamID == team.team_id,
+                      TeamSelections.stackID.in_([team.stack_id, team.extra_stackid]))
+    pick_filter = TeamSelections.draft.any(and_(PickBans.hero == hero, PickBans.is_pick))
+    pick_filter = and_(team_filter, pick_filter)
     if limit is not None:
         latest5 = [r.replayID for r in r_query.order_by(Replay.replayID.desc()).limit(limit)]
         pick_filter = and_(TeamSelections.replay_ID.in_(latest5), pick_filter)
@@ -94,7 +96,9 @@ def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
     for r in replays:
         found_hero = False
         for t in r.teams:
-            if t.teamID != team.team_id and t.stackID != team.stack_id:
+            if (t.teamID != team.team_id and
+                t.stackID != team.stack_id and
+                t.stackID != team.extra_stackid):
                 opponent = True
             else:
                 opponent = False

@@ -199,11 +199,13 @@ def get_rune_control(r_query, team: TeamInfo, limit=None):
 
     match: Replay
     for match in r_query:
-        if match.teams[0].teamID == team.team_id or\
-           match.teams[0].stackID == team.stack_id:
+        if (match.teams[0].teamID == team.team_id or
+           match.teams[0].stackID == team.stack_id or
+           match.teams[0].stackID == team.extra_stackid):
             team_side = match.teams[0].team
         elif match.teams[1].teamID == team.team_id or\
-             match.teams[1].stackID == team.stack_id:
+             match.teams[1].stackID == team.stack_id or\
+             match.teams[1].stackID == team.extra_stackid:
             team_side = match.teams[1].team
         else:
             raise ValueError("Could not find team {} in replay {}"
@@ -284,7 +286,9 @@ def pair_rate(session, r_query, team, limit=None):
                            .order_by(PickBans.order)\
                            .all()
         for t in replay.teams:
-            if t.teamID != team.team_id and t.stackID != team.stack_id:
+            if (t.teamID != team.team_id and
+                t.stackID != team.stack_id and
+                t.stackID != team.extra_stackid):
                 continue
 
             dire, radiant = _pairs_by_side(all_picks)
@@ -324,7 +328,9 @@ def draft_summary(session, r_query, team, limit=None) -> (DataFrame, DataFrame):
     #     for t in replay.team:
 
     for t in team_res:
-        if t.teamID != team.team_id and t.stackID != team.stack_id:
+        if (t.teamID != team.team_id and
+            t.stackID != team.stack_id and
+            t.stackID != team.extra_stackid):
             continue
         # for draft in t.draft:
         picks = {}

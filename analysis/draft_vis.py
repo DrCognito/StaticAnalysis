@@ -459,7 +459,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         if len(t.draft) == 0:
             print("Failed to get draft for {} in replay {}".format(str(t.team), t.replay_ID))
             return None
-        if t.teamID == team.team_id or t.stackID == team.stack_id:
+        if t.teamID == team.team_id or t.stackID == team.stack_id or t.stackID == team.extra_stackid:
             team_line = process_team_dotabuff(replay, t)
             main_team_faction = t.team
 
@@ -555,7 +555,8 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         # Check to see if our team is picked first
         # If it is our team then this is true if they had first pick too, else false
         if (replay.teams[0].teamID == team.team_id or
-            replay.teams[0].stackID == team.stack_id):
+            replay.teams[0].stackID == team.stack_id or
+            replay.teams[0].stackID == team.extra_stackid):
             team_num = 0
         else:
             team_num = 1
