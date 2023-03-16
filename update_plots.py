@@ -93,6 +93,10 @@ arguments.add_argument('--use_time',
                        help='''Specify a time from lib.important_times
                                to use for cut.''',
                        nargs='+')
+arguments.add_argument('--end_time',
+                       help='''Specify a time from lib.important_times
+                               to use for the end of the section.''',
+                       nargs='+')
 arguments.add_argument('--custom_time',
                        help='''Specity a unix time to over-ride time cut.''',
                        type=int)
@@ -897,7 +901,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
-def process_team(team: TeamInfo, metadata, time: datetime,
+def process_team(team: TeamInfo, metadata, time: datetime, end_time: datetime,
                  args: argparse.Namespace, replay_list=None):
 
     reprocess = args.reprocess
@@ -908,8 +912,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
-    r_filter = Replay.endTimeUTC >= time
-    r_filter = Replay.endTimeUTC.between(time, ImportantTimes['TI_2022_END'])
+    if end_time is not None:
+        r_filter = Replay.endTimeUTC.between(time, end_time)
+    else:
+        r_filter = Replay.endTimeUTC >= time
+
     if replay_list is not None:
         r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
     try:
@@ -1168,6 +1175,18 @@ if __name__ == "__main__":
                 exit()
     if args.custom_time is not None:
         TIME_CUT = {"custom": datetime.utcfromtimestamp(args.custom_time),}
+    # Ensure that if we have time limits we have the correct number.
+    if args.end_time is not None:
+        for time in args.end_time:
+            if time not in ImportantTimes:
+                print("--end_time must correspond to a time in ImportantTimes:")
+                print(*(k for k in ImportantTimes.keys()))
+                exit()
+        if len(args.end_time) != len(TIME_CUT):
+            print("If defined --end_time must have an end time for all --use_time and the custom time if set.")
+            print(f"{args.end_time}")
+            print(f"{args.use_time} + {args.custom_time}")
+            exit()
 
     # if args.use_dataset:
     #     data_set_name = args.use_dataset
