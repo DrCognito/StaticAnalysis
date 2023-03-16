@@ -909,7 +909,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
     r_filter = Replay.endTimeUTC >= time
-    r_filter = Replay.endTimeUTC.between(time, ImportantTimes['TI_2022_END'] )
+    r_filter = Replay.endTimeUTC.between(time, ImportantTimes['TI_2022_END'])
     if replay_list is not None:
         r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
     try:
