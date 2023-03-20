@@ -16,6 +16,7 @@ ImportantTimes = {
     'Patch_7_07':datetime.datetime(2017, 11, 1, 0, 0, 0, 0),
     'MDLQual':datetime.datetime(2018, 3, 14, 0, 0, 0, 0),
     'BCampBerlin':datetime.datetime(2018, 3, 19, 0, 0, 0, 0),
+    'Now':datetime.datetime.now(),
     'PreviousMonth':datetime.datetime.today() - datetime.timedelta(days=30),
     'PreviousBiMonth': datetime.datetime.today() - datetime.timedelta(days=60),
     'PreviousTriMonth': datetime.datetime.today() - datetime.timedelta(days=95),
