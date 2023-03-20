@@ -5,6 +5,7 @@ from datetime import datetime
 from os import environ as environment
 from os import mkdir
 from pathlib import Path
+import cProfile
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -960,11 +961,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if args.positioning:
         print("Processing positioning.", end=" ")
         start = t.process_time()
-        metadata = do_positioning(team, r_query,
-                                  -2*60, 10*60,
-                                  metadata,
-                                  new_dire, new_radiant
-                                  )
+        # cProfile.runctx('do_positioning(team, r_query, -2*60, 10*60, metadata, new_dire, new_radiant)',
+        #                 globals=globals(), locals=locals(), filename="do_pos")
+        do_positioning(team, r_query, -2*60, 10*60, metadata, new_dire, new_radiant)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.wards:
