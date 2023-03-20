@@ -54,6 +54,7 @@ from analysis.route_vis import plot_pregame_players
 from analysis.table_picks import create_tables
 import shutil
 import time as t
+import pytz
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -69,6 +70,7 @@ team_session = team_maker()
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
+END_TIME = []
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
 
@@ -93,6 +95,10 @@ arguments.add_argument('--use_time',
                        help='''Specify a time from lib.important_times
                                to use for cut.''',
                        nargs='+')
+arguments.add_argument('--end_time',
+                       help='''Specify a time from lib.important_times
+                               to use for the end of the section.''',
+                       nargs='+')
 arguments.add_argument('--custom_time',
                        help='''Specity a unix time to over-ride time cut.''',
                        type=int)
@@ -115,6 +121,8 @@ arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 arguments.add_argument('--default_off', action='store_true', default=False)
 arguments.add_argument('--scrim_time',
                        help='''Time cut for the scrims to be processed at.''')
+arguments.add_argument('--scrim_endtime',
+                       help='''Time cut for the scrims to be ended at.''')
 #endregion
 
 
@@ -898,7 +906,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
 
 
 def process_team(team: TeamInfo, metadata, time: datetime,
-                 args: argparse.Namespace, replay_list=None):
+                 args: argparse.Namespace, end_time: datetime = None, replay_list=None):
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
@@ -908,7 +916,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
-    r_filter = Replay.endTimeUTC >= time
+    if end_time is not None:
+        r_filter = Replay.endTimeUTC.between(time, end_time)
+    else:
+        r_filter = Replay.endTimeUTC >= time
+
     if replay_list is not None:
         r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
     try:
@@ -948,6 +960,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
     metadata['drafts_only_radiant'] = list(radiant_drafts)
+
+    # A nice string for the time
+    metadata['time_string'] = f"From {time.astimezone(pytz.timezone('CET')).strftime('%Y-%m-%d')}"
+    if end_time is not None:
+        metadata['time_string'] += f" to {end_time.astimezone(pytz.timezone('CET')).strftime('%Y-%m-%d')}"
 
     print("Process {}.".format(team.name))
     if args.draft:
@@ -1167,7 +1184,28 @@ if __name__ == "__main__":
                 exit()
     if args.custom_time is not None:
         TIME_CUT = {"custom": datetime.utcfromtimestamp(args.custom_time),}
+    # Ensure that if we have time limits we have the correct number.
+    if args.end_time is not None:
+        for time in args.end_time:
+            if time not in ImportantTimes:
+                print("--end_time must correspond to a time in ImportantTimes:")
+                print(*(k for k in ImportantTimes.keys()))
+                exit()
+            END_TIME.append(ImportantTimes[time])
+    else:
+        END_TIME = [None] * len(TIME_CUT)
 
+    if len(END_TIME) != len(TIME_CUT):
+        print("If defined --end_time must have an end time for all --use_time and the custom time if set.")
+        print(f"{args.end_time}")
+        print(f"{args.use_time} + {args.custom_time}")
+        exit()
+
+    if args.scrim_endtime is not None:
+        if args.scrim_endtime not in ImportantTimes:
+            print("--end_time must correspond to a time in ImportantTimes:")
+            print(*(k for k in ImportantTimes.keys()))
+            exit()
     # if args.use_dataset:
     #     data_set_name = args.use_dataset
     # elif args.use_time:
@@ -1212,12 +1250,12 @@ if __name__ == "__main__":
                 print("Unable to find team {} in database!"
                       .format(proc_team))
 
-            for time in TIME_CUT:
+            for time, end in zip(TIME_CUT, END_TIME):
                 data_set_name = time
                 metadata = get_create_metadata(team, data_set_name)
                 metadata['time_cut'] = TIME_CUT[time].timestamp()
 
-                process_team(team, metadata, TIME_CUT[time], args)
+                process_team(team, metadata, TIME_CUT[time], args, end_time=end)
 
             if args.scrim_time:
                 done_scrims = True
@@ -1226,10 +1264,14 @@ if __name__ == "__main__":
                 if team_scrims is None:
                     print(f"No scrims for {team.name}. Skipping.")
                     continue
+                end_time = None
+                if args.scrim_endtime is not None:
+                    end_time = ImportantTimes[args.scrim_endtime]
                 scrim_list = list(team_scrims.keys())
                 metadata = get_create_metadata(team, "Scrims")
                 metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
-                process_team(team, metadata, ImportantTimes[args.scrim_time], args, replay_list=scrim_list)
+                process_team(team, metadata, ImportantTimes[args.scrim_time],
+                             args, end_time=end_time, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
