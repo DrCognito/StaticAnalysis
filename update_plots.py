@@ -910,9 +910,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
-    navi_cut = datetime(2020, 9, 22, 0, 0, 0, 0)
-    if team.team_id == 36 and time < navi_cut:
-        team.extra_id_filter = Replay.endTimeUTC >= navi_cut
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
