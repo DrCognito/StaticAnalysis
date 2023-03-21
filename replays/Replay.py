@@ -80,14 +80,14 @@ class Replay(Base):
         yield from (p for p in self.players if p.team == team)
 
     @staticmethod
-    def get_side_filter(team, side, extra_stackID=None):
+    def get_side_filter(team: Team, side):
         id_filter = Replay.teams.any((TeamSelections.TeamSelections.teamID == team.team_id) &
                                      (TeamSelections.TeamSelections.team == side))
         stack_filter = Replay.teams.any((TeamSelections.TeamSelections.stackID == team.stack_id) &
                                         (TeamSelections.TeamSelections.team == side))
-        if extra_stackID is not None:
-            assert(extra_stackID != team.stack_id)
-            extra = Replay.teams.any((TeamSelections.TeamSelections.stackID == extra_stackID) &
+        if team.extra_stackid is not None:
+            assert team.extra_stackid != team.stack_id
+            extra = Replay.teams.any((TeamSelections.TeamSelections.stackID == team.extra_stackid) &
                                      (TeamSelections.TeamSelections.team == side))
 
             final_filter = or_(id_filter, stack_filter, extra)
