@@ -1,7 +1,7 @@
 from operator import or_
 from .Statistics import x_vs_time, xy_vs_time
 from datetime import timedelta
-from pandas import Series, concat, DataFrame
+from pandas import Series, concat, DataFrame, read_sql
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -10,6 +10,9 @@ from replays.Replay import Replay, Team
 from replays.TeamSelections import TeamSelections, PickBans
 from sqlalchemy import and_, any_
 from lib.team_info import TeamInfo
+from sqlalchemy.orm.query import Query
+from sqlalchemy.orm import Session
+from cache.player_pos import PlayerPosIndex, PlayerPos, is_cached, get_dataframe
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -162,3 +165,35 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
         return player_q, player_q_limited
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
+
+
+PP_VERSION = 1
+
+def get_dataframe(session: Session, replay_id: int, steam_id: int, cache=True) -> DataFrame:
+    query = session.query(PlayerStatus).filter(PlayerStatus.replayID == replay_id,
+                                               PlayerStatus.steamID == steam_id)
+    if query.count() == 0:
+        return DataFrame()
+
+    sql_query = query.with_entities(PlayerStatus.xCoordinate,
+                                    PlayerStatus.yCoordinate).statement
+    df = read_sql(sql_query, session.bind)
+def player_position_table(session: Session, r_query: Query, team: TeamInfo, steam_id: int,
+                          start: int, end: int, side: Team,
+                          cache_sess: Session, limit=None) -> DataFrame:
+    # Get replayIDs
+    side_filt = Replay.get_side_filter(team, side)
+    replays = r_query.filter(side_filt)
+    if limit is not None:
+        replays = replays.limit(limit)
+    replay_ids = [r[0] for r in replays.with_entities(Replay.replayID).all()]
+    cached = []
+    new = []
+    for r in replay_ids:
+        if is_cached(cache_sess, r, steam_id, PP_VERSION):
+            cached.append(r)
+        else:
+            new.append(r)
+
+    dfs = []
+    dfs.append(get_dataframe(cache_sess, cached, steam_id))
