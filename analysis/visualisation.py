@@ -546,8 +546,8 @@ def plot_player_positioning(query_data: DataFrame, ax_in):
                         zorder=2)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    # img = mpimg.imread(environment['MAP_PATH'])
+    # ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
     # Reposition colourbar
     # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
@@ -559,6 +559,14 @@ def plot_player_positioning(query_data: DataFrame, ax_in):
     cbar.ax.tick_params(labelsize=14)
 
     return ax_in, side_bar, cbar.ax, plot.axes
+
+
+def add_map(ax_in):
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    # ax_in.axis('off')
+
+    return ax_in
 
 
 def plot_object_position(query_data: DataFrame, bins=64,
@@ -597,8 +605,8 @@ def plot_object_position(query_data: DataFrame, bins=64,
         cbar.ax.tick_params(labelsize=14)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    # img = mpimg.imread(environment['MAP_PATH'])
+    # ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
 
     return ax_in
