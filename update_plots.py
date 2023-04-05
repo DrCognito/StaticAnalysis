@@ -12,6 +12,7 @@ from matplotlib import ticker, rcParams
 from dotenv import load_dotenv
 from matplotlib.ticker import MaxNLocator
 import matplotlib.patheffects as PathEffects
+from matplotlib.figure import Figure
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
@@ -35,7 +36,8 @@ from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
                                     plot_pick_context, plot_pick_pairs,
                                     plot_player_heroes,
                                     plot_player_positioning, plot_runes,
-                                    get_binning_percentile_xy, plot_flex_picks)
+                                    get_binning_percentile_xy, plot_flex_picks,
+                                    add_map)
 from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords, ChainedAssignent)
 from lib.important_times import ImportantTimes
@@ -55,6 +57,8 @@ from analysis.table_picks import create_tables
 import shutil
 import time as t
 import pytz
+import pickle
+from io import BytesIO
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -167,6 +171,30 @@ def store_metadata(team: TeamInfo, metadata):
 
     return meta_json
 
+pickled = None
+def pickle_position():
+    global pickled
+    if pickled is None:
+        fig = Figure()
+        axes = fig.subplots(1, 2,)
+        fig.set_size_inches(15, 10)
+        axes[0] = add_map(axes[0])
+        axes[1] = add_map(axes[1])
+
+        pickled = BytesIO()
+        pickle.dump(fig, pickled)
+        return fig
+    else:
+        pickled.seek(0)
+        fig = pickle.load(pickled)
+        return fig
+    # fig = Figure()
+    # axes = fig.subplots(1, 2,)
+    # fig.set_size_inches(15, 10)
+    # axes[0] = add_map(axes[0])
+    # axes[1] = add_map(axes[1])
+    # return fig
+
 
 def do_positioning(team: TeamInfo, r_query,
                    start: int, end: int,
@@ -208,9 +236,10 @@ def do_positioning(team: TeamInfo, r_query,
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
                 continue
-            fig, axes = plt.subplots(1, 2, figsize=(15, 10))
-
-            output = team_path / 'dire' / (p_name + '.jpg')
+            # fig, axes = plt.subplots(1, 2, figsize=(15, 10))
+            fig = pickle_position()
+            axes = fig.get_axes()
+            output = team_path / 'dire' / (p_name + '.png')
             dire_ancient_filter = location_filter(dire_ancient_cords,
                                                   PlayerStatus)
             pos_dire = pos_dire.filter(dire_ancient_filter)
@@ -228,9 +257,13 @@ def do_positioning(team: TeamInfo, r_query,
             axis = plot_object_position(pos_dire_limited_df,
                                         bins=64, ax_in=axes[1],
                                         vmin=vmin, vmax=vmax)
+            # axis = plot_object_position(pos_dire_limited_df,
+            #                             bins=64, ax_in=axes[1])
             axis.set_title('Latest 5 games')
             fig.tight_layout()
-            fig.savefig(output, bbox_inches='tight')
+            # fig.savefig(output, bbox_inches='tight')
+            with open(output, "wb") as f:
+                pickle.dump(fig, f)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
             fig.clf()
@@ -239,19 +272,22 @@ def do_positioning(team: TeamInfo, r_query,
             if pos_radiant.count() == 0:
                 print("No data for {} on Radiant.".format(team.players[pos].name))
                 continue
-            fig, axes = plt.subplots(1, 2, figsize=(15, 10))
+            # fig, axes = plt.subplots(1, 2, figsize=(15, 10))
+            fig = pickle_position()
+            axes = fig.get_axes()
 
-            output = team_path / 'radiant' / (p_name + '.jpg')
-            # axes = fig.subplots(1, 2)
+            output = team_path / 'radiant' / (p_name + '.pickle')
             ancient_filter = location_filter(radiant_ancient_cords,
                                              PlayerStatus)
             pos_radiant = pos_radiant.filter(ancient_filter)
             pos_radiant_df = dataframe_xy(pos_radiant, PlayerStatus, session)
-            vmin, vmax = get_binning_percentile_xy(pos_radiant_df)
+            vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_radiant_df,
-                                        bins=64, fig_in=fig, ax_in=axes[0],
+                                        bins=64, ax_in=axes[1],
                                         vmin=vmin, vmax=vmax)
+            # axis = plot_object_position(pos_radiant_df,
+            #                             bins=64, ax_in=axes[1])
 
             pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
             pos_radiant_limited_df = dataframe_xy(pos_radiant_limited, PlayerStatus, session)
@@ -262,7 +298,9 @@ def do_positioning(team: TeamInfo, r_query,
                                         vmin=vmin, vmax=vmax)
             axis.set_title('Latest 5 games')
             fig.tight_layout()
-            fig.savefig(output, bbox_inches='tight')
+            # fig.savefig(output, bbox_inches='tight')
+            with open(output, "wb") as f:
+                pickle.dump(fig, f)
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_radiant'].append(relpath)
             fig.clf()
@@ -1155,16 +1193,16 @@ def do_datasummary(r_filter=None):
 
         return fig, axList
 
-    data_plot_dir = Path(environment['DATA_SUMMARY_OUTPUT'])
-    fig, ax = _ward_summary(dire_summary)
-    fig.tight_layout()
-    fig.savefig(data_plot_dir / 'wards_dire.png')
-    plt.close(fig)
+    # data_plot_dir = Path(environment['DATA_SUMMARY_OUTPUT'])
+    # fig, ax = _ward_summary(dire_summary)
+    # fig.tight_layout()
+    # fig.savefig(data_plot_dir / 'wards_dire.png')
+    # plt.close(fig)
 
-    fig, ax = _ward_summary(radiant_summary)
-    fig.tight_layout()
-    fig.savefig(data_plot_dir / 'wards_radiant.png')
-    plt.close(fig)
+    # fig, ax = _ward_summary(radiant_summary)
+    # fig.tight_layout()
+    # fig.savefig(data_plot_dir / 'wards_radiant.png')
+    # plt.close(fig)
 
 
 if __name__ == "__main__":
