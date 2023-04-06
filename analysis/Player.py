@@ -1,7 +1,7 @@
 from operator import or_
 from .Statistics import x_vs_time, xy_vs_time
 from datetime import timedelta
-from pandas import Series, concat, DataFrame, read_sql
+from pandas import Series, concat, DataFrame, read_sql, cut
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -12,7 +12,7 @@ from sqlalchemy import and_, any_
 from lib.team_info import TeamInfo
 from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import Session
-from cache.player_pos import PlayerPosIndex, PlayerPos, is_cached, get_dataframe
+from cache.player_pos import is_cached, get_cache_dataframe, add_cache
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -167,17 +167,49 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
 
 
+def process_df_xy(df: DataFrame, bins=64, min_percentile=0.7):
+    binning = [float(x)/bins for x in range(bins)]
+    df['xBin'] = cut(df['xCoordinate'], binning)
+    df['yBin'] = cut(df['yCoordinate'], binning)
+
+    weightSeries = df.groupby(['xBin', 'yBin']).size()
+    flat_index = weightSeries.reset_index()
+    if min_percentile is not None:
+        q1 = weightSeries.quantile(min_percentile)
+        flat_index = flat_index[flat_index[0] > q1]
+
+    # Replace our coords with mid points
+    flat_index['xCoordinate'] = flat_index['xBin'].apply(lambda x: x.mid)
+    flat_index['yCoordinate'] = flat_index['yBin'].apply(lambda x: x.mid)
+    flat_index.rename(columns={0:'count'})
+
+    return flat_index[['xCoordinate', 'yCoordinate', 'count']]
+
+
 PP_VERSION = 1
 
-def get_dataframe(session: Session, replay_id: int, steam_id: int, cache=True) -> DataFrame:
+
+def get_dataframe(session: Session, replay_id: int, steam_id: int,
+                  start: int, end: int) -> DataFrame:
     query = session.query(PlayerStatus).filter(PlayerStatus.replayID == replay_id,
                                                PlayerStatus.steamID == steam_id)
+    t_filter = ()
+    if start is not None:
+        t_filter += (PlayerStatus.game_time >= start,)
+    if end is not None:
+        t_filter += (PlayerStatus.game_time <= end,)
+    if len(t_filter > 0):
+        query = query.filter(*t_filter)
+
     if query.count() == 0:
         return DataFrame()
 
     sql_query = query.with_entities(PlayerStatus.xCoordinate,
                                     PlayerStatus.yCoordinate).statement
     df = read_sql(sql_query, session.bind)
+    df = process_df_xy(df)
+
+
 def player_position_table(session: Session, r_query: Query, team: TeamInfo, steam_id: int,
                           start: int, end: int, side: Team,
                           cache_sess: Session, limit=None) -> DataFrame:
@@ -196,4 +228,18 @@ def player_position_table(session: Session, r_query: Query, team: TeamInfo, stea
             new.append(r)
 
     dfs = []
-    dfs.append(get_dataframe(cache_sess, cached, steam_id))
+    # Get the cached ones
+    dfs.append(get_cache_dataframe(cache_sess, cached, steam_id))
+
+    # Get the none cached ones and then cache them
+    for r in new:
+        r_df = get_dataframe(session, r, steam_id, start, end)
+        if r_df.empty:
+            print(f"No position data found for {steam_id} in {r}")
+            continue
+
+        add_cache(cache_sess, r_df, r, steam_id, PP_VERSION)
+        dfs.append(r_df)
+
+    result = concat(dfs)
+    return result
