@@ -1,23 +1,24 @@
+import copy
 from os import environ as environment
 from typing import Dict
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 import numpy as np
 from matplotlib import ticker
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from matplotlib.ticker import MaxNLocator, FormatStrFormatter
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
-from lib.team_info import TeamInfo
 
-from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
-from .Player import pick_context
+from StaticAnalysis.analysis.Player import pick_context
+from StaticAnalysis.lib.HeroTools import (HeroIconPrefix, HeroIDType,
+                                          convertName, heroShortName)
+from StaticAnalysis.lib.team_info import TeamInfo
 
-import copy
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
 

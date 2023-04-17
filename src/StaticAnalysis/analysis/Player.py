@@ -1,15 +1,13 @@
-from operator import or_
-from .Statistics import x_vs_time, xy_vs_time
 from datetime import timedelta
-from pandas import Series, concat, DataFrame
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from replays.Player import Player, PlayerStatus
-from replays.Replay import Replay, Team
-from replays.TeamSelections import TeamSelections, PickBans
-from sqlalchemy import and_, any_
-from lib.team_info import TeamInfo
+from operator import or_
+
+from pandas import DataFrame, Series, concat
+from sqlalchemy import and_
+
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Player import Player, PlayerStatus
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
 
 
 def cumulative_player(session, prop_name, team, filt):

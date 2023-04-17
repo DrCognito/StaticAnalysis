@@ -2,15 +2,16 @@ from os import environ as environment
 from typing import Tuple
 
 import matplotlib.patheffects as PathEffects
-from lib.Common import add_map, get_player_name
-from lib.team_info import TeamInfo
 from PIL.Image import open as Image_open
-from replays.Player import Player, PlayerStatus
-from replays.Replay import Replay, Team
-from replays.Ward import Ward, WardType
 
-from analysis.visualisation import dataframe_xy
-from analysis.ward_vis import build_ward_table, colour_list, plot_image_scatter
+from StaticAnalysis.analysis.visualisation import dataframe_xy
+from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
+                                              plot_image_scatter)
+from StaticAnalysis.lib.Common import add_map, get_player_name
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Player import Player, PlayerStatus
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.Ward import Ward, WardType
 
 
 def plot_player_paths(paths, colours, names, axis):

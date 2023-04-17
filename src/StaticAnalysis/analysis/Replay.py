@@ -1,19 +1,15 @@
-from typing import List
-from .Statistics import x_vs_time, xy_vs_time, cumulative_statistic
-from pandas import DataFrame, Series, concat
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from replays.PositionTimeBase import PositionTimeBase
-from replays.Replay import Replay, Team
-from replays.Rune import RuneID
-from replays.Ward import Ward, WardType
-from replays.TeamSelections import PickBans
-from replays.Smoke import Smoke
-from lib.team_info import TeamInfo
-from sqlalchemy import and_
 from datetime import timedelta
-from lib.HeroTools import heroShortName
+from typing import List
+
+from pandas import DataFrame, Series, concat
+from sqlalchemy import and_
+
+from StaticAnalysis.lib.HeroTools import heroShortName
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.Rune import RuneID
+from StaticAnalysis.replays.Smoke import Smoke
+from StaticAnalysis.replays.TeamSelections import PickBans
 
 
 def win_rate_table(r_query, team):

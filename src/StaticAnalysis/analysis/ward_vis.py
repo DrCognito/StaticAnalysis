@@ -1,26 +1,27 @@
-from lib.team_info import TeamInfo
-from replays.Replay import Replay, Team
-from replays.TeamSelections import TeamSelections
-from replays.Ward import Ward
-from lib.Common import seconds_to_nice, get_player_map
-from pandas import DataFrame, read_sql
-from sqlalchemy.orm.query import Query
-from sqlalchemy.orm import Session
-from matplotlib.text import Text
-from matplotlib.axes import Axes
-from typing import List
-import matplotlib.image as mpimg
-from os import environ as environment
-from adjustText import adjust_text
-import matplotlib.patheffects as PathEffects
-from matplotlib.table import Table
 from math import ceil
-from PIL.Image import Image, ANTIALIAS
-from PIL.Image import open as Image_open
-from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-from analysis.draft_vis import add_draft_axes, process_team_portrait
-from analysis.visualisation import make_image_annotation2
+from os import environ as environment
+from typing import List
 
+import matplotlib.image as mpimg
+import matplotlib.patheffects as PathEffects
+from adjustText import adjust_text
+from matplotlib.axes import Axes
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from matplotlib.table import Table
+from matplotlib.text import Text
+from pandas import DataFrame, read_sql
+from PIL.Image import ANTIALIAS, Image
+from PIL.Image import open as Image_open
+from sqlalchemy.orm import Session
+from sqlalchemy.orm.query import Query
+
+from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
+                                               process_team_portrait)
+from StaticAnalysis.analysis.visualisation import make_image_annotation2
+from StaticAnalysis.lib.Common import get_player_map, seconds_to_nice
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.Ward import Ward
 
 colour_list = ['black', 'red', 'blue', 'magenta', 'purple',
                'aqua', 'coral', 'cyan', 'orchid', 'violet' ]

@@ -8,17 +8,18 @@ from typing import Tuple
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import seaborn as sns
-from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName
-from lib.important_times import ImportantTimes
 from pandas import DataFrame
 from PIL import Image, ImageDraw, ImageFont
-from lib.team_info import TeamInfo
-from replays.Replay import Replay
-from replays.TeamSelections import TeamSelections
-from sqlalchemy.orm.query import Query
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.query import Query
 
-from analysis.visualisation import make_image_annotation_table
+from StaticAnalysis.analysis.visualisation import make_image_annotation_table
+from StaticAnalysis.lib.HeroTools import (HeroIconPrefix, HeroIDType,
+                                          convertName)
+from StaticAnalysis.lib.important_times import ImportantTimes
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay
+from StaticAnalysis.replays.TeamSelections import TeamSelections
 
 
 @dataclass

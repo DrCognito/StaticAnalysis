@@ -1,5 +1,6 @@
-from pandas import DataFrame, Series
 from datetime import timedelta
+
+from pandas import DataFrame, Series
 
 
 def cumulative_statistic(properties, index=None, conversion=None):

@@ -1,23 +1,19 @@
-from PIL import Image, ImageDraw, ImageFont
-import math
-import os
-import sys
 import json
-
-from sqlalchemy.sql.operators import op
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.HeroTools import (convertName, HeroIDType, HeroIconPrefix,
-                           hero_portrait, hero_portrait_prefix)
-from replays.TeamSelections import TeamSelections
-from replays.Replay import Replay, Team
+import math
+from os import environ as environment
+from pathlib import Path
 from typing import List
+
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
-from pathlib import Path
-from lib.team_info import TeamInfo
-from os import environ as environment
+from PIL import Image, ImageDraw, ImageFont
 
+from StaticAnalysis.lib.HeroTools import (HeroIconPrefix, HeroIDType,
+                                          convertName, hero_portrait,
+                                          hero_portrait_prefix)
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.TeamSelections import TeamSelections
 
 scims_json = environment['SCRIMS_JSON']
 try:
@@ -25,6 +21,7 @@ try:
         SCRIM_REPLAY_DICT = json.load(file)
 except IOError:
     print(f"Failed to read scrim_list {scims_json}!")
+
 
 def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
     '''Template for the pick and ban box'''
