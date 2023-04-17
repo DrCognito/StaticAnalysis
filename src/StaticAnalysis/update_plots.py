@@ -1,5 +1,7 @@
 import argparse
 import json
+import shutil
+import time as t
 from argparse import ArgumentParser
 from datetime import datetime
 from os import environ as environment
@@ -7,54 +9,49 @@ from os import mkdir
 from pathlib import Path
 
 import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-from matplotlib import ticker, rcParams
-from dotenv import load_dotenv
-from matplotlib.ticker import MaxNLocator
 import matplotlib.patheffects as PathEffects
-from matplotlib.text import Text
+import matplotlib.pyplot as plt
+import pytz
+from dotenv import load_dotenv
+from matplotlib import rcParams, ticker
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
+from pandas import DataFrame, IntervalIndex, cut, read_sql
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from analysis.draft_vis import replay_draft_image
-from analysis.Player import (cumulative_player, pick_context, player_heroes,
-                             player_position)
-from analysis.Replay import (draft_summary, get_ptbase_tslice,
-                             get_ptbase_tslice_side,
-                             get_rune_control, get_smoke, hero_win_rate,
-                             pair_rate, win_rate_table, get_side_replays,
-                             counter_picks)
-from analysis.visualisation import (dataframe_xy, dataframe_xy_time,
-                                    dataframe_xy_time_smoke,
-                                    plot_draft_summary, plot_hero_winrates,
-                                    plot_map_points, plot_object_position,
-                                    plot_object_position_scatter,
-                                    plot_pick_context, plot_pick_pairs,
-                                    plot_player_heroes,
-                                    plot_player_positioning, plot_runes,
-                                    get_binning_percentile_xy, plot_flex_picks)
-from lib.Common import (dire_ancient_cords, location_filter,
-                        radiant_ancient_cords, ChainedAssignent)
-from lib.important_times import ImportantTimes
-from lib.metadata import is_updated, make_meta, is_full_replay, has_picks
-from lib.team_info import InitTeamDB, TeamInfo
-from replays.Player import Player, PlayerStatus
-from replays.Replay import InitDB, Replay, Team
-from replays.Rune import Rune
-from replays.Scan import Scan
-from replays.Smoke import Smoke
-from replays.TeamSelections import TeamSelections
-from replays.Ward import Ward, WardType
-from analysis.ward_vis import build_ward_table
-from analysis.ward_vis import plot_eye_scatter, plot_drafts_above
-from analysis.route_vis import plot_pregame_players
-from analysis.table_picks import create_tables
-import shutil
-import time as t
-import pytz
+from StaticAnalysis.analysis.draft_vis import replay_draft_image
+from StaticAnalysis.analysis.Player import player_heroes, player_position
+from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
+                                            get_ptbase_tslice,
+                                            get_ptbase_tslice_side,
+                                            get_rune_control, get_side_replays,
+                                            get_smoke, hero_win_rate,
+                                            pair_rate, win_rate_table)
+from StaticAnalysis.analysis.route_vis import plot_pregame_players
+from StaticAnalysis.analysis.table_picks import create_tables
+from StaticAnalysis.analysis.visualisation import (
+    dataframe_xy, dataframe_xy_time, dataframe_xy_time_smoke,
+    get_binning_percentile_xy, plot_draft_summary, plot_flex_picks,
+    plot_hero_winrates, plot_object_position,
+    plot_object_position_scatter, plot_pick_context, plot_pick_pairs,
+    plot_player_heroes, plot_runes)
+from StaticAnalysis.analysis.ward_vis import (build_ward_table,
+                                              plot_drafts_above,
+                                              plot_eye_scatter)
+from StaticAnalysis.lib.Common import (ChainedAssignent, dire_ancient_cords,
+                                       location_filter, radiant_ancient_cords)
+from StaticAnalysis.lib.important_times import ImportantTimes
+from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
+                                         make_meta)
+from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
+from StaticAnalysis.replays.Player import PlayerStatus
+from StaticAnalysis.replays.Replay import InitDB, Replay, Team
+from StaticAnalysis.replays.Scan import Scan
+from StaticAnalysis.replays.Smoke import Smoke
+from StaticAnalysis.replays.TeamSelections import TeamSelections
+from StaticAnalysis.replays.Ward import Ward, WardType
 
 load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
