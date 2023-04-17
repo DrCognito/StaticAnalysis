@@ -1,18 +1,14 @@
-from sqlalchemy import Column, BigInteger, ForeignKey
-from sqlalchemy import create_engine, select
-from sqlalchemy.types import Enum
-from sqlalchemy.orm import relationship
+from sqlalchemy import BigInteger, Column, ForeignKey, create_engine, select
 from sqlalchemy.ext.hybrid import hybrid_property
-from replays import Base
-from .Common import Team, WardType
-from .Player import Player, PlayerStatus
-from .PositionTimeBase import PositionTimeBase
-from .JSONProcess import get_wards
-from datetime import timedelta
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.Common import relative_coordinate
+from sqlalchemy.orm import relationship
+from sqlalchemy.types import Enum
+
+from StaticAnalysis.lib.Common import relative_coordinate
+from StaticAnalysis.replays import Base
+from StaticAnalysis.replays.Common import Team, WardType
+from StaticAnalysis.replays.JSONProcess import get_wards
+from StaticAnalysis.replays.Player import Player, PlayerStatus
+from StaticAnalysis.replays.PositionTimeBase import PositionTimeBase
 
 
 class Ward(PositionTimeBase, Base):

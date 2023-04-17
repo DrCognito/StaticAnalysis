@@ -1,12 +1,12 @@
 from sqlalchemy import Column, Integer, BigInteger
 from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy.types import Enum, Integer
+from sqlalchemy.types import Enum
 from replays import Base
 from sqlalchemy.orm import relationship
 import enum
-from .Common import Team
-from .Player import Player
-from .JSONProcess import get_rune_list
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.Player import Player
+from StaticAnalysis.replays.JSONProcess import get_rune_list
 from sqlalchemy.sql import select
 from sqlalchemy.ext.hybrid import hybrid_property
 

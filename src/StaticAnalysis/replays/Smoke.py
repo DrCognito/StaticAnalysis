@@ -1,17 +1,14 @@
-from sqlalchemy import Column, Integer, BigInteger, Float
-from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy.types import Enum, Integer
-from sqlalchemy.orm import relationship
-from replays import Base
-from .Common import Team
-from .Player import Player
-from .JSONProcess import get_smoke_summary
+from sqlalchemy import (BigInteger, Column, Float, ForeignKey, Integer,
+                        create_engine)
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import select
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.Common import average_coorinates
+from sqlalchemy.types import Enum
+from StaticAnalysis.lib.Common import average_coorinates
+from StaticAnalysis.replays import Base
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.JSONProcess import get_smoke_summary
+from StaticAnalysis.replays.Player import Player
 
 
 class Smoke(Base):

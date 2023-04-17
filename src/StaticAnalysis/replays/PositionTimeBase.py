@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, BigInteger, Float
+from sqlalchemy import Column, Integer, Float
 from sqlalchemy import ForeignKey
 from sqlalchemy.sql import select
-from sqlalchemy.types import Enum, Integer
+from sqlalchemy.types import Enum
 from sqlalchemy.ext.declarative import DeclarativeMeta, declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from .Common import Team
+from StaticAnalysis.replays.Common import Team
 from abc import ABC
 
 

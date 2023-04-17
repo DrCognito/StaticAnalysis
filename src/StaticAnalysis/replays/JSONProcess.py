@@ -1,7 +1,7 @@
 '''Utility functions for retrieving information
    from processed replays in JSON format
 '''
-from .Common import Team
+from StaticAnalysis.replays.Common import Team
 
 
 def get_pick_ban(json_in):

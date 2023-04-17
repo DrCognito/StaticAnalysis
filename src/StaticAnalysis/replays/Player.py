@@ -1,19 +1,19 @@
-from sqlalchemy import Column, BigInteger, Float, Boolean
-from sqlalchemy import create_engine, ForeignKey, String
-from sqlalchemy.types import Enum, Integer
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.sql import select
-from replays import Base
-# from .Replay import Replay, Team
-from .Common import Team
-from .JSONProcess import get_pick_ban, get_player_status, get_player_created
-from .JSONProcess import get_player_smoketime, get_player_team, get_accumulating_lists
 from lib.Common import relative_coordinate
-import os
-import sys
+from sqlalchemy import (BigInteger, Boolean, Column, Float, ForeignKey, String,
+                        create_engine)
 from sqlalchemy.ext.declarative import declared_attr
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import select
+from sqlalchemy.types import Enum, Integer
+from StaticAnalysis.replays import Base
+# from .Replay import Replay, Team
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.JSONProcess import (get_accumulating_lists,
+                                                get_pick_ban,
+                                                get_player_created,
+                                                get_player_status,
+                                                get_player_team)
 
 
 class Player(Base):

@@ -1,15 +1,11 @@
 from sqlalchemy import create_engine, Column, BigInteger, ForeignKey
-from replays import Base
+from StaticAnalysis.replays import Base
 from sqlalchemy.orm import relationship
-from .Common import Team
-from .Player import Player
-from .PositionTimeBase import PositionTimeBase
-from .JSONProcess import get_scans
-from datetime import timedelta
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.Player import Player
+from StaticAnalysis.replays.PositionTimeBase import PositionTimeBase
+from StaticAnalysis.replays.JSONProcess import get_scans
 from lib.Common import relative_coordinate
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 class Scan(PositionTimeBase, Base):

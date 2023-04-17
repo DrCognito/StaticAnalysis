@@ -1,23 +1,15 @@
-from sqlalchemy import Column, Integer, BigInteger, DateTime, Float
-from sqlalchemy import create_engine, ForeignKey, or_
-from sqlalchemy.types import Enum, Integer
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm import relationship
-from replays import Base
-from datetime import datetime
-from . import Player
-from . import Ward
-from . import Scan
-from . import Rune
-from . import Smoke
-from . import TeamSelections
 import json
-from . import JSONProcess
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.HeroTools import convertName, HeroIDType
-from .Common import Team
+from datetime import datetime
+
+from sqlalchemy import (BigInteger, Column, DateTime, Integer,
+                        create_engine, or_)
+from sqlalchemy.orm import relationship
+from sqlalchemy.types import Enum
+
+from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
+                                    Smoke, TeamSelections, Ward)
+from StaticAnalysis.lib.HeroTools import HeroIDType, convertName
+from StaticAnalysis.replays.Common import Team
 
 
 class Replay(Base):
