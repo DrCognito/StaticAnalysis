@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from replays.Replay import InitDB, populate_from_JSON_file
+from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
 
-load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
 PROCESSING_PATH = environment['JSON_PATH']
 ARCHIVE_PATH = environment['JSON_ARCHIVE']
