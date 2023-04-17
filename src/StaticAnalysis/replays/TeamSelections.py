@@ -1,10 +1,10 @@
+from herotools.HeroTools import heroByID
 from sqlalchemy import (BigInteger, Boolean, Column, ForeignKey, Integer,
                         String, create_engine)
 from sqlalchemy.orm import column_property, relationship
 from sqlalchemy.sql import select
 from sqlalchemy.types import Enum
 
-from StaticAnalysis.lib.HeroTools import heroByID
 from StaticAnalysis.replays import Base
 from StaticAnalysis.replays.Common import Team
 from StaticAnalysis.replays.JSONProcess import get_pick_ban

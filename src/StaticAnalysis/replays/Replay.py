@@ -1,12 +1,12 @@
 import json
 from datetime import datetime
 
+from herotools.HeroTools import HeroIDType, convertName
 from sqlalchemy import (BigInteger, Column, DateTime, Integer, create_engine,
                         or_)
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import Enum
 
-from StaticAnalysis.lib.HeroTools import HeroIDType, convertName
 from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
                                     Smoke, TeamSelections, Ward)
 from StaticAnalysis.replays.Common import Team

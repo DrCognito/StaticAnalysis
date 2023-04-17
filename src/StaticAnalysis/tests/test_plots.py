@@ -22,7 +22,7 @@ from lib.Common import (dire_ancient_cords, location_filter,
                         radiant_ancient_cords)
 from pandas import cut as data_cut
 from os import environ as environment
-from lib.HeroTools import heroShortName
+from herotools.HeroTools import heroShortName
 
 # picks = sstat.test_player_picks()
 # fig, extra = plot_player_heroes(picks)

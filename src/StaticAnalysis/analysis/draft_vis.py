@@ -4,13 +4,12 @@ from os import environ as environment
 from pathlib import Path
 from typing import List
 
+from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
+                                 hero_portrait, hero_portrait_prefix)
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
 
-from StaticAnalysis.lib.HeroTools import (HeroIconPrefix, HeroIDType,
-                                          convertName, hero_portrait,
-                                          hero_portrait_prefix)
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import TeamSelections

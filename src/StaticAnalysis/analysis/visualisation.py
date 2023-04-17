@@ -5,6 +5,8 @@ from typing import Dict
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
+from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
+                                 heroShortName)
 from matplotlib import ticker
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -15,8 +17,6 @@ from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
 from StaticAnalysis.analysis.Player import pick_context
-from StaticAnalysis.lib.HeroTools import (HeroIconPrefix, HeroIDType,
-                                          convertName, heroShortName)
 from StaticAnalysis.lib.team_info import TeamInfo
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']

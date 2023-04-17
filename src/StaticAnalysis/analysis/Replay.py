@@ -1,10 +1,10 @@
 from datetime import timedelta
 from typing import List
 
+from herotools.HeroTools import heroShortName
 from pandas import DataFrame, Series, concat
 from sqlalchemy import and_
 
-from StaticAnalysis.lib.HeroTools import heroShortName
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Rune import RuneID

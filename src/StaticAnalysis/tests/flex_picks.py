@@ -10,7 +10,7 @@ from analysis.visualisation import make_image_annotation, make_image_annotation_
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 from matplotlib.figure import Figure
-from lib.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
+from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 
 # team = db.get_team(2586976)
 # team = db.get_team(15)
