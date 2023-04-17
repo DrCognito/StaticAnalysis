@@ -53,7 +53,6 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 
-load_dotenv(dotenv_path="setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 
