@@ -1,14 +1,15 @@
-from sqlalchemy import Column, Integer, BigInteger
-from sqlalchemy import create_engine, ForeignKey
-from sqlalchemy.types import Enum
-from replays import Base
-from sqlalchemy.orm import relationship
 import enum
-from StaticAnalysis.replays.Common import Team
-from StaticAnalysis.replays.Player import Player
-from StaticAnalysis.replays.JSONProcess import get_rune_list
-from sqlalchemy.sql import select
+
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, create_engine
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import select
+from sqlalchemy.types import Enum
+
+from StaticAnalysis.replays import Base
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.JSONProcess import get_rune_list
+from StaticAnalysis.replays.Player import Player
 
 
 class RuneID(enum.Enum):

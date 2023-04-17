@@ -1,12 +1,13 @@
-import pathlib
-from dotenv import load_dotenv
-from os import environ as environment
-from sqlalchemy.orm import sessionmaker
-from StaticAnalysis.replays.Replay import InitDB, Replay, Team
-from lib.team_info import InitTeamDB, TeamInfo
-import pygsheets
 import json
-from lib.important_times import ImportantTimes
+import pathlib
+from os import environ as environment
+
+import pygsheets
+from sqlalchemy.orm import sessionmaker
+
+from StaticAnalysis.lib.important_times import ImportantTimes
+from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
+from StaticAnalysis.replays.Replay import InitDB, Replay, Team
 
 SCRIMS_JSON_PATH = environment['SCRIMS_JSON']
 TEAMS_JSON_PATH = environment['SCRIMS_TEAMS']

@@ -3,7 +3,6 @@ from os import environ as environment
 from os import rename
 from pathlib import Path
 
-from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 

@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer, Float
-from sqlalchemy import ForeignKey
-from sqlalchemy.sql import select
-from sqlalchemy.types import Enum
+from abc import ABC
+
+from sqlalchemy import Column, Float, ForeignKey, Integer
 from sqlalchemy.ext.declarative import DeclarativeMeta, declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.sql import select
+from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays.Common import Team
-from abc import ABC
 
 
 # The meta classes from SQLAlchemy and ABC must be combined to avoid

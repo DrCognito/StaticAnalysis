@@ -12,7 +12,6 @@ import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import pytz
-from dotenv import load_dotenv
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -34,9 +33,8 @@ from StaticAnalysis.analysis.table_picks import create_tables
 from StaticAnalysis.analysis.visualisation import (
     dataframe_xy, dataframe_xy_time, dataframe_xy_time_smoke,
     get_binning_percentile_xy, plot_draft_summary, plot_flex_picks,
-    plot_hero_winrates, plot_object_position,
-    plot_object_position_scatter, plot_pick_context, plot_pick_pairs,
-    plot_player_heroes, plot_runes)
+    plot_hero_winrates, plot_object_position, plot_object_position_scatter,
+    plot_pick_context, plot_pick_pairs, plot_player_heroes, plot_runes)
 from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)

@@ -1,4 +1,3 @@
-from lib.Common import relative_coordinate
 from sqlalchemy import (BigInteger, Boolean, Column, Float, ForeignKey, String,
                         create_engine)
 from sqlalchemy.ext.declarative import declared_attr
@@ -6,6 +5,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import select
 from sqlalchemy.types import Enum, Integer
+from StaticAnalysis.lib.Common import relative_coordinate
 from StaticAnalysis.replays import Base
 # from .Replay import Replay, Team
 from StaticAnalysis.replays.Common import Team

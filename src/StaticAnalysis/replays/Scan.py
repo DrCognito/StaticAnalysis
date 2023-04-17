@@ -1,11 +1,12 @@
-from sqlalchemy import create_engine, Column, BigInteger, ForeignKey
-from StaticAnalysis.replays import Base
+from sqlalchemy import BigInteger, Column, ForeignKey, create_engine
 from sqlalchemy.orm import relationship
+
+from StaticAnalysis.lib.Common import relative_coordinate
+from StaticAnalysis.replays import Base
 from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.JSONProcess import get_scans
 from StaticAnalysis.replays.Player import Player
 from StaticAnalysis.replays.PositionTimeBase import PositionTimeBase
-from StaticAnalysis.replays.JSONProcess import get_scans
-from lib.Common import relative_coordinate
 
 
 class Scan(PositionTimeBase, Base):

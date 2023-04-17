@@ -64,7 +64,7 @@ player_cache = {}
 
 
 def get_player_name(team_session: Session, steam_id: int, team) -> str:
-    from lib.team_info import TeamPlayer, TeamInfo
+    from StaticAnalysis.lib.team_info import TeamPlayer
     """Returns a known players name from a steamID.
 
     Arguments:
@@ -120,7 +120,7 @@ def get_player_map(team_session: Session, steam_ids: set, team)-> dict():
 
 
 def get_team(team_session: Session, team_name: str):
-    from lib.team_info import TeamInfo
+    from StaticAnalysis.lib.team_info import TeamInfo
     """Helper function to retrieve a team with a matched team name.
     
     Arguments:
