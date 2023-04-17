@@ -1,12 +1,13 @@
 from typing import Set
-from replays.Replay import Replay, Team
-from replays.Player import Player
-from replays.Ward import Ward
-from replays.Rune import Rune
-from replays.Scan import Scan
-from replays.Smoke import Smoke
-from lib.team_info import TeamInfo
+
 from sqlalchemy.sql import exists
+
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.Rune import Rune
+from StaticAnalysis.replays.Scan import Scan
+from StaticAnalysis.replays.Smoke import Smoke
+from StaticAnalysis.replays.Ward import Ward
 
 
 def make_meta(dataset="default"):

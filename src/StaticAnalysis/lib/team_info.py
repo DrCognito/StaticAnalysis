@@ -1,21 +1,12 @@
-from collections import OrderedDict
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from replays.Replay import Replay
-from replays.TeamSelections import TeamSelections
-from sqlalchemy import or_, and_
-
-from datetime import datetime, timedelta
 from os import environ as environment
 
 from sqlalchemy import (BigInteger, Column, DateTime, ForeignKey, Integer,
-                        String, create_engine)
-from sqlalchemy.exc import SQLAlchemyError
+                        String, and_, create_engine, or_)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, reconstructor
+from sqlalchemy.orm import reconstructor, relationship
 
+from StaticAnalysis.replays.Replay import Replay
+from StaticAnalysis.replays.TeamSelections import TeamSelections
 
 Base_TI = declarative_base()
 

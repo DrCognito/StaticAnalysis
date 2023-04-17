@@ -1,5 +1,4 @@
 import enum
-from dotenv import load_dotenv
 from os import environ as environment
 from pathlib import Path
 from json import load
