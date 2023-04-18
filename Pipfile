@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
+sqlalchemy = "<2.0"
 pandas = "*"
 python-dotenv = "*"
 pillow = "*"
@@ -15,5 +15,6 @@ matplotlib = "*"
 pygsheets = "*"
 scipy = "*"
 "dogpile.cache" = "*"
+herotools = {editable = true, path = "E:/Python/HeroTools"}
 
 [dev-packages]
