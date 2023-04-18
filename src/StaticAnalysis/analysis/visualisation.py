@@ -246,7 +246,8 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
         row_pos = 0
         entries = 0
 
-        for player, count in row[1].iteritems():
+        # for player, count in row[1].iteritems():
+        for player, count in row[1].items():
             if count == 0:
                 continue
             player_bars_x[player].append(position)
@@ -624,7 +625,8 @@ def plot_hero_winrates(data: DataFrame, fig: Figure, mingames=3, min_rate=0.6):
             return
         bar_plot = sub_set['Rate'].plot.bar(ax=ax_in)
 
-        for bar, label in zip(bar_plot.patches, sub_set['Total'].iteritems()):
+        # for bar, label in zip(bar_plot.patches, sub_set['Total'].iteritems()):
+        for bar, label in zip(bar_plot.patches, sub_set['Total'].items()):
             y = bar.get_height()
             x = bar.get_x() + bar.get_width() / 2
             ax_in.text(s=int(label[1]), x=x, y=y,

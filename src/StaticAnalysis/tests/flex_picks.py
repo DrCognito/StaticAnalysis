@@ -53,7 +53,8 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
         entries = 0
         row_pos = 0
 
-        for player, count in row[1].iteritems():
+        # for player, count in row[1].iteritems():
+        for player, count in row[1].items():
             if count == 0:
                 continue
             # print(f"{player}: {position}", end=" ")

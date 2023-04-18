@@ -161,7 +161,8 @@ def get_player_init(names: List[str])-> List[str]:
     fixed = {}
     totals = {}
     unique = set()
-    for i, s in initials.iteritems():
+    # for i, s in initials.iteritems():
+    for i, s in initials.items():
         if s in totals:
             new_i = s
             while new_i in totals:
