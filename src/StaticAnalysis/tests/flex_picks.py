@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import tests.minimal_db as db
 from replays.Replay import Replay
-from lib.important_times import ImportantTimes
+from herotools.important_times import ImportantTimes
 from analysis.Player import player_heroes
 from analysis.visualisation import make_image_annotation, make_image_annotation_flex, colour_list
 import matplotlib.pyplot as plt

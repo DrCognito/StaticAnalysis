@@ -17,7 +17,7 @@ from analysis.ward_vis import colour_list, plot_labels
 from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
 from replays.Replay import Replay, Team
 from lib.Common import seconds_to_nice, get_player_map,get_player_name
-from lib.important_times import ImportantTimes
+from herotools.important_times import ImportantTimes
 from analysis.visualisation import make_image_annotation_flex, make_image_annotation, make_image_annotation_table
 from itertools import cycle
 from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName

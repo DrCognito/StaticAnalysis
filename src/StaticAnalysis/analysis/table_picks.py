@@ -9,13 +9,13 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import seaborn as sns
 from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName
-from pandas import DataFrame
+from herotools.important_times import ImportantTimes
 from PIL import Image, ImageDraw, ImageFont
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
+from pandas import DataFrame
 from StaticAnalysis.analysis.visualisation import make_image_annotation_table
-from StaticAnalysis.lib.important_times import ImportantTimes
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections

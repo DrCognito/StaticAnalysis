@@ -12,14 +12,15 @@ import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import pytz
+from herotools.important_times import ImportantTimes
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pandas import DataFrame, IntervalIndex, cut, read_sql
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
+from pandas import DataFrame, IntervalIndex, cut, read_sql
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
 from StaticAnalysis.analysis.Player import player_heroes, player_position
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -40,7 +41,6 @@ from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_eye_scatter)
 from StaticAnalysis.lib.Common import (ChainedAssignent, dire_ancient_cords,
                                        location_filter, radiant_ancient_cords)
-from StaticAnalysis.lib.important_times import ImportantTimes
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
                                          make_meta)
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
@@ -86,11 +86,11 @@ arguments.add_argument('--reprocess',
                        help='''Remake plots regardless of metadata''',
                        action='store_true')
 arguments.add_argument('--use_time',
-                       help='''Specify a time from lib.important_times
+                       help='''Specify a time from herotools.important_times
                                to use for cut.''',
                        nargs='+')
 arguments.add_argument('--end_time',
-                       help='''Specify a time from lib.important_times
+                       help='''Specify a time from herotools.important_times
                                to use for the end of the section.''',
                        nargs='+')
 arguments.add_argument('--custom_time',

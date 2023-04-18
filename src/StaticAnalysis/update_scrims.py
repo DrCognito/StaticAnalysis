@@ -3,9 +3,9 @@ import pathlib
 from os import environ as environment
 
 import pygsheets
+from herotools.important_times import ImportantTimes
 from sqlalchemy.orm import sessionmaker
 
-from StaticAnalysis.lib.important_times import ImportantTimes
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
 from StaticAnalysis.replays.Replay import InitDB, Replay, Team
 

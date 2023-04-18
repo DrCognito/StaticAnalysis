@@ -7,7 +7,7 @@ from lib.team_info import InitTeamDB
 from replays.Replay import InitDB, Replay, Team
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
-from lib.important_times import ImportantTimes
+from herotools.important_times import ImportantTimes
 from sqlalchemy import and_, or_, any_
 from lib.team_info import InitTeamDB, TeamInfo
 from replays.TeamSelections import TeamSelections, PickBans
