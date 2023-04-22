@@ -209,8 +209,8 @@ def populate_from_JSON(json, replay_in, session):
                                                   player.hero, json)):
             new_status = PlayerStatus(player)
             new_status.time = t + player.created_at
-            new_status.xCoordinate = relative_coordinate(x)
-            new_status.yCoordinate = relative_coordinate(y)
+            new_status.xCoordinate = x
+            new_status.yCoordinate = y
             new_status.is_smoked = smoked
             new_status.is_alive = alive
 
