@@ -201,7 +201,6 @@ def do_positioning(team: TeamInfo, r_query,
         if update_dire:
             if pos_dire.count() == 0:
                 print("No data for {} on Dire.".format(team.players[pos].name))
-                continue
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'dire' / (p_name + '.jpg')
@@ -232,7 +231,6 @@ def do_positioning(team: TeamInfo, r_query,
         if update_radiant:
             if pos_radiant.count() == 0:
                 print("No data for {} on Radiant.".format(team.players[pos].name))
-                continue
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'radiant' / (p_name + '.jpg')
