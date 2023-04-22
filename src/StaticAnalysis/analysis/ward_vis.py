@@ -183,7 +183,7 @@ def plot_image_scatter(data: DataFrame, ax_in: Axes, img: Image) -> list:
             pos = (row['xCoordinate'], row['yCoordinate'])
             ab = AnnotationBbox(imagebox, pos,
                                 xycoords='data',
-                                boxcoords="offset points",
+                                boxcoords="data",
                                 box_alignment=(0.5, 0.5),
                                 pad=0,
                                 frameon=False)
