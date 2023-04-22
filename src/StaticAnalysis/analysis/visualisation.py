@@ -17,6 +17,7 @@ from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
 from StaticAnalysis.analysis.Player import pick_context
+from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
@@ -504,10 +505,17 @@ def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=Fa
     return fig, axes, extra_artists
 
 
-def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999)):
+def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999), extent=EXTENT):
     binning = [float(x)/bins for x in range(bins)]
-    df['xBin'] = cut(df['xCoordinate'], binning)
-    df['yBin'] = cut(df['yCoordinate'], binning)
+
+    xExtent = float(abs(extent[1] - extent[0]))
+    xBins = [extent[0] + x*xExtent for x in binning]
+
+    yExtent = float(abs(extent[3] - extent[2]))
+    yBins = [extent[2] + y*yExtent for y in binning]
+
+    df['xBin'] = cut(df['xCoordinate'], xBins)
+    df['yBin'] = cut(df['yCoordinate'], yBins)
 
     weightSeries = df.groupby(['xBin', 'yBin']).size()
 
@@ -581,11 +589,14 @@ def plot_object_position(query_data: DataFrame, bins=64,
     if vmin is None:
         vmin = 1
 
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         plot = ax_in.hexbin(x=query_data['xCoordinate'],
                             y=query_data['yCoordinate'],
                             gridsize=bins, mincnt=0,
-                            extent=[0, 1, 0, 1],
+                            extent=EXTENT,
                             cmap=colour_map,
                             vmin=vmin, vmax=vmax,
                             zorder=2)
@@ -598,9 +609,6 @@ def plot_object_position(query_data: DataFrame, bins=64,
         cbar.update_ticks()
         cbar.ax.tick_params(labelsize=14)
 
-    # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
 
     return ax_in
