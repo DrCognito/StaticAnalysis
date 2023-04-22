@@ -668,16 +668,15 @@ def plot_object_position_scatter(query_data: DataFrame, size=700,
                          y=query_data['yCoordinate'],
                          c=query_data['game_time'],
                          s=size,
-                        #  extent=[0, 1, 0, 1],
                          cmap='autumn_r',
                          alpha=0.5,
                          zorder=2)
-    ax_in.set_xlim(0, 1)
-    ax_in.set_ylim(0, 1)
+    ax_in.set_xlim(EXTENT[0], EXTENT[1])
+    ax_in.set_ylim(EXTENT[2], EXTENT[3])
 
     # Add map
     img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
     ax_in.axis('off')
 
     # Reposition colourbar
