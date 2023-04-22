@@ -18,7 +18,7 @@ from sqlalchemy.orm.query import Query
 from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
                                                process_team_portrait)
 from StaticAnalysis.analysis.visualisation import make_image_annotation2
-from StaticAnalysis.lib.Common import get_player_map, seconds_to_nice
+from StaticAnalysis.lib.Common import get_player_map, seconds_to_nice, EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward
@@ -107,17 +107,15 @@ def label_smoke_name_time(data: DataFrame, number: bool = False) -> DataFrame:
     return data
 
 
-def plot_map(ax_in: Axes):
+def plot_map(ax_in: Axes, extent=EXTENT):
     """Plot map in the standard manner.
 
     Arguments:
         ax_in {Axes} -- Axes for the map!
     """
     img = mpimg.imread(environment['MAP_PATH'])
-    ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
+    ax_in.imshow(img, extent=extent, zorder=0)
     ax_in.axis('off')
-    ax_in.set_xlim(0, 1)
-    ax_in.set_ylim(0, 1)
 
 
 def plot_sum_table(data: DataFrame, ax_in: Axes) -> Table:
@@ -388,7 +386,8 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
                                     path_effects=[PathEffects.withStroke(linewidth=3,
                                                 foreground="w")],
                                     ha='left', va='bottom', zorder=5,
-                                    color='#598307')
+                                    color='#598307',
+                                    transform=ax_in.transAxes)
             extra_ents += [r_draft_box, r_name_box]
         else:
             ddraft = process_team_portrait(replay, t)
@@ -402,7 +401,8 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
                                     path_effects=[PathEffects.withStroke(linewidth=3,
                                                 foreground="w")],
                                     ha='left', va='bottom', zorder=5,
-                                    color='#A83806')
+                                    color='#A83806',
+                                    transform=ax_in.transAxes)
             extra_ents += [d_draft_box, d_name_box]
 
     return extra_ents
