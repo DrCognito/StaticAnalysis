@@ -459,7 +459,8 @@ def do_wards_separate(team: TeamInfo, r_query,
                 ha='left', va='bottom', zorder=5,
                 path_effects=[PathEffects.withStroke(linewidth=3,
                               foreground="w")],
-                color='black')
+                color='black',
+                transform=ax.transAxes)
         # fig.set_tight_layout(True)
         fig.tight_layout(pad=2.0)
         # fig.savefig(outloc, bbox_extra_artists=(*drafts, *extras))
