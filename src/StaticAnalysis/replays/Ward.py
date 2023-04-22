@@ -58,8 +58,8 @@ def populate_from_JSON(json, replay_in, session):
         else:
             new_ward.steamID = new_ward.player.steamID
         new_ward.time = w['time']
-        new_ward.xCoordinate = relative_coordinate(w['xPos'], w['xCellOffSet'])
-        new_ward.yCoordinate = relative_coordinate(w['yPos'], w['yCellOffset'])
+        new_ward.xCoordinate = w['preciseX']
+        new_ward.yCoordinate = w['preciseY']
 
         if w['team'] == 'DIRE':
             new_ward.team = Team.DIRE
