@@ -7,12 +7,13 @@ from PIL.Image import open as Image_open
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
-from StaticAnalysis.lib.Common import add_map, get_player_name
+from StaticAnalysis.lib.Common import add_map, get_player_name, MAP_EXTENT_733_CALC, MAP_EXTENT_733_MEASURED
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward, WardType
 
+EXTENT = MAP_EXTENT_733_CALC
 
 def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
@@ -27,8 +28,9 @@ def plot_player_paths(paths, colours, names, axis):
                     scale_units='xy', angles='xy', scale=1,
                     zorder=2, color=colour, label=name)
         axis.axis('off')
-    axis.set_ylim(0, 1)
-    axis.set_xlim(0, 1)
+    xMin, xMax, yMin, yMax = EXTENT
+    axis.set_ylim(xMin, xMax)
+    axis.set_xlim(yMin, yMax)
 
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
@@ -37,7 +39,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
 
     axis = fig.subplots()
     # Add the map
-    add_map(axis)
+    add_map(axis, extent=EXTENT)
     player_list = [p.name for p in team.players]
     # Pregame player positions
     positions = []
@@ -124,6 +126,10 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
               ha='left', va='top', zorder=5,
               path_effects=[PathEffects.withStroke(linewidth=3,
                             foreground="w")],
-              color='black')
+              color='black',
+              transform=axis.transAxes)
+
+    axis.patch.set_edgecolor('black')
+    axis.patch.set_linewidth('1')
 
     return axis
