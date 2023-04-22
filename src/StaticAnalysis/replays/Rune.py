@@ -21,6 +21,8 @@ class RuneID(enum.Enum):
     Bounty = 5
     Arcane = 6
     WaterRune = 7
+    Wisdom = 8
+    Shield = 9
 
 
 class Rune(Base):
