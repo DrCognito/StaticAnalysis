@@ -1,17 +1,14 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from os import environ as environment
+
 from dotenv import load_dotenv
-from lib.team_info import InitTeamDB
-from replays.Replay import InitDB, Replay, Team
+from herotools.important_times import ImportantTimes
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
-from herotools.important_times import ImportantTimes
-from sqlalchemy import and_, or_, any_
-from lib.team_info import InitTeamDB, TeamInfo
-from replays.TeamSelections import TeamSelections, PickBans
 
+from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
+from StaticAnalysis.replays.Replay import InitDB, Replay
+from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
 
 load_dotenv(dotenv_path="../setup.env")
 DB_PATH = environment['PARSED_DB_PATH']
@@ -32,14 +29,14 @@ team_id = 2586976
 
 t_filter = Replay.endTimeUTC >= time
 
+
 def get_team(name) -> TeamInfo:
     t_filter = or_(TeamInfo.team_id == name, TeamInfo.name == name)
     team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
     return team
+
 team = get_team(team_id)
-
-
 r_filter = Replay.endTimeUTC >= time
 
 if replay_list is not None:
