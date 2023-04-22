@@ -7,13 +7,12 @@ from PIL.Image import open as Image_open
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
-from StaticAnalysis.lib.Common import add_map, get_player_name, MAP_EXTENT_733_CALC, MAP_EXTENT_733_MEASURED
+from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward, WardType
 
-EXTENT = MAP_EXTENT_733_CALC
 
 def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
