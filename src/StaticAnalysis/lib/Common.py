@@ -31,6 +31,10 @@ def average_coorinates(coordinates):
 radiant_ancient_cords = [[22/1024, 60/1024], [293/1024, 322/1024]]
 dire_ancient_cords = [[714/1024, 666/1024], [993/1024, 975/1024]]
 
+# [xMin, xMax, yMin, yMax] matches matplotlib "extent"
+MAP_EXTENT_733_CALC = [6711.773778920308, 25817.172236503855, 7001.94459833795, 26096.127423822712]
+MAP_EXTENT_733_MEASURED =  [7783.875000, 25120.000000, 7651.781250, 25227.125000]
+
 
 def location_filter(location, Type):
     xmin = location[0][0]
