@@ -24,6 +24,18 @@ class RuneID(enum.Enum):
     Wisdom = 8
     Shield = 9
 
+    @classmethod
+    def is_power(cls, rune: "RuneID") -> bool:
+        power_runes = (RuneID.DoubleDamage,
+                       RuneID.Haste,
+                       RuneID.Illusion,
+                       RuneID.Invisibility,
+                       RuneID.Regeneration,
+                       RuneID.Arcane,
+                       RuneID.Shield)
+
+        return any(rune == r for r in power_runes)
+
 
 class Rune(Base):
     __tablename__ = "runes"
