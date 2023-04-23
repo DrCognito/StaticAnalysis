@@ -783,11 +783,12 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     # One line
     one_line = len(rune_df) == 1
     # All that line is 0
-    zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0]).to_list())
+    zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0, 0, 0, 0, 0]).to_list())
     if not one_line and not zeroed:
         fig, _ = plot_runes(rune_df, team, fig)
         output = team_path / f'rune_control{postfix}.png'
-        fig.tight_layout(h_pad=0)
+        fig.tight_layout()
+        fig.subplots_adjust(hspace=0.35)
         fig.savefig(output, bbox_inches='tight', dpi=200)
         fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
