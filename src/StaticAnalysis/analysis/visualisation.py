@@ -692,11 +692,13 @@ def plot_object_position_scatter(query_data: DataFrame, size=700,
 
 
 def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
-    fig.set_size_inches(10, 10)
-    axes = fig.subplots(2)
+    fig.set_size_inches(10, 20)
+    axes = fig.subplots(4)
 
     bounty = rune_data[['Team Bounty', 'Opposition Bounty']]
     power = rune_data[['Team Power', 'Opposition Power']]
+    water = rune_data[['Team Water', 'Opposition Water']]
+    wisdom = rune_data[['Team Wisdom', 'Opposition Wisdom']]
 
     def _process_runes(data: DataFrame, axis, labels):
         data[labels[0]] = data.iloc[:, 0]/(data.iloc[:, 0] + data.iloc[:, 1])
@@ -706,13 +708,21 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
         xmin, xmax = axis.get_xlim()
         axis.plot((xmin, xmax), (0.5, 0.5), linewidth=3, color='r')
 
-    power = power.resample('2T').sum()[1:11]
+    power = power.resample('2T').sum()[3:13]
     _process_runes(power, axes[0], [team.name, "Opposition"])
     axes[0].set_ylabel("Power", fontsize=14)
 
     bounty = bounty.resample('5T').sum()[:10]
     _process_runes(bounty, axes[1], [team.name, "Opposition"])
     axes[1].set_ylabel("Bounty", fontsize=14)
+
+    water = water.resample('2T').sum()[1:3]
+    _process_runes(water, axes[2], [team.name, "Opposition"])
+    axes[2].set_ylabel("Water", fontsize=14)
+
+    wisdom = wisdom.resample('7T').sum()[1:9]
+    _process_runes(wisdom, axes[3], [team.name, "Opposition"])
+    axes[3].set_ylabel("Wisdom", fontsize=14)
 
     def _add_t_labels(ax_in, mins_per_tick: int, off_set=0):
         time_slices = len(ax_in.get_xticklabels())
@@ -724,7 +734,9 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
         ax_in.set_xticklabels(labels)
         #ax_in.legend_.remove()
 
-    _add_t_labels(axes[0], 2, off_set=2)
+    _add_t_labels(axes[0], 2, off_set=6)
     _add_t_labels(axes[1], 5)
+    _add_t_labels(axes[2], 2, off_set=2)
+    _add_t_labels(axes[3], 7, off_set=7)
 
     return fig, axes
