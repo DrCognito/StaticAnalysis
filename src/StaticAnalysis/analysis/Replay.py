@@ -181,14 +181,24 @@ def get_rune_control(r_query, team: TeamInfo, limit=None):
     '''Gets runes collected over time for team and opposition.'''
     runes_bounty_opp = Series(dtype='UInt16')
     runes_power_opp = Series(dtype='UInt16')
+    runes_water_opp = Series(dtype='UInt16')
+    runes_wisdom_opp = Series(dtype='UInt16')
+
     runes_bounty_team = Series(dtype='UInt16')
     runes_power_team = Series(dtype='UInt16')
+    runes_water_team = Series(dtype='UInt16')
+    runes_wisdom_team = Series(dtype='UInt16')
 
     # Establish base line to help rebinning consistently
     runes_bounty_opp[timedelta(seconds=0)] = 0
     runes_power_opp[timedelta(seconds=0)] = 0
+    runes_water_opp[timedelta(seconds=0)] = 0
+    runes_wisdom_opp[timedelta(seconds=0)] = 0
+
     runes_bounty_team[timedelta(seconds=0)] = 0
     runes_power_team[timedelta(seconds=0)] = 0
+    runes_water_team[timedelta(seconds=0)] = 0
+    runes_wisdom_team[timedelta(seconds=0)] = 0
 
     if limit is not None:
         r_query = r_query.order_by(Replay.replayID.desc()).limit(limit)
@@ -215,23 +225,35 @@ def get_rune_control(r_query, team: TeamInfo, limit=None):
                 else:
                     series[time] = 1
 
-            is_bounty = rune.runeType == RuneID.Bounty or rune.runeType == RuneID.WaterRune
-
-            if is_bounty:
-                if rune.team == team_side:
-                    _increment(rune.game_time, runes_bounty_team)
-                else:
-                    _increment(rune.game_time, runes_bounty_opp)
-            else:
+            if RuneID.is_power(rune.runeType):
                 if rune.team == team_side:
                     _increment(rune.game_time, runes_power_team)
                 else:
                     _increment(rune.game_time, runes_power_opp)
+            elif rune.runeType == RuneID.Bounty:
+                if rune.team == team_side:
+                    _increment(rune.game_time, runes_bounty_team)
+                else:
+                    _increment(rune.game_time, runes_bounty_opp)
+            elif rune.runeType == RuneID.WaterRune:
+                if rune.team == team_side:
+                    _increment(rune.game_time, runes_water_team)
+                else:
+                    _increment(rune.game_time, runes_water_opp)
+            elif rune.runeType == RuneID.Wisdom:
+                if rune.team == team_side:
+                    _increment(rune.game_time, runes_wisdom_team)
+                else:
+                    _increment(rune.game_time, runes_wisdom_opp)
 
     data = [runes_bounty_team, runes_bounty_opp,
-            runes_power_team, runes_power_opp]
+            runes_power_team, runes_power_opp,
+            runes_water_team, runes_water_opp,
+            runes_wisdom_team, runes_wisdom_opp]
     columns = ["Team Bounty", "Opposition Bounty",
-               "Team Power", "Opposition Power"]
+               "Team Power", "Opposition Power",
+               "Team Water", "Opposition Water",
+               "Team Wisdom", "Opposition Wisdom"]
 
     output = concat(data, axis=1)
     output.columns = columns
