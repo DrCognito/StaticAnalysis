@@ -204,10 +204,10 @@ def do_positioning(team: TeamInfo, r_query,
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'dire' / (p_name + '.jpg')
-            dire_ancient_filter = location_filter(dire_ancient_cords,
-                                                  PlayerStatus)
-            pos_dire = pos_dire.filter(dire_ancient_filter)
-            pos_dire_limited = pos_dire_limited.filter(dire_ancient_filter)
+            # dire_ancient_filter = location_filter(dire_ancient_cords,
+            #                                       PlayerStatus)
+            # pos_dire = pos_dire.filter(dire_ancient_filter)
+            # pos_dire_limited = pos_dire_limited.filter(dire_ancient_filter)
 
             pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
             vmin, vmax = get_binning_percentile_xy(pos_dire_df)
@@ -235,9 +235,9 @@ def do_positioning(team: TeamInfo, r_query,
 
             output = team_path / 'radiant' / (p_name + '.jpg')
             # axes = fig.subplots(1, 2)
-            ancient_filter = location_filter(radiant_ancient_cords,
-                                             PlayerStatus)
-            pos_radiant = pos_radiant.filter(ancient_filter)
+            # ancient_filter = location_filter(radiant_ancient_cords,
+            #                                  PlayerStatus)
+            # pos_radiant = pos_radiant.filter(ancient_filter)
             pos_radiant_df = dataframe_xy(pos_radiant, PlayerStatus, session)
             vmin, vmax = get_binning_percentile_xy(pos_radiant_df)
             vmin = max(1.0, vmin)
@@ -245,7 +245,7 @@ def do_positioning(team: TeamInfo, r_query,
                                         bins=64, fig_in=fig, ax_in=axes[0],
                                         vmin=vmin, vmax=vmax)
 
-            pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
+            # pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
             pos_radiant_limited_df = dataframe_xy(pos_radiant_limited, PlayerStatus, session)
             vmin, vmax = get_binning_percentile_xy(pos_radiant_limited_df)
             vmin = max(1.0, vmin)
