@@ -12,54 +12,6 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import PickBans
 
 
-def win_rate_table_fraction(r_query, team):
-
-    def _process_replays(r_in, side):
-        firsttotal = 0
-        firstwins = 0
-        secondtotal = 0
-        secondwins = 0
-
-        for game in r_in:
-            is_first = game.first_pick() == side
-            if side == game.winner:
-                if is_first:
-                    firstwins += 1
-                else:
-                    secondwins += 1
-            if is_first:
-                firsttotal += 1
-            else:
-                secondtotal += 1
-        output = Series(dtype='UInt16')
-        output['First Wins'] = firstwins
-        output['First Losses'] = firsttotal - firstwins
-        output['Second Wins'] = secondwins
-        output['Second Losses'] = secondtotal - secondwins
-        output['All Wins'] = output['First Wins'] + output['Second Wins']
-        output['All Losses'] = output['First Losses'] + output['Second Losses']
-        return output
-
-    output = DataFrame(columns=['Dire', 'Radiant'])
-
-    f_dire = Replay.get_side_filter(team, Team.DIRE)
-    r_dire = r_query.filter(f_dire)
-    output['Dire'] = _process_replays(r_dire, Team.DIRE)
-
-    f_radiant = Replay.get_side_filter(team, Team.RADIANT)
-    r_radiant = r_query.filter(f_radiant)
-    output['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
-    output['All'] = output['Dire'] + output['Radiant']
-    output.loc['First Pick'] = output.loc['First Wins']/\
-                               (output.loc['First Wins'] + output.loc['First Losses'] )
-    output.loc['Second Pick'] = output.loc['Second Wins']/\
-                               (output.loc['Second Wins'] + output.loc['Second Losses'] )
-    output.loc['All'] = output.loc['All Wins']/\
-                               (output.loc['All Wins'] + output.loc['All Losses'] )
-
-    return output.T
-
-
 def win_rate_table(r_query, team):
 
     def _process_replays(r_in, side):
@@ -98,12 +50,19 @@ def win_rate_table(r_query, team):
     r_radiant = r_query.filter(f_radiant)
     output['Radiant'] = _process_replays(r_radiant, Team.RADIANT)
     output['All'] = output['Dire'] + output['Radiant']
-    output.loc['First Pick Percent'] = output.loc['First Wins']/\
-                               (output.loc['First Wins'] + output.loc['First Losses'])*100.0
-    output.loc['Second Pick Percent'] = output.loc['Second Wins']/\
-                               (output.loc['Second Wins'] + output.loc['Second Losses'])*100.0
-    output.loc['All Percent'] = output.loc['All Wins']/\
-                               (output.loc['All Wins'] + output.loc['All Losses'])*100.0
+    output.loc['First Pick'] = output.loc['First Wins']/\
+                               (output.loc['First Wins'] + output.loc['First Losses'])
+    output.loc['Second Pick'] = output.loc['Second Wins']/\
+                               (output.loc['Second Wins'] + output.loc['Second Losses'])
+    output.loc['All'] = output.loc['All Wins']/\
+                               (output.loc['All Wins'] + output.loc['All Losses'])
+    output.loc['First Pick Percent'] = output.loc['First Pick']*100.0
+    output.loc['Second Pick Percent'] = output.loc['Second Pick']*100.0
+    output.loc['All Percent'] = output.loc['All']*100.0
+
+    output.loc['First'] = output.loc['First Wins'] + output.loc['First Losses']
+    output.loc['Second'] = output.loc['Second Wins'] + output.loc['Second Losses']
+    output.loc['All'] = output.loc['All Wins'] + output.loc['All Losses']
 
     return output.T
 
