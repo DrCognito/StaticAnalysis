@@ -12,7 +12,7 @@ import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import pytz
-from herotools.important_times import ImportantTimes
+from herotools.important_times import ImportantTimes, nice_time_names
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -117,6 +117,8 @@ arguments.add_argument('--scrim_time',
                        help='''Time cut for the scrims to be processed at.''')
 arguments.add_argument('--scrim_endtime',
                        help='''Time cut for the scrims to be ended at.''')
+arguments.add_argument('--statistic_time',
+                       help='''Time cut for the statistical win rates.''')
 #endregion
 
 
@@ -156,6 +158,23 @@ def store_metadata(team: TeamInfo, metadata):
         json_file = {}
 
     json_file[metadata['name']] = metadata
+    with open(meta_json, 'w') as file:
+        json.dump(json_file, file)
+
+    return meta_json
+
+
+def store_generalstats(team: TeamInfo, statstring: str):
+    team_path = Path(PLOT_BASE_PATH) / team.name
+    meta_json = team_path / 'meta_data.json'
+
+    if meta_json.exists():
+        with open(meta_json, 'r') as file:
+            json_file = json.load(file)
+    else:
+        json_file = {}
+
+    json_file['general_stats'] = statstring
     with open(meta_json, 'w') as file:
         json.dump(json_file, file)
 
@@ -837,15 +856,26 @@ def do_counters(team: TeamInfo, r_query, metadata: dict):
     return metadata
 
 
-def do_statistics(team: TeamInfo, r_query, metadata: dict):
+def do_statistics(team: TeamInfo, r_query, table=True):
     win_rate_df = win_rate_table(r_query, team)
-    win_rate_df = win_rate_df[['First Pick', 'Second Pick', 'All']]
     win_rate_df = win_rate_df.fillna(0)
     win_rate_df = win_rate_df.round(2)
-    metadata['stat_win_rate'] = win_rate_df.to_html()
-    print(win_rate_df)
-
-    return metadata
+    # print(win_rate_df)
+    main_str = [
+        f"{win_rate_df.loc['Radiant']['All']:.0f} games Radiant ({win_rate_df.loc['Radiant']['All Percent']}% win rate)<br>",
+        f"{win_rate_df.loc['Dire']['All']:.0f} games Radiant ({win_rate_df.loc['Dire']['All Percent']}% win rate)<br>",
+        "<br>",
+        f"{win_rate_df.loc['All']['First']:.0f} games 1st Pick ({win_rate_df.loc['All']['First Pick Percent']}% win Rate)<br>",
+        f"{win_rate_df.loc['All']['Second']:.0f} games 2nd Pick ({win_rate_df.loc['All']['Second Pick Percent']}% win rate)<br>",
+        "<br>"
+    ]
+    if table:
+        main_str = [
+            win_rate_df[['First Pick', 'Second Pick', 'All']].to_html(),
+            "<br>",
+            *main_str
+        ]
+    return '\n'.join(main_str)
 
 
 def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
@@ -897,6 +927,25 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         metadata[f'pregame_routes_radiant'] = _process_side(r_replays, Team.RADIANT)
 
     return metadata
+
+
+def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
+                     replay_list=None):
+    extra_stackid = args.extra_stackid
+    if extra_stackid is not None:
+        team.extra_stackid = extra_stackid
+    r_filter = Replay.endTimeUTC >= time
+
+    if replay_list:
+        r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
+    try:
+        r_query = team.get_replays(session).filter(r_filter)
+    except SQLAlchemyError as e:
+        print(e)
+        print("Failed to retrieve replays for team {}".format(team.name))
+        quit()
+
+    return do_statistics(team, r_query, table=False)
 
 
 def process_team(team: TeamInfo, metadata, time: datetime,
@@ -1023,7 +1072,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             print(f"Processed in {t.process_time() - start}")
     print("Processing statistics.", end=" ")
     start = t.process_time()
-    metadata = do_statistics(team, r_query, metadata)
+    metadata['stat_win_rate'] = do_statistics(team, r_query)
     print(f"Processed in {t.process_time() - start}")
 
     path = store_metadata(team, metadata)
@@ -1263,6 +1312,22 @@ if __name__ == "__main__":
                 metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
                 process_team(team, metadata, ImportantTimes[args.scrim_time],
                              args, end_time=end_time, replay_list=scrim_list)
+
+            if args.statistic_time:
+                # Add scrims if we have them
+                scrim_list = []
+                if args.scrim_time:
+                    team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
+                    scrim_list = list(team_scrims.keys())
+
+                if args.statistic_time in nice_time_names:
+                    time_name = nice_time_names[args.statistic_time]
+                else:
+                    time_name = args.statistic_time
+                stat_string = f"Data set - {time_name}<br>\n"
+                stat_string += do_general_stats(team, ImportantTimes[args.statistic_time],
+                                                args, replay_list=scrim_list)
+                store_generalstats(team, stat_string)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
