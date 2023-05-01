@@ -863,7 +863,7 @@ def do_statistics(team: TeamInfo, r_query, table=True):
     # print(win_rate_df)
     main_str = [
         f"{win_rate_df.loc['Radiant']['All']:.0f} games Radiant ({win_rate_df.loc['Radiant']['All Percent']}% win rate)<br>",
-        f"{win_rate_df.loc['Dire']['All']:.0f} games Radiant ({win_rate_df.loc['Dire']['All Percent']}% win rate)<br>",
+        f"{win_rate_df.loc['Dire']['All']:.0f} games Dire ({win_rate_df.loc['Dire']['All Percent']}% win rate)<br>",
         "<br>",
         f"{win_rate_df.loc['All']['First']:.0f} games 1st Pick ({win_rate_df.loc['All']['First Pick Percent']}% win Rate)<br>",
         f"{win_rate_df.loc['All']['Second']:.0f} games 2nd Pick ({win_rate_df.loc['All']['Second Pick Percent']}% win rate)<br>",
