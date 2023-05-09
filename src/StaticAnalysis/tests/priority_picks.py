@@ -177,14 +177,7 @@ def do_priority_picks(r_query, team, fig: plt.Figure, nHeroes=20,
     return fig
 
 
-
 fig = plt.figure()
-# nHeroes = 10
-# y_inch = 6*(nHeroes/10)
-# fig.set_size_inches(7.5, y_inch)
-# ax = fig.subplots(1)
-# plot_priority(full_df, ax, percent_col="P1 Percent", nHeroes=nHeroes)
-# ax.set_title("Pick 5 (first) or Picks 6 and 7")
 
 fig = do_priority_picks(r_query, team, fig, nHeroes=20, first_pick=True)
 fig.savefig("prio_test_first.png", bbox_inches="tight")
