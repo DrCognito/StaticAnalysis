@@ -20,7 +20,8 @@ def get_team(name):
 r_filter = Replay.endTimeUTC >= ImportantTimes['Patch_7_33']
 proc_team = 8255756  # Evil Geniuses
 opp = 8599101 # Gaimin Gladiators
-team = get_team(proc_team)
+liquid = 2163
+team = get_team(liquid)
 opp_team = get_team(opp)
 r_query = team.get_replays(session).filter(r_filter)
 
@@ -139,13 +140,6 @@ def do_priority_picks(r_query, team, fig: plt.Figure, nHeroes=20):
     return fig
 
 
-
-tr = r_query.first()
-
-tdf = replay_prio_pick(tr, team)
-odf = replay_prio_pick(tr, opp_team)
-
-full_df = priority_pick_df(r_query, team)
 
 fig = plt.figure()
 # nHeroes = 10
