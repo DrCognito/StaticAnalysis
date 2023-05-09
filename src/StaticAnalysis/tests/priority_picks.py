@@ -77,9 +77,16 @@ def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
     return df
 
 
-def priority_pick_df(r_query, team):
+def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
     dfs = []
+    r: Replay
     for r in r_query:
+        # Skip if its first pick and were not collecting first!
+        if r.is_first_pick(team) and not first_pick:
+            continue
+        # Skip if its second pick and were not collecting second!
+        elif not r.is_first_pick(team) and not second_pick:
+            continue
         df = replay_prio_pick(r, team)
         if df is BAD_REPLAY_SENTINEL:
             continue
@@ -123,19 +130,49 @@ def plot_priority(table: DataFrame, ax_in,
     return ax_in
 
 
-def do_priority_picks(r_query, team, fig: plt.Figure, nHeroes=20):
-    full_df = priority_pick_df(r_query, team)
+def do_priority_picks(r_query, team, fig: plt.Figure, nHeroes=20,
+                      first_pick=False, second_pick=False):
+    titles_both = [
+        "Pick 5 (first) or Picks 6 and 7",
+        "Pick 15 or Picks 16 and 17 (first)",
+        "Pick 23",
+        "Pick 24"
+    ]
+    titles_first = [
+        "Pick 5",
+        "Pick 8",
+        "Pick 16 and 17",
+        "Pick 23"
+    ]
+    titles_second = [
+        "Pick 6 and 7",
+        "Pick 15",
+        "Pick 18",
+        "Pick 24"
+    ]
+    if first_pick:
+        titles = titles_first
+    if second_pick:
+        titles = titles_second
+    full_df = priority_pick_df(r_query, team, first_pick=first_pick, second_pick=second_pick)
     y_inch = 2*6*(nHeroes/10)
-    fig.set_size_inches(15, y_inch)
-    axes = fig.subplots(2,2)
-    plot_priority(full_df, axes[0][0], "P1 Percent", nHeroes=nHeroes)
-    axes[0][0].set_title("Pick 5 (first) or Picks 6 and 7")
-    plot_priority(full_df, axes[0][1], "P2 Percent", nHeroes=nHeroes)
-    axes[0][1].set_title("Pick 15 or Picks 16 and 17 (first)")
-    plot_priority(full_df, axes[1][0], "P3 Percent", nHeroes=nHeroes)
-    axes[1][0].set_title("Pick 23")
-    plot_priority(full_df, axes[1][1], "P4 Percent", nHeroes=nHeroes)
-    axes[1][1].set_title("Pick 24")
+    fig.set_size_inches(y_inch, 15)
+    axes = fig.subplots(1, 4)
+    plot_priority(full_df, axes[0], "P1 Percent", nHeroes=nHeroes)
+    axes[0].set_title(titles[0])
+    plot_priority(full_df, axes[1], "P2 Percent", nHeroes=nHeroes)
+    axes[1].set_title(titles[1])
+    plot_priority(full_df, axes[2], "P3 Percent", nHeroes=nHeroes)
+    axes[2].set_title(titles[2])
+    plot_priority(full_df, axes[3], "P4 Percent", nHeroes=nHeroes)
+    axes[3].set_title(titles[3])
+
+    if first_pick:
+        axes[0].set_ylabel("First pick", fontsize=20)
+    if second_pick:
+        axes[0].set_ylabel("Second pick", fontsize=20)
+
+    axes[0].yaxis.set_label_coords(-0.15, 0.5)
 
     return fig
 
@@ -149,5 +186,9 @@ fig = plt.figure()
 # plot_priority(full_df, ax, percent_col="P1 Percent", nHeroes=nHeroes)
 # ax.set_title("Pick 5 (first) or Picks 6 and 7")
 
-fig = do_priority_picks(r_query, team, fig, nHeroes=20)
-fig.savefig("prio_test.png", bbox_inches="tight")
+fig = do_priority_picks(r_query, team, fig, nHeroes=20, first_pick=True)
+fig.savefig("prio_test_first.png", bbox_inches="tight")
+fig.clf()
+
+fig = do_priority_picks(r_query, team, fig, nHeroes=20, second_pick=True)
+fig.savefig("prio_test_second.png", bbox_inches="tight")
