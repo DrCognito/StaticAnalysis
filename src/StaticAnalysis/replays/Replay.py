@@ -97,16 +97,24 @@ class Replay(Base):
     def is_first_pick(self, team: 'TeamInfo'):
         """Helper function to test if team has first pick."""
         first_pick_side = self.first_pick()
-        if self.teams[0].teamID == team.team_id:
-            return self.teams[0].team == first_pick_side
-        else:
-            return self.teams[1].team == first_pick_side
+        team_side = self.get_side(team)
+
+        return first_pick_side == team_side
 
     def get_side(self, team: 'TeamInfo') -> Team:
         """Get side that a team is on or None if not found."""
         if self.teams[0].teamID == team.team_id:
             return self.teams[0].team
         if self.teams[1].teamID == team.team_id:
+            return self.teams[1].team
+        # Check by stack ID
+        if self.teams[0].stackID == team.stack_id:
+            return self.teams[0].team
+        if self.teams[0].stackID == team.extra_stackid:
+            return self.teams[0].team
+        if self.teams[1].stackID == team.stack_id:
+            return self.teams[1].team
+        if self.teams[1].stackID == team.extra_stackid:
             return self.teams[1].team
 
         return None
