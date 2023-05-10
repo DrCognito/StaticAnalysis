@@ -107,9 +107,10 @@ def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
 
 
 def plot_priority(table: DataFrame, ax_in,
-                  percent_col: str,
+                  col: str,
                   icon_col: str = "icon",
                   nHeroes=10):
+    percent_col, picked_col, available_col = f"{col} Percent", f"{col} Picked", f"{col} Available"
     icon_size = 0.8
     table = table.loc[table[percent_col] > 0]
     table = table.sort_values(by=[percent_col,])
@@ -118,7 +119,9 @@ def plot_priority(table: DataFrame, ax_in,
     ax_in.set_ylim(-0.1, len(table.tail(nHeroes)))
     for y, (_, t) in enumerate(table.tail(nHeroes).iterrows()):
         coords = (1, y + 0.1)
-        label = f"{int(round(t[percent_col], 2))}%"
+        label = f"picked {int(t[picked_col])} "\
+                + f"from {int(t[available_col])}, "\
+                + f"{int(round(t[percent_col], 2))}%"
         ax_in.annotate(label, coords, ha='left', va='baseline')
         # Icons
         icon = HeroIconPrefix / t[icon_col]
@@ -158,13 +161,13 @@ def do_priority_picks(r_query, team, fig: plt.Figure, nHeroes=20,
     y_inch = 2*6*(nHeroes/10)
     fig.set_size_inches(y_inch, 15)
     axes = fig.subplots(1, 4)
-    plot_priority(full_df, axes[0], "P1 Percent", nHeroes=nHeroes)
+    plot_priority(full_df, axes[0], "P1", nHeroes=nHeroes)
     axes[0].set_title(titles[0])
-    plot_priority(full_df, axes[1], "P2 Percent", nHeroes=nHeroes)
+    plot_priority(full_df, axes[1], "P2", nHeroes=nHeroes)
     axes[1].set_title(titles[1])
-    plot_priority(full_df, axes[2], "P3 Percent", nHeroes=nHeroes)
+    plot_priority(full_df, axes[2], "P3", nHeroes=nHeroes)
     axes[2].set_title(titles[2])
-    plot_priority(full_df, axes[3], "P4 Percent", nHeroes=nHeroes)
+    plot_priority(full_df, axes[3], "P4", nHeroes=nHeroes)
     axes[3].set_title(titles[3])
 
     if first_pick:
