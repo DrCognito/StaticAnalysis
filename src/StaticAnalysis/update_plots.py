@@ -23,6 +23,7 @@ from sqlalchemy.orm import sessionmaker
 from pandas import DataFrame, IntervalIndex, cut, read_sql
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
 from StaticAnalysis.analysis.Player import player_heroes, player_position
+from StaticAnalysis.analysis.priority_picks import priority_picks
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
                                             get_ptbase_tslice,
                                             get_ptbase_tslice_side,
@@ -68,6 +69,7 @@ END_TIME = []
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
 
+#region argparse
 arguments = ArgumentParser()
 arguments.add_argument('--process_teams',
                        help='''Process specific team.''',
@@ -110,6 +112,7 @@ arguments.add_argument("--pregame_positioning", action=argparse.BooleanOptionalA
 arguments.add_argument("--smoke", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--scans", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--prioritypicks", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
@@ -726,6 +729,27 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
     return metadata
 
 
+def do_priority_picks(team, r_query, metadata):
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    first = team_path / "first_pick_priority.png"
+    second = team_path / "second_pick_priority.png"
+    # First
+    fig = plt.figure()
+    fig = priority_picks(team, r_query, fig, first_pick=True, nHeroes=10)
+    fig.savefig(first, bbox_inches="tight")
+    relpath = str(first.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['pick_priority_first'] = relpath
+    # Second
+    fig.clf()
+    fig = priority_picks(team, r_query, fig, second_pick=True, nHeroes=10)
+    fig.savefig(second, bbox_inches="tight")
+    relpath = str(second.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['pick_priority_second'] = relpath
+
+    return metadata
+
+
 def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
@@ -1064,6 +1088,13 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
+    if args.prioritypicks:
+        if new_dire or new_dire:
+            print("Processing priority picks.", end=" ")
+            start = t.process_time()
+            metadata = do_priority_picks(team, r_query, metadata)
+            plt.close('all')
+            print(f"Processed in {t.process_time() - start}")
     if args.counters:
         if new_dire or new_radiant:
             print("Processing counter picks.", end=" ")
@@ -1272,6 +1303,8 @@ if __name__ == "__main__":
         args.summary = default_process
     if args.counters is None:
         args.counters = default_process
+    if args.prioritypicks is None:
+        args.prioritypicks = default_process
 
     scims_json = environment['SCRIMS_JSON']
     try:
