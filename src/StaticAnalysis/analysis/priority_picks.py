@@ -60,6 +60,9 @@ def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
     return df
 
 
+NO_PICKS_SENTINEL = object()
+
+
 def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
     dfs = []
     r: Replay
@@ -79,14 +82,17 @@ def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
             dfs[0] = dfs[0].add(df)
 
     titles = ["P1", "P2", "P3", "P4"]
-    for t in titles:
-        dfs[0][f"{t} Percent"] = dfs[0][f"{t} Picked"]/dfs[0][f"{t} Available"]*100
+    if dfs:
+        for t in titles:
+            dfs[0][f"{t} Percent"] = dfs[0][f"{t} Picked"]/dfs[0][f"{t} Available"]*100
 
-    def conv_2(x): return convertName(x, HeroIDType.NPC_NAME, HeroIDType.ICON_FILENAME)
-    dfs[0]['icon'] = dfs[0].index
-    dfs[0]['icon'] = dfs[0]['icon'].apply(conv_2)
+        def conv_2(x): return convertName(x, HeroIDType.NPC_NAME, HeroIDType.ICON_FILENAME)
+        dfs[0]['icon'] = dfs[0].index
+        dfs[0]['icon'] = dfs[0]['icon'].apply(conv_2)
 
-    return dfs[0]
+        return dfs[0]
+
+    return NO_PICKS_SENTINEL
 
 
 def plot_priority(table: DataFrame, ax_in,
@@ -142,9 +148,22 @@ def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
     if second_pick:
         titles = titles_second
     full_df = priority_pick_df(r_query, team, first_pick=first_pick, second_pick=second_pick)
+
     y_inch = 2*6*2
     fig.set_size_inches(y_inch, 8)
     axes = fig.subplots(1, 4)
+    # Handle no picks
+    if full_df is NO_PICKS_SENTINEL:
+        for a in axes:
+            a.text(0.5, 0.5, "No Data", fontsize=14,
+                   horizontalalignment='center',
+                   verticalalignment='center')
+        if first_pick:
+            axes[0].set_ylabel("First pick", fontsize=20)
+        if second_pick:
+            axes[0].set_ylabel("Second pick", fontsize=20)
+        return fig
+
     plot_priority(full_df, axes[0], "P1", nHeroes=nHeroes)
     axes[0].set_title(titles[0])
     plot_priority(full_df, axes[1], "P2", nHeroes=nHeroes)
