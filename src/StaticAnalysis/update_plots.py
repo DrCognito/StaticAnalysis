@@ -21,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from pandas import DataFrame, IntervalIndex, cut, read_sql
-from StaticAnalysis.analysis.draft_vis import replay_draft_image
+from StaticAnalysis.analysis.draft_vis import replay_draft_image, pickban_line_image
 from StaticAnalysis.analysis.Player import player_heroes, player_position
 from StaticAnalysis.analysis.priority_picks import priority_picks
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -304,15 +304,13 @@ def do_draft(team: TeamInfo, metadata,
 
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
-    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
-    team_path.mkdir(parents=True, exist_ok=True)
-    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
-    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
+    draft_path = Path(PLOT_BASE_PATH) / team.name / "drafts"
+    draft_path.mkdir(parents=True, exist_ok=True)
 
-    def _save_store(drafts: list, file_stem: str):
+    def _save_store(drafts: list, ids: list):
         outputs = []
-        for count, d in enumerate(drafts):
-            output = team_path / f"{file_stem}_{count}.png"
+        for d, r_id in zip(drafts, ids):
+            output = draft_path / f"{r_id}.png"
 
             # d = d.convert("RGB")
             d.save(output, dpi=(50, 50), optimize=True)
@@ -335,64 +333,65 @@ def do_draft(team: TeamInfo, metadata,
             except FileNotFoundError:
                 print(f"Plot not found! {plot_path}")
 
+    def _process_drafts(replays):
+        drafts = []
+        ids = []
+        r: Replay
+        for r in replays:
+            line = pickban_line_image(r, team, add_team_name=True, caching=True)
+            if line is not None:
+                drafts.append(line)
+                ids.append(r.replayID)
+
+        return drafts, ids
+
     if update_dire:
         if per_side_limit is not None:
             replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())\
-                               .all()
-        dire_drafts = replay_draft_image(replays,
-                                         team,
-                                         team.name)
-        _clean_up_plots(metadata.get('plot_dire_drafts'))
-        if dire_drafts is not None:
-            metadata['plot_dire_drafts'] = _save_store(dire_drafts, 'dire/drafts')
+            replays = r_drafted.filter(dire_filter).order_by(Replay.replayID.desc())
+
+        drafts, ids = _process_drafts(replays)
+        if drafts is not None:
+            _save_store(drafts, ids)
+            metadata['plot_dire_drafts'] = ids
 
     if update_radiant:
         if per_side_limit is not None:
             replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())\
-                               .all()
-        radiant_drafts = replay_draft_image(replays,
-                                            team,
-                                            team.name)
-        _clean_up_plots(metadata.get('plot_radiant_drafts'))
-        if radiant_drafts is not None:
-            metadata['plot_radiant_drafts'] = _save_store(radiant_drafts, 'radiant/drafts')
+            replays = r_drafted.filter(radiant_filter).order_by(Replay.replayID.desc())
+        drafts, ids = _process_drafts(replays)
+        if drafts is not None:
+            _save_store(drafts, ids)
+            metadata['plot_radiant_drafts'] = ids
 
     if update_radiant or update_dire:
         if per_side_limit is not None:
             replays = r_drafted.order_by(Replay.replayID.desc())\
-                               .limit(2*per_side_limit).all()
+                               .limit(2*per_side_limit)
         else:
-            replays = r_drafted.order_by(Replay.replayID.desc())\
-                               .all()
+            replays = r_drafted.order_by(Replay.replayID.desc())
 
-        drafts_first = replay_draft_image(replays,
-                                          team,
-                                          team.name,
-                                          second_pick=False)
-        _clean_up_plots(metadata.get('plot_drafts_first'))
-        if drafts_first is not None:
-            metadata['plot_drafts_first'] = _save_store(drafts_first, 'drafts_first')
+        replays_first = [r for r in replays if r.is_first_pick(team)]
+        replays_second = [r for r in replays if not r.is_first_pick(team)]
 
-        drafts_second = replay_draft_image(replays,
-                                           team,
-                                           team.name,
-                                           first_pick=False)
-        _clean_up_plots(metadata.get('plot_drafts_second'))
-        if drafts_second is not None:
-            metadata['plot_drafts_second'] = _save_store(drafts_second, 'drafts_second')
+        drafts, ids = _process_drafts(replays_first)
+        if drafts is not None:
+            _save_store(drafts, ids)
+            metadata['plot_drafts_first'] = ids
 
-        drafts_all = replay_draft_image(replays,
-                                        team,
-                                        team.name,)
-        _clean_up_plots(metadata.get('plot_drafts_all'))
-        if drafts_all is not None:
-            metadata['plot_drafts_all'] = _save_store(drafts_all, 'drafts_all')
+        drafts, ids = _process_drafts(replays_second)
+        if drafts is not None:
+            _save_store(drafts, ids)
+            metadata['plot_drafts_second'] = ids
+
+        drafts, ids = _process_drafts(replays_second)
+        if drafts is not None:
+            _save_store(drafts, ids)
+            metadata['plot_drafts_all'] = ids
 
     return metadata
 
