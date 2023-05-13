@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_
 from herotools.important_times import ImportantTimes, nice_time_names
 from herotools.HeroTools import heroShortName, convertName, HeroIDType, HeroIconPrefix
 from pandas import DataFrame
+from StaticAnalysis.analysis.priority_picks import priority_picks_double
 
 
 def get_team(name):
@@ -188,3 +189,7 @@ fig.clf()
 
 fig = do_priority_picks(r_query, team, fig, nHeroes=20, second_pick=True)
 fig.savefig("prio_test_second.png", bbox_inches="tight")
+fig.clf()
+
+fig = priority_picks_double(team, r_query, fig, nHeroes=10)
+fig.savefig("prio_test_double.png", bbox_inches="tight")
