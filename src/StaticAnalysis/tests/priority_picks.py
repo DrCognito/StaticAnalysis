@@ -22,7 +22,8 @@ r_filter = Replay.endTimeUTC >= ImportantTimes['Patch_7_33']
 proc_team = 8255756  # Evil Geniuses
 opp = 8599101 # Gaimin Gladiators
 liquid = 2163
-team = get_team(liquid)
+tundra = 8291895
+team = get_team(tundra)
 opp_team = get_team(opp)
 r_query = team.get_replays(session).filter(r_filter)
 
@@ -192,4 +193,6 @@ fig.savefig("prio_test_second.png", bbox_inches="tight")
 fig.clf()
 
 fig = priority_picks_double(team, r_query, fig, nHeroes=10)
+fig.tight_layout(w_pad=0.22, h_pad=2.5)
+# fig.tight_layout()
 fig.savefig("prio_test_double.png", bbox_inches="tight")
