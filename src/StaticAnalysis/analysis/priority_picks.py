@@ -247,10 +247,12 @@ def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
     def _plot_pick(df: DataFrame, axes, titles):
         # Handle no picks
         if df is NO_PICKS_SENTINEL:
-            for a in axes[0]:
+            for a in axes:
                 a.text(0.5, 0.5, "No Data", fontsize=14,
                        horizontalalignment='center',
                        verticalalignment='center')
+
+            return
 
         plot_priority(df, axes[0], "P1", nHeroes=nHeroes, horizontal=False, count_col=True)
         axes[0].set_ylabel(titles[0])
