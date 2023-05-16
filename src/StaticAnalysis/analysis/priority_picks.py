@@ -99,14 +99,13 @@ def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
 def plot_priority(table: DataFrame, ax_in,
                   col: str,
                   icon_col: str = "icon",
-                  count_col=True,
+                  count_col=False,
                   nHeroes=10, horizontal=True):
     percent_col, picked_col, available_col = f"{col} Percent", f"{col} Picked", f"{col} Available"
     icon_size = 0.6
     table = table.loc[table[percent_col] > 0]
-    # max_val = max(table[picked_col].max(), 40)
-    max_val = table[available_col].max()
-    max_val += 0.5
+    max_val = max(table[percent_col].max(), 40)
+    max_val += 10
     if horizontal:
         table = table.sort_values(by=[percent_col, available_col])
         table[percent_col].tail(nHeroes).plot.barh(xlim=(0, max_val), ax=ax_in, width=-0.1, align='edge', ylabel="")
@@ -115,7 +114,7 @@ def plot_priority(table: DataFrame, ax_in,
             ax_count = ax_in.twinx()
     else:
         table = table.sort_values(by=[percent_col, available_col], ascending=False)
-        table[picked_col].head(nHeroes).plot.bar(ylim=(0, max_val), ax=ax_in, width=-0.2, align='edge', xlabel="")
+        table[percent_col].head(nHeroes).plot.bar(ylim=(0, max_val), ax=ax_in, width=-0.2, align='edge', xlabel="")
         ax_in.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax_in.set_xlim(-0.5, len(table.tail(nHeroes)))
         if count_col:
@@ -141,12 +140,12 @@ def plot_priority(table: DataFrame, ax_in,
         if not count_col:
             for y, (_, t) in enumerate(table.tail(nHeroes).iterrows()):
                 coords = (y + 0.1, max_val/10)
-                # label = f"{int(t[picked_col])} / "\
-                #         + f"{int(t[available_col])}, "\
-                #         + f"{int(round(t[percent_col], 2))}%"
-                label = f"{int(round(t[percent_col], 2))}%, "\
-                        + f"({int(t[picked_col])} / "\
-                        + f"{int(t[available_col])})"
+                label = f"{int(t[picked_col])} / "\
+                        + f"{int(t[available_col])}, "\
+                        + f"{int(round(t[percent_col], 2))}%"
+                # label = f"{int(round(t[percent_col], 2))}%, "\
+                #         + f"({int(t[picked_col])} / "\
+                #         + f"{int(t[available_col])})"
                 ax_in.annotate(label, coords, ha='left', va='baseline', rotation=90, fontsize=8)
         x_label_icon(ax_in, y_pos=-0.1, size=icon_size)
         # Labels
@@ -254,16 +253,16 @@ def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
 
             return
 
-        plot_priority(df, axes[0], "P1", nHeroes=nHeroes, horizontal=False, count_col=True)
+        plot_priority(df, axes[0], "P1", nHeroes=nHeroes, horizontal=False)
         axes[0].set_ylabel(titles[0])
         # axes[0].yaxis.set_label_coords(-0.15, 0.5)
-        plot_priority(df, axes[1], "P2", nHeroes=nHeroes, horizontal=False, count_col=True)
+        plot_priority(df, axes[1], "P2", nHeroes=nHeroes, horizontal=False)
         axes[1].set_ylabel(titles[1])
         # axes[1].yaxis.set_label_coords(-0.15, 0.5)
-        plot_priority(df, axes[2], "P3", nHeroes=nHeroes, horizontal=False, count_col=True)
+        plot_priority(df, axes[2], "P3", nHeroes=nHeroes, horizontal=False)
         axes[2].set_ylabel(titles[2])
         # axes[2].yaxis.set_label_coords(-0.15, 0.5)
-        plot_priority(df, axes[3], "P4", nHeroes=nHeroes, horizontal=False, count_col=True)
+        plot_priority(df, axes[3], "P4", nHeroes=nHeroes, horizontal=False)
         axes[3].set_ylabel(titles[3])
         # axes[3].yaxis.set_label_coords(-0.15, 0.5)
 
