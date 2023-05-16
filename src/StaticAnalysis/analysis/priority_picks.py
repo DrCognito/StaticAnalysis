@@ -138,7 +138,7 @@ def plot_priority(table: DataFrame, ax_in,
 
     if not horizontal:
         if not count_col:
-            for y, (_, t) in enumerate(table.tail(nHeroes).iterrows()):
+            for y, (_, t) in enumerate(table.head(nHeroes).iterrows()):
                 coords = (y + 0.1, max_val/10)
                 label = f"{int(t[picked_col])} / "\
                         + f"{int(t[available_col])}, "\
