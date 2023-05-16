@@ -4,14 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
+sqlalchemy = "==1.4.37"
 pandas = "*"
 python-dotenv = "*"
 pillow = "*"
 adjusttext = "*"
 pytz = "*"
 flake8 = "*"
-matplotlib = "*"
+matplotlib = "==3.5.2"
 pygsheets = "*"
 scipy = "*"
 "dogpile.cache" = "*"

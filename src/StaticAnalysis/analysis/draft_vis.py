@@ -538,7 +538,7 @@ def chunks(lst: list, n: int):
 
 
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
-                       first_pick=True, second_pick=True, line_limit=20):
+                       first_pick=True, second_pick=True, line_limit=13):
     line_sets = list()
     line_lengths = list()
     max_width = 0

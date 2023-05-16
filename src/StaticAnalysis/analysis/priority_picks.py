@@ -3,10 +3,11 @@ from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  heroShortName)
 from pandas import DataFrame
 
-from StaticAnalysis.analysis.visualisation import make_image_annotation_flex
+from StaticAnalysis.analysis.visualisation import make_image_annotation_flex, x_label_icon
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import PickBans
+from matplotlib.ticker import MaxNLocator
 
 BAD_REPLAY_SENTINEL = object()
 
@@ -98,27 +99,62 @@ def priority_pick_df(r_query, team, first_pick=False, second_pick=False):
 def plot_priority(table: DataFrame, ax_in,
                   col: str,
                   icon_col: str = "icon",
-                  nHeroes=10):
+                  count_col=False,
+                  nHeroes=10, horizontal=True):
     percent_col, picked_col, available_col = f"{col} Percent", f"{col} Picked", f"{col} Available"
-    icon_size = 0.8
+    icon_size = 0.6
     table = table.loc[table[percent_col] > 0]
-    table = table.sort_values(by=[percent_col,])
     max_val = max(table[percent_col].max(), 40)
     max_val += 10
-    table[percent_col].tail(nHeroes).plot.barh(xlim=(0, max_val), ax=ax_in, width=-0.1, align='edge', ylabel="")
-    ax_in.set_ylim(-0.1, len(table.tail(nHeroes)))
-    for y, (_, t) in enumerate(table.tail(nHeroes).iterrows()):
-        coords = (1, y + 0.1)
-        label = f"picked {int(t[picked_col])} "\
-                + f"from {int(t[available_col])}, "\
-                + f"{int(round(t[percent_col], 2))}%"
-        ax_in.annotate(label, coords, ha='left', va='baseline')
-        # Icons
-        icon = HeroIconPrefix / t[icon_col]
-        make_image_annotation_flex(icon, ax_in, 0, y, icon_size)
+    if horizontal:
+        table = table.sort_values(by=[percent_col, available_col])
+        table[percent_col].tail(nHeroes).plot.barh(xlim=(0, max_val), ax=ax_in, width=-0.1, align='edge', ylabel="")
+        ax_in.set_ylim(-0.1, len(table.tail(nHeroes)))
+        if count_col:
+            ax_count = ax_in.twinx()
+    else:
+        table = table.sort_values(by=[percent_col, available_col], ascending=False)
+        table[percent_col].head(nHeroes).plot.bar(ylim=(0, max_val), ax=ax_in, width=-0.2, align='edge', xlabel="")
+        ax_in.yaxis.set_major_locator(MaxNLocator(integer=True))
+        ax_in.set_xlim(-0.5, len(table.tail(nHeroes)))
+        if count_col:
+            ax_count = ax_in.twinx()
+            table[available_col].head(nHeroes).plot.bar(ylim=(0, max_val),ax=ax_count, width=0.2, align='edge', xlabel='', color='#ff7f00')
+            ax_count.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax_count.tick_params(axis="y",direction="in")
+
+    if horizontal:
+        for y, (_, t) in enumerate(table.tail(nHeroes).iterrows()):
+
+            coords = (1, y + 0.1)
+            label = f"picked {int(t[picked_col])} "\
+                    + f"from {int(t[available_col])}, "\
+                    + f"{int(round(t[percent_col], 2))}%"
+
+            ax_in.annotate(label, coords, ha='left', va='baseline')
+            # Icons
+            icon = HeroIconPrefix / t[icon_col]
+            make_image_annotation_flex(icon, ax_in, 0, y, icon_size)
+
+    if not horizontal:
+        if not count_col:
+            for y, (_, t) in enumerate(table.head(nHeroes).iterrows()):
+                coords = (y + 0.1, max_val/10)
+                label = f"{int(t[picked_col])} / "\
+                        + f"{int(t[available_col])}, "\
+                        + f"{int(round(t[percent_col], 2))}%"
+                # label = f"{int(round(t[percent_col], 2))}%, "\
+                #         + f"({int(t[picked_col])} / "\
+                #         + f"{int(t[available_col])})"
+                ax_in.annotate(label, coords, ha='left', va='baseline', rotation=90, fontsize=8)
+        x_label_icon(ax_in, y_pos=-0.1, size=icon_size)
+        # Labels
 
     # Remove the old ylabels
-    ax_in.set_yticklabels([])
+    if horizontal:
+        ax_in.set_yticklabels([])
+    else:
+        ax_in.set_xticklabels([])
 
     return ax_in
 
@@ -164,13 +200,13 @@ def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
             axes[0].set_ylabel("Second pick", fontsize=20)
         return fig
 
-    plot_priority(full_df, axes[0], "P1", nHeroes=nHeroes)
+    plot_priority(full_df, axes[0], "P1", nHeroes=nHeroes, count_col=False)
     axes[0].set_title(titles[0])
-    plot_priority(full_df, axes[1], "P2", nHeroes=nHeroes)
+    plot_priority(full_df, axes[1], "P2", nHeroes=nHeroes, count_col=False)
     axes[1].set_title(titles[1])
-    plot_priority(full_df, axes[2], "P3", nHeroes=nHeroes)
+    plot_priority(full_df, axes[2], "P3", nHeroes=nHeroes, count_col=False)
     axes[2].set_title(titles[2])
-    plot_priority(full_df, axes[3], "P4", nHeroes=nHeroes)
+    plot_priority(full_df, axes[3], "P4", nHeroes=nHeroes, count_col=False)
     axes[3].set_title(titles[3])
 
     if first_pick:
@@ -179,5 +215,65 @@ def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
         axes[0].set_ylabel("Second pick", fontsize=20)
 
     axes[0].yaxis.set_label_coords(-0.15, 0.5)
+
+    return fig
+
+
+def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
+    titles_first = [
+        "Pick 5",
+        "Pick 8",
+        "Pick 16 and 17",
+        "Pick 23"
+    ]
+    titles_second = [
+        "Pick 6 and 7",
+        "Pick 15",
+        "Pick 18",
+        "Pick 24"
+    ]
+    first_df = priority_pick_df(r_query, team, first_pick=True, second_pick=False)
+    second_df = priority_pick_df(r_query, team, first_pick=False, second_pick=True)
+
+    x_inch = 8*2
+    y_inch = x_inch * 1.414
+    fig.set_size_inches(x_inch, y_inch)
+    fig.set_size_inches(8.27, 11.69)
+    axes_all = fig.subplots(4, 2)
+    axes_first = [a[0] for a in axes_all]
+    axes_second = [a[1] for a in axes_all]
+
+    def _plot_pick(df: DataFrame, axes, titles):
+        # Handle no picks
+        if df is NO_PICKS_SENTINEL:
+            for a in axes:
+                a.text(0.5, 0.5, "No Data", fontsize=14,
+                       horizontalalignment='center',
+                       verticalalignment='center')
+
+            return
+
+        plot_priority(df, axes[0], "P1", nHeroes=nHeroes, horizontal=False)
+        axes[0].set_ylabel(titles[0])
+        # axes[0].yaxis.set_label_coords(-0.15, 0.5)
+        plot_priority(df, axes[1], "P2", nHeroes=nHeroes, horizontal=False)
+        axes[1].set_ylabel(titles[1])
+        # axes[1].yaxis.set_label_coords(-0.15, 0.5)
+        plot_priority(df, axes[2], "P3", nHeroes=nHeroes, horizontal=False)
+        axes[2].set_ylabel(titles[2])
+        # axes[2].yaxis.set_label_coords(-0.15, 0.5)
+        plot_priority(df, axes[3], "P4", nHeroes=nHeroes, horizontal=False)
+        axes[3].set_ylabel(titles[3])
+        # axes[3].yaxis.set_label_coords(-0.15, 0.5)
+
+    _plot_pick(first_df, axes_first, titles_first)
+    _plot_pick(second_df, axes_second, titles_second)
+
+    # Pick titles
+    axes_all[0][0].set_title("First pick", fontsize=20)
+    axes_all[0][1].set_title("Second pick", fontsize=20)
+
+    # axes_all[0][0].yaxis.set_label_coords(-0.15, 0.5)
+    # axes_all[1][0].yaxis.set_label_coords(-0.15, 0.5)
 
     return fig

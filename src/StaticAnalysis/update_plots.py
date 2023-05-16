@@ -16,6 +16,7 @@ from herotools.important_times import ImportantTimes, nice_time_names
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from pandas import DataFrame, IntervalIndex, cut, read_sql
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -23,7 +24,8 @@ from sqlalchemy.orm import sessionmaker
 from pandas import DataFrame, IntervalIndex, cut, read_sql
 from StaticAnalysis.analysis.draft_vis import replay_draft_image, pickban_line_image
 from StaticAnalysis.analysis.Player import player_heroes, player_position
-from StaticAnalysis.analysis.priority_picks import priority_picks
+from StaticAnalysis.analysis.priority_picks import (priority_picks,
+                                                    priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
                                             get_ptbase_tslice,
                                             get_ptbase_tslice_side,
@@ -731,20 +733,15 @@ def do_scans(team: TeamInfo, r_query, metadata: dict,
 def do_priority_picks(team, r_query, metadata):
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
-    first = team_path / "first_pick_priority.png"
-    second = team_path / "second_pick_priority.png"
-    # First
+    output = team_path / "pick_priority.png"
+
     fig = plt.figure()
-    fig = priority_picks(team, r_query, fig, first_pick=True, nHeroes=10)
-    fig.savefig(first, bbox_inches="tight")
-    relpath = str(first.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['pick_priority_first'] = relpath
-    # Second
+    fig = priority_picks_double(team, r_query, fig, nHeroes=10)
+    fig.tight_layout(w_pad=0.22, h_pad=2.5)
+    fig.savefig(output, bbox_inches="tight")
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['pick_priority'] = relpath
     fig.clf()
-    fig = priority_picks(team, r_query, fig, second_pick=True, nHeroes=10)
-    fig.savefig(second, bbox_inches="tight")
-    relpath = str(second.relative_to(Path(PLOT_BASE_PATH)))
-    metadata['pick_priority_second'] = relpath
 
     return metadata
 

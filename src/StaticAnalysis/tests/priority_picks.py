@@ -8,6 +8,7 @@ from sqlalchemy import and_, or_
 from herotools.important_times import ImportantTimes, nice_time_names
 from herotools.HeroTools import heroShortName, convertName, HeroIDType, HeroIconPrefix
 from pandas import DataFrame
+from StaticAnalysis.analysis.priority_picks import priority_picks_double
 
 
 def get_team(name):
@@ -21,7 +22,9 @@ r_filter = Replay.endTimeUTC >= ImportantTimes['Patch_7_33']
 proc_team = 8255756  # Evil Geniuses
 opp = 8599101 # Gaimin Gladiators
 liquid = 2163
-team = get_team(liquid)
+tundra = 8291895
+quest = 8894818
+team = get_team(quest)
 opp_team = get_team(opp)
 r_query = team.get_replays(session).filter(r_filter)
 
@@ -188,3 +191,9 @@ fig.clf()
 
 fig = do_priority_picks(r_query, team, fig, nHeroes=20, second_pick=True)
 fig.savefig("prio_test_second.png", bbox_inches="tight")
+fig.clf()
+
+fig = priority_picks_double(team, r_query, fig, nHeroes=10)
+fig.tight_layout(w_pad=0.22, h_pad=2.5)
+# fig.tight_layout()
+fig.savefig("prio_test_double.png", bbox_inches="tight")
