@@ -23,7 +23,8 @@ proc_team = 8255756  # Evil Geniuses
 opp = 8599101 # Gaimin Gladiators
 liquid = 2163
 tundra = 8291895
-team = get_team(tundra)
+quest = 8894818
+team = get_team(quest)
 opp_team = get_team(opp)
 r_query = team.get_replays(session).filter(r_filter)
 
