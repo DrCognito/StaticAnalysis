@@ -24,7 +24,8 @@ opp = 8599101 # Gaimin Gladiators
 liquid = 2163
 tundra = 8291895
 quest = 8894818
-team = get_team(quest)
+gladiators = 8599101
+team = get_team(gladiators)
 opp_team = get_team(opp)
 r_query = team.get_replays(session).filter(r_filter)
 
@@ -194,6 +195,6 @@ fig.savefig("prio_test_second.png", bbox_inches="tight")
 fig.clf()
 
 fig = priority_picks_double(team, r_query, fig, nHeroes=10)
-fig.tight_layout(w_pad=0.22, h_pad=2.5)
+fig.tight_layout(w_pad=1.22, h_pad=2.5)
 # fig.tight_layout()
 fig.savefig("prio_test_double.png", bbox_inches="tight")
