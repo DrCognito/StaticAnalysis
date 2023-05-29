@@ -737,7 +737,7 @@ def do_priority_picks(team, r_query, metadata):
 
     fig = plt.figure()
     fig = priority_picks_double(team, r_query, fig, nHeroes=10)
-    fig.tight_layout(w_pad=0.22, h_pad=2.5)
+    fig.tight_layout(w_pad=1.22, h_pad=2.5)
     fig.savefig(output, bbox_inches="tight")
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata['pick_priority'] = relpath
