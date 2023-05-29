@@ -272,6 +272,10 @@ def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
     # Pick titles
     axes_all[0][0].set_title("First pick", fontsize=20)
     axes_all[0][1].set_title("Second pick", fontsize=20)
+    for a in axes_second:
+        a.yaxis.set_label_position("right")
+        a.yaxis.tick_right()
+
 
     # axes_all[0][0].yaxis.set_label_coords(-0.15, 0.5)
     # axes_all[1][0].yaxis.set_label_coords(-0.15, 0.5)
