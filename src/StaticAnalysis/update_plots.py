@@ -52,6 +52,8 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
+from propubs.libs.vis import plot_team_pubs
+from propubs.model.pub_heroes import InitDB as InitPubDB
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -63,6 +65,10 @@ session = Session()
 team_engine = InitTeamDB()
 team_maker = sessionmaker(bind=team_engine)
 team_session = team_maker()
+
+pub_engine = InitPubDB()
+pub_maker = sessionmaker(bind=pub_engine)
+pub_session = pub_maker()
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
@@ -746,6 +752,43 @@ def do_priority_picks(team, r_query, metadata):
     return metadata
 
 
+def do_player_picks(team: TeamInfo, metadata: dict,
+                    r_filter, limit=None, postfix='',
+                    mintime=None, maxtime=None):
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+
+    fig = plt.figure()
+    fig.set_size_inches(8.27, 11.69)
+
+    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
+    if limit is None:
+        axes_all = fig.subplots(5, 2)
+        axes_first = [a[0] for a in axes_all]
+
+        axes_second = [a[1] for a in axes_all]
+        axes_second[0].set_title("Pubs")
+        plot_team_pubs(team, axes_second, pub_session, mintime=mintime, maxtime=maxtime)
+    else:
+        axes_first = fig.subplots(5)
+
+    extra = plot_player_heroes(hero_picks_df, axes_first)
+    axes_first[0].set_title("Matches")
+    # fig.tight_layout(h_pad=2.0)
+    output = team_path / f'hero_picks{postfix}.png'
+    fig.tight_layout()
+    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=200)
+    fig.tight_layout(w_pad=1.22, h_pad=2.5)
+    # fig.tight_layout()
+    fig.savefig(output, bbox_inches="tight")
+    # fig.savefig(output)
+    fig.clf()
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata[f'plot_hero_picks{postfix}'] = relpath
+
+    return metadata
+
+
 def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
@@ -760,15 +803,6 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_draft_summary{postfix}'] = relpath
-
-    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
-    fig, extra = plot_player_heroes(hero_picks_df, fig)
-    fig.tight_layout(h_pad=2.0)
-    output = team_path / f'hero_picks{postfix}.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=200)
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_hero_picks{postfix}'] = relpath
 
     def _is_flex(*args):
         pass_count = 0
@@ -1082,6 +1116,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_summary(team, r_query, metadata, r_filter)
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
+        metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5", mintime=time, maxtime=end_time)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
