@@ -199,10 +199,10 @@ def x_label_icon(axis, y_pos=-0.15, size=1.0):
     return extra_artists
 
 
-def plot_player_heroes(data: DataFrame, fig: Figure):
+def plot_player_heroes(data: DataFrame, axes: list):
 
-    fig.set_size_inches(8, 11)
-    axes = fig.subplots(5)
+    # fig.set_size_inches(8, 11)
+    # axes = fig.subplots(5)
 
     def _plot_player(column: Series, name: str, axis, colour: str):
         # This filters out zeroes in a series
@@ -216,10 +216,10 @@ def plot_player_heroes(data: DataFrame, fig: Figure):
             axis.yaxis.set_major_locator(MaxNLocator(integer=True))
             return axis, []
         column.sort_values(ascending=False, inplace=True)
-        ax: Axes = column.plot.bar(ax=axis, sharey=True, colormap=colour)
+        ax: Axes = column.plot.bar(ax=axis, colormap=colour)
         ax.set_ylabel(name)
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        extra_artists = x_label_icon(ax, y_pos=-0.2, size=0.8)
+        extra_artists = x_label_icon(ax, y_pos=-0.1, size=0.8)
 
         return ax, extra_artists
 
@@ -228,7 +228,7 @@ def plot_player_heroes(data: DataFrame, fig: Figure):
         ax, extra = _plot_player(data[player], player, axes[i_ax], colour=colour_list[i_ax])
         extra_artists += extra
 
-    return fig, extra_artists
+    return extra_artists
 
 
 def plot_flex_picks(data: DataFrame, fig: Figure):
