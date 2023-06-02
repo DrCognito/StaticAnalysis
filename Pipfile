@@ -16,5 +16,6 @@ pygsheets = "*"
 scipy = "*"
 "dogpile.cache" = "*"
 requests = "*"
+propubs = {editable = true, path = "E:/Python/ProPubs"}
 
 [dev-packages]
