@@ -761,7 +761,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
     fig = plt.figure()
     fig.set_size_inches(8.27, 11.69)
 
-    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit)
+    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=False)
     if limit is None:
         axes_all = fig.subplots(5, 2)
         axes_first = [a[0] for a in axes_all]
