@@ -33,7 +33,7 @@ def cumulative_player(session, prop_name, team, filt):
     return output
 
 
-def player_heroes(session, team, summarise=10,
+def player_heroes(session, team, nHeroes=10, summarise=False,
                   r_filt=None, p_filt=None, limit=None):
     player_series = []
 
@@ -64,12 +64,14 @@ def player_heroes(session, team, summarise=10,
             else:
                 p_res[pick[0]] = 1
 
-        if summarise and len(p_res) > summarise:
+        if summarise and len(p_res) > nHeroes:
             p_res.sort_values(ascending=False, inplace=True)
-            other = p_res[summarise:].sum()
+            other = p_res[nHeroes:].sum()
             p_res['Other'] = other
             p_res.sort_values(ascending=False, inplace=True)
-            p_res = p_res[:summarise + 1]
+            p_res = p_res[:nHeroes + 1]
+        else:
+            p_res = p_res.head(nHeroes)
 
         player_series.append(p_res)
 
