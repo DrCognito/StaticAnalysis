@@ -205,6 +205,7 @@ def plot_player_heroes(data: DataFrame, axes: list):
     # axes = fig.subplots(5)
 
     def _plot_player(column: Series, name: str, axis, colour: str):
+        icon_size = 0.7
         # This filters out zeroes in a series
         # column = column.iloc[column.nonzero()]
         column = column.iloc[column.to_numpy().nonzero()]
@@ -219,7 +220,7 @@ def plot_player_heroes(data: DataFrame, axes: list):
         ax: Axes = column.plot.bar(ax=axis, colormap=colour)
         ax.set_ylabel(name)
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        extra_artists = x_label_icon(ax, y_pos=-0.1, size=0.8)
+        extra_artists = x_label_icon(ax, y_pos=-0.1, size=icon_size)
 
         return ax, extra_artists
 
