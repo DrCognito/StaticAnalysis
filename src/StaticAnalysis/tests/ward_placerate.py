@@ -77,9 +77,9 @@ def plot_object_position(query_data: DataFrame, bins=8,
         binx, biny = verts[offc][0], verts[offc][1]
         if percents[offc]:
             # plt.plot(binx, biny, 'k.', zorder=100)
-            texts.append(ax_in.text(binx, biny, f"{percents[offc]}%", zorder=100, ha='center', va='center'))
+            texts.append(ax_in.text(binx, biny, f"{percents[offc]}%", zorder=100, ha='center', va='center', c="w"))
     # Jiggle text around
-    adjust_text(texts, add_objects=wards)
+    # adjust_text(texts, add_objects=wards)
     # Reposition colourbar
     # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
     divider = make_axes_locatable(ax_in)
