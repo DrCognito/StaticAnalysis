@@ -525,10 +525,15 @@ def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999), ex
 
 
 def get_binning_max_xy(df: DataFrame, bins=64):
-    binning = [float(x)/bins for x in range(bins)]
+    # extent is [xMin, xMax, yMin, yMax]
+    step_x = (EXTENT[1] - EXTENT[0])/bins
+    step_y = (EXTENT[3] - EXTENT[2])/bins
+
+    binning_x = [EXTENT[0] + x*step_x for x in range(bins)]
+    binning_y = [EXTENT[2] + y*step_y for y in range(bins)]
     working_df = DataFrame()
-    working_df['xBin'] = cut(df['xCoordinate'], binning)
-    working_df['yBin'] = cut(df['yCoordinate'], binning)
+    working_df['xBin'] = cut(df['xCoordinate'], binning_x)
+    working_df['yBin'] = cut(df['yCoordinate'], binning_y)
 
     weightSeries = working_df.groupby(['xBin', 'yBin']).size()
 
