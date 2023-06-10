@@ -15,7 +15,7 @@ SCRIMS_METAJSON_PATH = environment['SCRIMS_META']
 DB_PATH = environment['PARSED_DB_PATH']
 main_team_id = 2586976
 main_team_name = "OG"
-time_cut = ImportantTimes['Patch_7_33']
+time_cut = ImportantTimes['After_Berlin']
 
 with open(TEAMS_JSON_PATH, 'r') as f:
     team_map = json.load(f)
