@@ -321,7 +321,7 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
     '''Plot an abbreviated pick and ban count for a team.
        Stages will be combined.
     '''
-    fig.set_size_inches(8, 7)
+    fig.set_size_inches(8.27, 11.69*0.6)
     axes = fig.subplots(2, 3, sharey='row')
 
     pick_colour = colour_list[0]
@@ -370,6 +370,9 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
 
     axes[0][0].set_ylabel('Picks', fontsize=18)
     axes[1][0].set_ylabel('Bans', fontsize=18)
+    axes[0][0].set_title('First Phase', fontsize=18)
+    axes[0][1].set_title('Second Phase', fontsize=18)
+    axes[0][2].set_title('Last Phase', fontsize=18)
 
     return fig, extra_artists
 
