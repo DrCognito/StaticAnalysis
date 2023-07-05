@@ -3,7 +3,7 @@ import json
 import shutil
 import time as t
 from argparse import ArgumentParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import environ as environment
 from os import mkdir
 from pathlib import Path
@@ -53,6 +53,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from propubs.libs.vis import plot_team_pubs
+from propubs.model.team_info import get_team_last_result
 from propubs.model.pub_heroes import InitDB as InitPubDB
 
 DB_PATH = environment['PARSED_DB_PATH']
@@ -768,6 +769,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
 
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
+        test_time = datetime.now() - timedelta(days=7)
         plot_team_pubs(team, axes_second, pub_session, mintime=mintime, maxtime=maxtime)
     else:
         axes_first = fig.subplots(5)
@@ -799,7 +801,8 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     draft_summary_df = draft_summary(session, r_query, team, limit=limit)
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
     output = team_path / f'draft_summary{postfix}.png'
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_draft_summary{postfix}'] = relpath
@@ -810,7 +813,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             if p >= 1:
                 pass_count += 1
         return pass_count
-    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=200)
+    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit)
     flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
     flex_picks = flex_picks.query('Counts > 1')
     with ChainedAssignent():
@@ -1035,6 +1038,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     new_draft_radiant, radiant_drafts = is_updated(session, r_query, team, Team.RADIANT,
                                      metadata.get('drafts_only_radiant'), has_picks)
     # print(f"Processed replay info in {t.process_time() - start}")
+    try:
+        last_update_time = datetime.fromtimestamp(metadata['last_update_time'])
+    except KeyError:
+        last_update_time = datetime.now() - timedelta(days=30)
+    pubs_updated = get_team_last_result(team, pub_session) > last_update_time
 
     if reprocess:
         if r_query.count() != 0:
@@ -1047,6 +1055,16 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             print(replay_list)
     if not new_dire and not new_radiant:
         print("No new updates for {}".format(team.name))
+        if pubs_updated:
+            print("Pub data is newer, remaking pick plots.")
+            metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
+            metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5", mintime=time, maxtime=end_time)
+
+            metadata['last_update_time'] = datetime.timestamp(datetime.now())
+            path = store_metadata(team, metadata)
+            print("Metadata file updated at {}".format(str(path)))
+
+            return metadata
 
         return
 
@@ -1055,6 +1073,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     metadata['replays_radiant'] = list(radiant_list)
     metadata['drafts_only_radiant'] = list(radiant_drafts)
 
+    metadata['last_update_time'] = datetime.timestamp(datetime.now())
     # A nice string for the time
     metadata['time_string'] = f"From {time.astimezone(pytz.timezone('CET')).strftime('%Y-%m-%d')}"
     if end_time is not None:
