@@ -1061,8 +1061,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("No new updates for {}".format(team.name))
         if pubs_updated:
             print("Pub data is newer, remaking pick plots.")
+            # No need to do limit plots as they are without pubs.
             metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
-            metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5", mintime=time, maxtime=end_time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
