@@ -52,7 +52,7 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
-from propubs.libs.vis import plot_team_pubs
+from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
 from propubs.model.team_info import get_team_last_result, BAD_TEAM_TIME_SENTINEL
 from propubs.model.pub_heroes import InitDB as InitPubDB
 
@@ -770,7 +770,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
         test_time = datetime.now() - timedelta(days=7)
-        plot_team_pubs(team, axes_second, pub_session, mintime=mintime, maxtime=maxtime)
+        plot_team_pubs_timesplit(team, axes_second, pub_session, mintime=mintime, maxtime=maxtime)
     else:
         axes_first = fig.subplots(5)
 
@@ -1067,6 +1067,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
             print("Metadata file updated at {}".format(str(path)))
+            plt.close('all')
 
             return metadata
 
