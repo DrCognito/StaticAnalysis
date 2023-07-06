@@ -53,7 +53,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from propubs.libs.vis import plot_team_pubs
-from propubs.model.team_info import get_team_last_result
+from propubs.model.team_info import get_team_last_result, BAD_TEAM_TIME_SENTINEL
 from propubs.model.pub_heroes import InitDB as InitPubDB
 
 DB_PATH = environment['PARSED_DB_PATH']
@@ -1042,7 +1042,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         last_update_time = datetime.fromtimestamp(metadata['last_update_time'])
     except KeyError:
         last_update_time = datetime.now() - timedelta(days=30)
-    pubs_updated = get_team_last_result(team, pub_session) > last_update_time
+    pub_update_time = get_team_last_result(team, pub_session)
+    if pub_update_time is BAD_TEAM_TIME_SENTINEL:
+        pubs_updated = False
+    else:
+        pubs_updated = pub_update_time > last_update_time
 
     if reprocess:
         if r_query.count() != 0:
