@@ -63,12 +63,16 @@ def is_valid_replay(replay: Replay) -> bool:
         print(f"Warning invalid number of teams in {replay.replayID}.")
         return False
     if replay.teams[0].teamID == 0:
+        print(f"teams[0].teamID is 0!")
         return False
     if replay.teams[0].teamName == '':
+        print(f"teams[0].teamName is ''")
         return False
     if replay.teams[1].teamID == 0:
+        print(f"teams[1].teamID is 0!")
         return False
     if replay.teams[1].teamName == '':
+        print(f"teams[1].teamName is ''")
         return False
     if replay.teams[0].teamID == replay.teams[1].teamID:
         print(f"Found duplicate team for {replay.replayID}.")
@@ -82,21 +86,6 @@ def is_valid_replay(replay: Replay) -> bool:
 
 def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
     """"Attempt to correct the team info for a replay."""
-    team_dict = replay.get_team_dict()
-
-    main_side = replay.get_side(main_team)
-    if main_side is not None:
-        opp_side = Team.DIRE if main_side == Team.RADIANT else Team.RADIANT
-        team_dict[opp_side].teamID = opposition.team_id
-        team_dict[opp_side].teamName = opposition.name
-        return True
-
-    opp_side = replay.get_side(opposition)
-    if opp_side is not None:
-        main_side = Team.DIRE if opp_side == Team.RADIANT else Team.RADIANT
-        team_dict[main_side].teamID = main_team.team_id
-        team_dict[main_side].teamName = main_team.name
-        return True
 
     def _asign(main_s: Team, opp_s: Team):
         team_dict[main_s].teamID = main_team.team_id
@@ -104,6 +93,19 @@ def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
 
         team_dict[opp_s].teamID = opposition.team_id
         team_dict[opp_s].teamName = opposition.name
+
+    team_dict = replay.get_team_dict()
+    main_side = replay.get_side(main_team)
+    if main_side is not None:
+        opp_side = Team.DIRE if main_side == Team.RADIANT else Team.RADIANT
+        _asign(main_s=main_side, opp_s=opp_side)
+        return True
+
+    opp_side = replay.get_side(opposition)
+    if opp_side is not None:
+        main_side = Team.DIRE if opp_side == Team.RADIANT else Team.RADIANT
+        _asign(main_s=main_side, opp_s=opp_side)
+        return True
 
     main_players = {p.player_id for p in main_team.players}
     main_dire = replay.matching_players(main_players, Team.DIRE) >= n_pmatch
@@ -128,6 +130,19 @@ def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
         return True
 
     return False
+
+
+def get_matching_main(replay: Replay, opposition: TeamInfo):
+    main_players = {p.player_id for p in main_team.players}
+    main_dire = replay.matching_players(main_players, Team.DIRE)
+    main_radiant = replay.matching_players(main_players, Team.RADIANT)
+
+    opp_players = {p.player_id for p in opposition.players}
+    opp_dire = replay.matching_players(opp_players, Team.DIRE)
+    opp_radiant = replay.matching_players(opp_players, Team.RADIANT)
+
+    return {'main_dire': main_dire, 'main_radiant': main_radiant, 
+            'opp_dire': opp_dire, 'opp_radiant': opp_radiant}
 
 
 main_team = get_team("OG")
@@ -189,7 +204,8 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         unfixed_replays.add(scrim_id)
         continue
 
-    fixed = fix_replay(replay, get_team(name))
+    opposition_team = get_team(name)
+    fixed = fix_replay(replay, opposition_team)
     fixed = is_valid_replay(replay) and fixed
 
     if fixed:
@@ -197,7 +213,10 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         fixed_replays.add(scrim_id)
         print(f"Fixed {scrim_id}")
     else:
-        print(f"Could not fix {scrim_id}")
+        res_dict = get_matching_main(replay, opposition_team)
+        print(f"""Could not fix {scrim_id}, Main (d|r): {res_dict['main_dire']}|{res_dict['main_radiant']},
+              {opposition_team.name} (d|r):{res_dict['opp_dire']}|{res_dict['opp_radiant']}""")
+        print(is_valid_replay(replay))
         unfixed_replays.add(scrim_id)
 
 
