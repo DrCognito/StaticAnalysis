@@ -3,7 +3,7 @@ import pathlib
 from os import environ as environment
 
 import pygsheets
-from herotools.important_times import ImportantTimes
+from herotools.important_times import ImportantTimes, MAIN_TIME
 from sqlalchemy.orm import sessionmaker
 
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
@@ -15,7 +15,7 @@ SCRIMS_METAJSON_PATH = environment['SCRIMS_META']
 DB_PATH = environment['PARSED_DB_PATH']
 main_team_id = 2586976
 main_team_name = "OG"
-time_cut = ImportantTimes['After_Berlin']
+time_cut = MAIN_TIME
 
 with open(TEAMS_JSON_PATH, 'r') as f:
     team_map = json.load(f)
