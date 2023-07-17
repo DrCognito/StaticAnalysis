@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import cycle
 from math import ceil
-from typing import Tuple
+from typing import Tuple, List
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -26,7 +26,10 @@ class OrderTimeRegion:
     start: datetime
     first_pick: list
     second_pick: list
+    first_pick_bounds: List[tuple]
+    second_pick_bounds: List[tuple]
     end: datetime = None
+
 
 
 class Table():
@@ -135,6 +138,8 @@ class Table():
         OrderTimeRegion(ImportantTimes['Patch_7_32'],
                         [5, 8, 16, 17, 23],
                         [6, 7, 15, 18, 24],
+                        [(5,), (8,), (16, 17), (23,)],
+                        [(6, 7), (15,), (18,), (24,)],
                         None)
     ]
 
