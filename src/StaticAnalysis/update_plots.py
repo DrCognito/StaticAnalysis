@@ -4,6 +4,7 @@ import shutil
 import time as t
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
+from itertools import zip_longest
 from os import environ as environment
 from os import mkdir
 from pathlib import Path
@@ -12,11 +13,16 @@ import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import pytz
+from fpdf import FPDF
 from herotools.important_times import ImportantTimes, nice_time_names
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, IntervalIndex, cut, read_sql
+from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
+from propubs.model.pub_heroes import InitDB as InitPubDB
+from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
+                                     get_team_last_result)
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
@@ -52,10 +58,6 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
-from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
-from propubs.model.team_info import get_team_last_result, BAD_TEAM_TIME_SENTINEL
-from propubs.model.pub_heroes import InitDB as InitPubDB
-from fpdf import FPDF
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -1009,10 +1011,98 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
 def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("helvetica", "B", 16)
-    pdf.cell(40, 10, f"{team.name} @ {datetime.now()}")
+    pdf.set_font("helvetica", "B", 24)
+    dataset = metadata['name']
+    time_string = metadata['time_string']
+    pdf.cell(0, 0, f"{team.name} {time_string}, {dataset}", align="c")
+    pdf.set_font('helvetica', size=12)
+    # Stats
     stats = metadata['stat_win_rate']
     pdf.write_html(stats)
+
+    # Replays
+    pdf.cell(0, 5, f"Replays:", new_y="NEXT")
+    pdf.set_font("helvetica", size=9)
+    # Basic table:
+    replays_dire = {str(x) for x in metadata['replays_dire']}
+    replays_radiant = {str(x) for x in metadata['replays_radiant']}
+    print(f"{len(replays_dire)} vs {len(replays_radiant)}")
+    with pdf.table() as table:
+        row = table.row()
+        row.cell("Dire")
+        row.cell("Radiant")
+        for dire, radiant in zip_longest(replays_dire, replays_radiant, fillvalue=''):
+            row = table.row()
+            row.cell(dire)
+            row.cell(radiant)
+
+    # Draft onlys
+    drafts_dire = {str(x) for x in metadata['drafts_only_dire']}
+    drafts_dire = drafts_dire - replays_dire
+    drafts_radiant = {str(x) for x in metadata['drafts_only_radiant']}
+    drafts_radiant = drafts_radiant - replays_radiant
+    if drafts_dire or drafts_radiant:
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(40, 10, f"Drafts only:", new_y="NEXT")
+        pdf.set_font("helvetica", size=9)
+        with pdf.table() as table:
+            row = table.row()
+            row.cell("Dire")
+            row.cell("Radiant")
+            for dire, radiant in zip_longest(replays_dire, replays_radiant, fillvalue=''):
+                row = table.row()
+                row.cell(dire)
+                row.cell(radiant)
+
+    # Pick priority
+    pick_priority = metadata['pick_priority']
+    if pick_priority:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
+    # Draft summary + pick tables
+    plot_draft_summary = metadata['plot_draft_summary']
+    plot_picktables = metadata['plot_picktables']
+    if plot_draft_summary or plot_picktables:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, y=0.53*297, keep_aspect_ratio=True, w=180)
+    # Hero Picks
+    plot_hero_picks = metadata['plot_hero_picks']
+    if plot_hero_picks:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+    # Hero Flex
+    plot_hero_flex = metadata['plot_hero_flex']
+    if plot_hero_flex:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180)
+    # Win Rate
+    plot_win_rate = metadata['plot_win_rate']
+    if plot_win_rate:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
+    # First Pick Drafts
+    plot_drafts_first = metadata['plot_drafts_first']
+    if plot_drafts_first:
+        pdf.add_page()
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
+    for d in plot_drafts_first[1:]:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    # Second Pick Drafts
+    plot_drafts_second = metadata['plot_drafts_second']
+    if plot_drafts_second:
+        pdf.add_page()
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
+    for d in plot_drafts_second[:1]:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+
+    # Write pdf
     pdf.output(output)
     metadata['pdf_report'] = str(output)
 
@@ -1170,13 +1260,15 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             metadata = do_counters(team, r_query, metadata)
             print(f"Processed in {t.process_time() - start}")
 
-    if True:
-        report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
-        make_report(team, metadata, report_path)
     print("Processing statistics.", end=" ")
     start = t.process_time()
     metadata['stat_win_rate'] = do_statistics(team, r_query)
     print(f"Processed in {t.process_time() - start}")
+
+    if True:
+        print("Making PDF report.")
+        report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
+        make_report(team, metadata, report_path)
 
     path = store_metadata(team, metadata)
 
