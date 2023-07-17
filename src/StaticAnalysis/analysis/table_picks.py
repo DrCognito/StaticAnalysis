@@ -30,7 +30,7 @@ class OrderTimeRegion:
 
 
 class Table():
-    def __init__(self, player_list: dict, add_text=True) -> None:
+    def __init__(self, player_list: dict, add_text=True, combine_order=False) -> None:
         self.player_list = player_list
         self.cell_table = {x: dict() for x in self.player_list}
         self.orders = []
@@ -41,6 +41,7 @@ class Table():
         self.add_text = add_text
         self.min_for_text = 2
         self.players_size = {}
+        self.combine_order = combine_order
         # Set a sensible minimum
         for p in self.player_list:
             self.players_size[p] = self.header_font_size + 2*self.padding
@@ -170,6 +171,14 @@ class Table():
         if steam_id not in self.cell_table:
             # print(f"Missing {steam_id}")
             return
+        # If were combining side by side picks just use the top one and relabel
+        if self.combine_order:
+            for b in self.order_bounds:
+                if b > order:
+                    # Found the boundary!
+                    order = b
+                    break
+
         cell = self.cell_table[steam_id].get(order,
                                              Cell(table=self, order=order,
                                                   steam_id=steam_id))
@@ -180,6 +189,7 @@ class Table():
             # print(f"{hero} {order} {steam_id}::{self.player_list[steam_id]}")
             self.order_size[order] = 0
             # self.order_size = dict(sorted(self.order_size.items()))
+
             self.add_order(order)
         width, height = cell.cell_size(include_text=self.add_text)
         # Minimum should be the hero width
@@ -413,6 +423,10 @@ class Cell():
             self.heroes[hero] = 1
             self.total_heroes += 1
 
+    def combine_cells(self, in_cell: "Cell"):
+        for h in in_cell.heroes:
+            self.add_hero(h)
+
     def cell_size(self, include_text=True) -> Tuple[int, int]:
         if self.total_heroes >= self.table.summarize_after:
             if self.table.add_other:
@@ -541,7 +555,7 @@ def create_tables(r_query: Query, session: Session, team: TeamInfo,
     selection = (session.query(TeamSelections)
                         .filter(TeamSelections.replay_ID.in_(id_query)))
     player_list = {x.player_id: x.name for x in team.players}
-    pick_table = Table(player_list, add_text=add_text)
+    pick_table = Table(player_list, add_text=add_text, combine_order=True)
     for team in selection:
         pick_table.add_teamselection(team)
 
