@@ -1266,7 +1266,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     print(f"Processed in {t.process_time() - start}")
 
     print("Making PDF report.")
-    report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
+    report_path = Path(PLOT_BASE_PATH) / team.name
+    report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
     make_report(team, metadata, report_path)
 
     path = store_metadata(team, metadata)
