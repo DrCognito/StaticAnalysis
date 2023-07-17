@@ -55,6 +55,7 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
 from propubs.model.team_info import get_team_last_result, BAD_TEAM_TIME_SENTINEL
 from propubs.model.pub_heroes import InitDB as InitPubDB
+from fpdf import FPDF
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -1005,6 +1006,17 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
     return do_statistics(team, r_query, table=False)
 
 
+def make_report(team: TeamInfo, metadata: dict, output: Path):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 16)
+    pdf.cell(40, 10, f"{team.name} @ {datetime.now()}")
+    stats = metadata['stat_win_rate']
+    pdf.write_html(stats)
+    pdf.output(output)
+    metadata['pdf_report'] = str(output)
+
+
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, end_time: datetime = None, replay_list=None):
 
@@ -1157,12 +1169,17 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             start = t.process_time()
             metadata = do_counters(team, r_query, metadata)
             print(f"Processed in {t.process_time() - start}")
+
+    if True:
+        report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
+        make_report(team, metadata, report_path)
     print("Processing statistics.", end=" ")
     start = t.process_time()
     metadata['stat_win_rate'] = do_statistics(team, r_query)
     print(f"Processed in {t.process_time() - start}")
 
     path = store_metadata(team, metadata)
+
     print("Metadata file updated at {}".format(str(path)))
 
     return metadata

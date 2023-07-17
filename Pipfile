@@ -17,5 +17,6 @@ scipy = "*"
 "dogpile.cache" = "*"
 requests = "*"
 propubs = {editable = true, path = "E:/Python/ProPubs"}
+fpdf2 = "*"
 
 [dev-packages]
