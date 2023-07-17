@@ -1026,7 +1026,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     # Basic table:
     replays_dire = {str(x) for x in metadata['replays_dire']}
     replays_radiant = {str(x) for x in metadata['replays_radiant']}
-    print(f"{len(replays_dire)} vs {len(replays_radiant)}")
+
     with pdf.table() as table:
         row = table.row()
         row.cell("Dire")
@@ -1265,10 +1265,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     metadata['stat_win_rate'] = do_statistics(team, r_query)
     print(f"Processed in {t.process_time() - start}")
 
-    if True:
-        print("Making PDF report.")
-        report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
-        make_report(team, metadata, report_path)
+    print("Making PDF report.")
+    report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / "report.pdf"
+    make_report(team, metadata, report_path)
 
     path = store_metadata(team, metadata)
 
