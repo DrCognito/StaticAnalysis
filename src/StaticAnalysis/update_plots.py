@@ -195,6 +195,17 @@ def store_generalstats(team: TeamInfo, statstring: str):
     return meta_json
 
 
+def get_generalstats(team: TeamInfo):
+    team_path = Path(PLOT_BASE_PATH) / team.name
+    meta_json = team_path / 'meta_data.json'
+
+    if meta_json.exists():
+        with open(meta_json, 'r') as file:
+            json_file = json.load(file)
+
+    return json_file.get('general_stats')
+
+
 def do_positioning(team: TeamInfo, r_query,
                    start: int, end: int,
                    metadata: dict,
@@ -1019,6 +1030,9 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     # Stats
     stats = metadata['stat_win_rate']
     pdf.write_html(stats)
+    general_stats = get_generalstats(team)
+    if general_stats:
+        pdf.write_html(general_stats)
 
     # Replays
     pdf.cell(0, 5, f"Replays:", new_y="NEXT")
