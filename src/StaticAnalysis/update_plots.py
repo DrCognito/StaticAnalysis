@@ -940,9 +940,11 @@ def do_statistics(team: TeamInfo, r_query, table=True):
         f"{win_rate_df.loc['All']['Second']:.0f} games 2nd Pick ({win_rate_df.loc['All']['Second Pick Percent']}% win rate)<br>",
         "<br>"
     ]
+    win_rate_df['Matches'] = win_rate_df['All'].astype(float).astype(int)
+    # win_rate_df['Matches'] = win_rate_df['Matches'].replace('.0', '')
     if table:
         main_str = [
-            win_rate_df[['First Pick', 'Second Pick', 'All']].to_html(),
+            win_rate_df[['First Pick Percent', 'Second Pick Percent', 'Matches']].to_html(),
             "<br>",
             *main_str
         ]
@@ -1025,9 +1027,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf.set_font("helvetica", "B", 24)
     dataset = metadata['name']
     time_string = metadata['time_string']
-    pdf.cell(0, 0, f"{team.name} {time_string}, {dataset}", align="c")
+    pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
     # Stats
+    pdf.cell(0, 5, f"Win rates:", new_x="LMARGIN", new_y="NEXT")
     stats = metadata['stat_win_rate']
     pdf.write_html(stats)
     general_stats = get_generalstats(team)
