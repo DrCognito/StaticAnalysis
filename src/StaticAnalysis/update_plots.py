@@ -1079,7 +1079,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     if plot_draft_summary or plot_picktables:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
-        pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, y=0.53*297, keep_aspect_ratio=True, w=180)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
     plot_hero_picks = metadata['plot_hero_picks']
     if plot_hero_picks:
