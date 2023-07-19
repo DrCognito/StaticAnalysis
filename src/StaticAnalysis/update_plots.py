@@ -1041,8 +1041,11 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf.cell(0, 5, f"Replays:", new_y="NEXT")
     pdf.set_font("helvetica", size=9)
     # Basic table:
-    replays_dire = {str(x) for x in metadata['replays_dire']}
-    replays_radiant = {str(x) for x in metadata['replays_radiant']}
+    # replays_dire = {str(x) for x in metadata['replays_dire']}
+    replays_dire = metadata['replays_dire']
+    replays_dire.sort(reverse=True)
+    replays_radiant = metadata['replays_radiant']
+    replays_radiant.sort(reverse=True)
 
     with pdf.table() as table:
         row = table.row()
@@ -1050,14 +1053,17 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         row.cell("Radiant")
         for dire, radiant in zip_longest(replays_dire, replays_radiant, fillvalue=''):
             row = table.row()
-            row.cell(dire)
-            row.cell(radiant)
+            row.cell(str(dire))
+            row.cell(str(radiant))
 
     # Draft onlys
-    drafts_dire = {str(x) for x in metadata['drafts_only_dire']}
-    drafts_dire = drafts_dire - replays_dire
-    drafts_radiant = {str(x) for x in metadata['drafts_only_radiant']}
-    drafts_radiant = drafts_radiant - replays_radiant
+    drafts_dire = [x for x in metadata['drafts_only_dire'] if x not in replays_dire]
+    drafts_dire.sort(reverse=True)
+    # drafts_dire = drafts_dire - replays_dire
+    # drafts_radiant = {str(x) for x in metadata['drafts_only_radiant']}
+    # drafts_radiant = drafts_radiant - replays_radiant
+    drafts_radiant = [x for x in metadata['drafts_only_radiant'] if x not in replays_radiant]
+    drafts_radiant.sort(reverse=True)
     if drafts_dire or drafts_radiant:
         pdf.set_font('helvetica', size=12)
         pdf.cell(40, 10, f"Drafts only:", new_y="NEXT")
@@ -1066,10 +1072,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
             row = table.row()
             row.cell("Dire")
             row.cell("Radiant")
-            for dire, radiant in zip_longest(replays_dire, replays_radiant, fillvalue=''):
+            for dire, radiant in zip_longest(drafts_dire, drafts_radiant, fillvalue=''):
                 row = table.row()
-                row.cell(dire)
-                row.cell(radiant)
+                row.cell(str(dire))
+                row.cell(str(radiant))
 
     # Pick priority
     pick_priority = metadata['pick_priority']
@@ -1264,7 +1270,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
-        if new_dire or new_dire:
+        if new_dire or new_radiant:
             print("Processing priority picks.", end=" ")
             start = t.process_time()
             metadata = do_priority_picks(team, r_query, metadata)
