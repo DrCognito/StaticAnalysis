@@ -1505,6 +1505,23 @@ if __name__ == "__main__":
                 print("Unable to find team {} in database!"
                       .format(proc_team))
 
+            if args.statistic_time:
+                # Add scrims if we have them
+                scrim_list = []
+                if args.scrim_time:
+                    team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
+                    if team_scrims:
+                        scrim_list = list(team_scrims.keys())
+
+                if args.statistic_time in nice_time_names:
+                    time_name = nice_time_names[args.statistic_time]
+                else:
+                    time_name = args.statistic_time
+                stat_string = f"Data set - {time_name}<br>\n"
+                stat_string += do_general_stats(team, ImportantTimes[args.statistic_time],
+                                                args, replay_list=scrim_list)
+                store_generalstats(team, stat_string)
+
             for time, end in zip(TIME_CUT, END_TIME):
                 data_set_name = time
                 metadata = get_create_metadata(team, data_set_name)
@@ -1518,31 +1535,15 @@ if __name__ == "__main__":
 
                 if team_scrims is None:
                     print(f"No scrims for {team.name}. Skipping.")
-                    continue
-                end_time = None
-                if args.scrim_endtime is not None:
-                    end_time = ImportantTimes[args.scrim_endtime]
-                scrim_list = list(team_scrims.keys())
-                metadata = get_create_metadata(team, "Scrims")
-                metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
-                process_team(team, metadata, ImportantTimes[args.scrim_time],
-                             args, end_time=end_time, replay_list=scrim_list)
-
-            if args.statistic_time:
-                # Add scrims if we have them
-                scrim_list = []
-                if args.scrim_time:
-                    team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
-                    scrim_list = list(team_scrims.keys())
-
-                if args.statistic_time in nice_time_names:
-                    time_name = nice_time_names[args.statistic_time]
                 else:
-                    time_name = args.statistic_time
-                stat_string = f"Data set - {time_name}<br>\n"
-                stat_string += do_general_stats(team, ImportantTimes[args.statistic_time],
-                                                args, replay_list=scrim_list)
-                store_generalstats(team, stat_string)
+                    end_time = None
+                    if args.scrim_endtime is not None:
+                        end_time = ImportantTimes[args.scrim_endtime]
+                    scrim_list = list(team_scrims.keys())
+                    metadata = get_create_metadata(team, "Scrims")
+                    metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
+                    process_team(team, metadata, ImportantTimes[args.scrim_time],
+                                 args, end_time=end_time, replay_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
