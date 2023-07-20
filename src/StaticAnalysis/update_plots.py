@@ -1121,7 +1121,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
-    for d in plot_drafts_second[:1]:
+    for d in plot_drafts_second[1:]:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
 
@@ -1182,7 +1182,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         elif replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
             print(replay_list)
-    if not new_dire and not new_radiant:
+    if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
             print("Pub data is newer, remaking pick plots.")
