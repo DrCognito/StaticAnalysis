@@ -827,7 +827,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             if p >= 1:
                 pass_count += 1
         return pass_count
-    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit)
+    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
     flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
     flex_picks = flex_picks.query('Counts > 1')
     with ChainedAssignent():
@@ -1098,7 +1098,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     plot_hero_flex = metadata['plot_hero_flex']
     if plot_hero_flex:
         pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
     plot_win_rate = metadata['plot_win_rate']
     if plot_win_rate:
