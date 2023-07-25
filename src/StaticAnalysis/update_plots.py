@@ -783,8 +783,8 @@ def do_player_picks(team: TeamInfo, metadata: dict,
 
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
-        test_time = datetime.now() - timedelta(days=7)
-        plot_team_pubs_timesplit(team, axes_second, pub_session, mintime=mintime, maxtime=maxtime)
+        pro_pub_time = ImportantTimes['PreviousMonth']
+        plot_team_pubs_timesplit(team, axes_second, pub_session, mintime=pro_pub_time, maxtime=maxtime)
     else:
         axes_first = fig.subplots(5)
 
