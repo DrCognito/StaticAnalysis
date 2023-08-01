@@ -1,11 +1,13 @@
 import json
 import math
+from datetime import datetime
 from os import environ as environment
 from pathlib import Path
 from typing import List
 
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  hero_portrait, hero_portrait_prefix)
+from herotools.lib.league import league_id_map
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
@@ -13,8 +15,6 @@ from PIL import Image, ImageDraw, ImageFont
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import TeamSelections
-
-from datetime import datetime
 
 scims_json = environment['SCRIMS_JSON']
 try:
@@ -531,8 +531,15 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         font = ImageFont.truetype('arialbd.ttf', font_size)
         replay_time: datetime = replay.endTimeUTC
         date_str = replay_time.strftime(r"%b %d %Y")
-        league_str = str(replay.league_ID)
-        text = date_str + ", " + league_str
+        if (lid := replay.league_ID) in league_id_map:
+            league_str = league_id_map[lid].title
+            text = league_str + ", " + date_str
+        elif lid == 0:
+            league_str = ""
+            text = date_str
+        else:
+            league_str = f"Id: {str(lid)}"
+            text = league_str + ", " + date_str
 
         ld_image = Image.new('RGB', (team_line.size[0] - opp_box_width, 2*font_size + 2*spacing + 1),
                              (255, 255, 255, 0))
@@ -542,10 +549,6 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                                                                 text=text,
                                                                 spacing=1,
                                                                 align='right')
-        # ld_image = Image.new('RGB', (right, bottom),
-        #                      (255, 0, 255, 255))
-        # ld_canv = ImageDraw.Draw(ld_image)
-        x_off = ld_image.size[0] - right
         ld_canv.multiline_text(xy=(0, spacing),
                                text=text,
                                spacing=1,
@@ -553,7 +556,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                                fill=(0, 0, 0))
         ld_image = ld_image.crop((0, 0, right, bottom))
 
-        out_box.paste(ld_image, (out_box.size[0] - ld_image.size[0], 0))
+        out_box.paste(ld_image, (out_box.size[0] - ld_image.size[0], 2))
 
     if caching:
         cache_dir = Path(environment["CACHE"])
