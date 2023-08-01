@@ -443,7 +443,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
-                       add_team_name=True, add_league_date=True, caching=False):
+                       add_team_name=True, add_league_date=True, caching=True):
     if caching:
         cache_dir = Path(environment["CACHE"])
         file_name = f"{replay.replayID}_{team.name}.png"
@@ -601,7 +601,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         if not is_first and not second_pick:
             continue
 
-        line = pickban_line_image(replay, team, add_team_name=True, caching=False)
+        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
         if line is None:
             continue
 
