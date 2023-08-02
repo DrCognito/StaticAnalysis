@@ -7,7 +7,7 @@ name = "pypi"
 sqlalchemy = "==1.4.37"
 pandas = "*"
 python-dotenv = "*"
-pillow = "*"
+pillow = "==9.5.0"
 adjusttext = "*"
 pytz = "*"
 flake8 = "*"
@@ -17,5 +17,6 @@ scipy = "*"
 "dogpile.cache" = "*"
 requests = "*"
 propubs = {editable = true, path = "E:/Python/ProPubs"}
+fpdf2 = "*"
 
 [dev-packages]

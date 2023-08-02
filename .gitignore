@@ -145,3 +145,5 @@ data/archive.7z
 data
 test.env
 setup.env
+
+*.pdf

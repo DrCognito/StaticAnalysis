@@ -10,7 +10,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.table import Table
 from matplotlib.text import Text
 from pandas import DataFrame, read_sql
-from PIL.Image import ANTIALIAS, Image
+from PIL.Image import Image, ANTIALIAS
 from PIL.Image import open as Image_open
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query

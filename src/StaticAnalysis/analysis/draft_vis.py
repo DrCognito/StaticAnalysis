@@ -1,11 +1,13 @@
 import json
 import math
+from datetime import datetime
 from os import environ as environment
 from pathlib import Path
 from typing import List
 
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  hero_portrait, hero_portrait_prefix)
+from herotools.lib.league import league_id_map
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
@@ -441,7 +443,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
-                       add_team_name=True, caching=True):
+                       add_team_name=True, add_league_date=True, caching=True):
     if caching:
         cache_dir = Path(environment["CACHE"])
         file_name = f"{replay.replayID}_{team.name}.png"
@@ -481,6 +483,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
     # Opposition team name text, size concerns?
+    opp_box_width = 0
     if add_team_name:
         font_size = 17
         height = team_line.size[1] + font_size + 2*spacing
@@ -490,6 +493,8 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                                (255, 255, 255, 0))
         text_canv = ImageDraw.Draw(text_image)
         first_pick_box_offset = 17
+        (left, top, opp_box_width, right) = text_canv.textbbox(xy=(first_pick_box_offset + spacing, spacing),
+                                                      text=opp_name)
         text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
                        font=font, fill=(0, 0, 0))
         # Faction text
@@ -507,6 +512,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
     out_box = Image.new('RGB', (width, height), (255, 255, 255, 0))
+
     if add_team_name:
         out_box.paste(faction_image, (0, 0))
         out_box.paste(team_line, (0, text_image.size[1]))
@@ -519,6 +525,38 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
         out_box.paste(opposition_line,
                     (team_line.size[0] + spacer.size[0], 0))
+
+    if add_league_date:
+        font_size = 12
+        font = ImageFont.truetype('arialbd.ttf', font_size)
+        replay_time: datetime = replay.endTimeUTC
+        date_str = replay_time.strftime(r"%b %d %Y")
+        if (lid := replay.league_ID) in league_id_map:
+            league_str = league_id_map[lid].title
+            text = league_str + ", " + date_str
+        elif lid == 0:
+            league_str = ""
+            text = date_str
+        else:
+            league_str = f"Id: {str(lid)}"
+            text = league_str + ", " + date_str
+
+        ld_image = Image.new('RGB', (team_line.size[0] - opp_box_width, 2*font_size + 2*spacing + 1),
+                             (255, 255, 255, 0))
+        ld_canv = ImageDraw.Draw(ld_image)
+
+        (left, top, right, bottom) = ld_canv.multiline_textbbox(xy=(0, spacing),
+                                                                text=text,
+                                                                spacing=1,
+                                                                align='right')
+        ld_canv.multiline_text(xy=(0, spacing),
+                               text=text,
+                               spacing=1,
+                               align='right',
+                               fill=(0, 0, 0))
+        ld_image = ld_image.crop((0, 0, right, bottom))
+
+        out_box.paste(ld_image, (out_box.size[0] - ld_image.size[0], 2))
 
     if caching:
         cache_dir = Path(environment["CACHE"])
