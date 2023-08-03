@@ -28,8 +28,8 @@ def plot_player_paths(paths, colours, names, axis):
                     zorder=2, color=colour, label=name)
         axis.axis('off')
     xMin, xMax, yMin, yMax = EXTENT
-    axis.set_ylim(xMin, xMax)
-    axis.set_xlim(yMin, yMax)
+    axis.set_xlim(xMin, xMax)
+    axis.set_ylim(yMin, yMax)
 
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
@@ -130,5 +130,109 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
 
     axis.patch.set_edgecolor('black')
     axis.patch.set_linewidth('1')
+
+    return axis
+
+
+# def plot_pregame_sing(replay: Replay, team: TeamInfo,
+#                       session, team_session,
+#                       fig, pos, ward_size: Tuple[int, int] = (8, 7),
+#                       time_range=(-120, 0)):
+def plot_pregame_sing(replay: Replay, team: TeamInfo,
+                      session, team_session,
+                      axis, pos, time_range=(-120, 0)):
+    ward_size: Tuple[int, int] = (8, 7)
+
+    # Add the map
+    add_map(axis, extent=EXTENT)
+    player_list = [p.name for p in team.players]
+    # Pregame player positions
+    positions = []
+    names = []
+    colour_cache = {}
+    iColour = 0
+    order = []
+    colours = colour_list
+    p_name = team.players[pos].name
+    steam_id = team.players[pos].player_id
+    player: Player
+    for player in replay.players:
+        if player.steamID != steam_id:
+            continue
+        side = player.team
+        p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time > time_range[0],
+                                                 PlayerStatus.game_time <= time_range[1]),
+                            PlayerStatus, session)
+
+    # Change the order to make it consistent
+    positions = [p_df, ]
+    names = [p_name]
+    colours = [colour_list[pos]]
+    colour_cache[steam_id] = colour_list[pos]
+
+    plot_player_paths(positions, colours, names, axis)
+    if side == Team.DIRE:
+        axis.legend(loc='lower left', frameon=True)
+    else:
+        axis.legend(loc='upper right', frameon=True)
+
+    # Wards
+    wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.steamID == steam_id)
+
+    # Draw lines from players to wards
+    for ward in wards:
+        x1 = ward.xCoordinate
+        y1 = ward.yCoordinate
+        t = ward.time
+
+        if ward.player is not None:
+            x2 = ward.player.get_position_at(t).xCoordinate
+            y2 = ward.player.get_position_at(t).yCoordinate
+            try:
+                colour = colour_cache[ward.player.steamID]
+            except KeyError:
+                usable_time = t - replay.creepSpawn
+                print(f"KeyError retrieving {ward.player.steamID}")
+                print(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
+                print(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
+                print(f"Colour cache:{colour_cache}")
+                if ward.ward_type == WardType.OBSERVER:
+                    print("Ward is an obs ward!")
+                    raise
+                continue
+
+            axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
+        else:
+            print(f"Failed to find player for ward {x1}, {y1} at {t}")
+
+    data = build_ward_table(wards, session, team_session, team)
+
+    w_icons = {
+        WardType.OBSERVER: Image_open(environment['WARD_ICON']),
+        WardType.SENTRY: Image_open(environment['SENTRY_ICON'])
+    }
+    for w_type in (WardType):
+        w = wards.filter(Ward.ward_type == w_type)
+        data = build_ward_table(w, session, team_session, team)
+        if data.empty and w_type == WardType.OBSERVER:
+            # print(f"Ward table for {w_type} empty!")
+            continue
+        w_icon = w_icons[w_type]
+        w_icon.thumbnail(ward_size)
+        plot_image_scatter(data, axis, w_icon)
+
+    # Replay ID Text
+    axis.text(s=str(replay.replayID), x=0, y=1.0,
+              ha='left', va='top', zorder=5,
+              path_effects=[PathEffects.withStroke(linewidth=3,
+                            foreground="w")],
+              color='black',
+              transform=axis.transAxes)
+
+    axis.patch.set_edgecolor('black')
+    axis.patch.set_linewidth('1')
+    # xMin, xMax, yMin, yMax = EXTENT
+    # axis.set_xlim(xMin, xMax)
+    # axis.set_xlim(yMin, yMax)
 
     return axis
