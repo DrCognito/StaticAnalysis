@@ -162,3 +162,17 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
         return player_q, player_q_limited
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
+
+
+def player_positioning_single(session, replay_id, team: TeamInfo, steam_id: int,
+                              start: int, end: int):
+    t_filter = ()
+    if start is not None:
+        t_filter += (PlayerStatus.game_time >= start,)
+    if end is not None:
+        t_filter += (PlayerStatus.game_time <= end,)
+
+    # steam_id = team.players[player_slot].player_id
+    p_filter = t_filter + (PlayerStatus.steamID == steam_id, PlayerStatus.replayID == replay_id)
+
+    return session.query(PlayerStatus).filter(*p_filter)
