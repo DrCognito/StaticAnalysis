@@ -161,22 +161,16 @@ def plot_priority(table: DataFrame, ax_in,
 
 def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
                    first_pick=False, second_pick=False):
-    titles_both = [
-        "Pick 5 (first) or Picks 6 and 7",
-        "Pick 15 or Picks 16 and 17 (first)",
-        "Pick 23",
-        "Pick 24"
-    ]
     titles_first = [
-        "Pick 5",
         "Pick 8",
-        "Pick 16 and 17",
+        "Pick 14 and 15",
+        "Pick 18",
         "Pick 23"
     ]
     titles_second = [
-        "Pick 6 and 7",
-        "Pick 15",
-        "Pick 18",
+        "Pick 9",
+        "Pick 13",
+        "Pick 16 and 17",
         "Pick 24"
     ]
     if first_pick:
@@ -221,15 +215,15 @@ def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
 
 def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
     titles_first = [
-        "Pick 5",
         "Pick 8",
-        "Pick 16 and 17",
+        "Pick 14 and 15",
+        "Pick 18",
         "Pick 23"
     ]
     titles_second = [
-        "Pick 6 and 7",
-        "Pick 15",
-        "Pick 18",
+        "Pick 9",
+        "Pick 13",
+        "Pick 16 and 17",
         "Pick 24"
     ]
     first_df = priority_pick_df(r_query, team, first_pick=True, second_pick=False)
