@@ -13,8 +13,8 @@ BAD_REPLAY_SENTINEL = object()
 
 
 def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
-    first_pick_pattern = [[5,], [8,], [16, 17], [23,]]
-    second_pick_pattern = [[6, 7], [15,], [18,], [24,]]
+    first_pick_pattern = [[8,], [14, 15], [18], [23,]]
+    second_pick_pattern = [[9,], [13,], [16, 17], [24,]]
     titles = ["P1", "P2", "P3", "P4"]
     columns = [f"{x} {y}" for x in titles for y in ['Available', 'Picked']]
     df = DataFrame(0, index=heroShortName.keys(), columns=columns)
