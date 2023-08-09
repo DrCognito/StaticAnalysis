@@ -157,6 +157,8 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
             json_file = json.load(file)
         if dataset in json_file:
             return json_file[dataset]
+        if dataset is None:
+            return json_file
 
     return make_meta(dataset)
 
@@ -186,6 +188,7 @@ def store_generalstats(team: TeamInfo, statstring: str):
         with open(meta_json, 'r') as file:
             json_file = json.load(file)
     else:
+        team_path.mkdir(parents=True, exist_ok=True)
         json_file = {}
 
     json_file['general_stats'] = statstring
