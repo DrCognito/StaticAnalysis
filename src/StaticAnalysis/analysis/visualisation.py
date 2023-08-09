@@ -333,9 +333,10 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
                    .sort_values(ascending=False)
     # Picks
     pick_stage = []
-    pick_stage.append(_combine_results(picks, (0, 2)))
-    pick_stage.append(_combine_results(picks, (2, 4)))
-    pick_stage.append(_combine_results(picks, (4, None)))
+    # columns x to y - 1
+    pick_stage.append(_combine_results(picks, (0, 1))) # pick 1
+    pick_stage.append(_combine_results(picks, (1, 4))) # pick 2, 3, 4
+    pick_stage.append(_combine_results(picks, (4, None))) # pick 5
 
     for i, i_ax in enumerate(axes[0]):
         if pick_stage[i][0:5].empty:
