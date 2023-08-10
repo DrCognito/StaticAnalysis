@@ -819,7 +819,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
     output = team_path / f'draft_summary{postfix}.png'
     # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    fig.subplots_adjust(wspace=0.1, hspace=0.3)
+    fig.subplots_adjust(wspace=0.1, hspace=0.25)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
