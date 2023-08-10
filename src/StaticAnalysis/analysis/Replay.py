@@ -360,18 +360,18 @@ def draft_summary(session, r_query, team, limit=None) -> (DataFrame, DataFrame):
         # for draft in t.draft:
         picks = {}
         bans = {}
-        pick_count = 0
-        ban_count = 0
+        # pick_count = 0
+        # ban_count = 0
 
         for selection in t.draft:
             if selection.is_pick:
-                column = "Pick" + str(pick_count)
-                picks[column] = selection.hero
-                pick_count += 1
+                # column = "Pick" + str(pick_count)
+                picks[selection.order] = selection.hero
+                # pick_count += 1
             else:
-                column = "Ban" + str(ban_count)
-                bans[column] = selection.hero
-                ban_count += 1
+                # column = "Ban" + str(ban_count)
+                bans[selection.order] = selection.hero
+                # ban_count += 1
 
         list_picks.append(picks)
         list_bans.append(bans)
