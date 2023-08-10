@@ -333,7 +333,7 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
     extra_artists = []
 
     def _combine_results(data: DataFrame, columns):
-        data = data[columns].sum(axis=1).sort_values(ascending=False)
+        data = data[data.columns.intersection(columns)].sum(axis=1).sort_values(ascending=False)
         return data[data > 0]
     # Picks
     pick_stage = []
