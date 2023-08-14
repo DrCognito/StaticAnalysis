@@ -11,6 +11,9 @@ from StaticAnalysis.replays.Ward import Ward
 
 
 def make_meta(dataset="default"):
+    if dataset is None:
+        return {}
+
     meta = {
         'name': dataset,
         'time_cut': None,

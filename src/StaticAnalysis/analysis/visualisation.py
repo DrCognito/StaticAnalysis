@@ -322,57 +322,63 @@ def plot_draft_summary(picks: DataFrame, bans: DataFrame, fig: Figure):
        Stages will be combined.
     '''
     fig.set_size_inches(8.27, 11.69*0.6)
-    axes = fig.subplots(2, 3, sharey='row')
 
+    pick_ratios = [1, 2, 1]
+    ban_ratios = [2, 1, 1]
+
+    axes = fig.subplots(3, 2)
+    picks_ax, bans_ax = zip(*axes)
     pick_colour = colour_list[0]
     ban_colour = colour_list[1]
     extra_artists = []
 
     def _combine_results(data: DataFrame, columns):
-        return data.iloc[:, columns[0]:columns[1]].sum(axis=1)\
-                   .sort_values(ascending=False)
+        data = data[data.columns.intersection(columns)].sum(axis=1).sort_values(ascending=False)
+        return data[data > 0]
     # Picks
     pick_stage = []
-    pick_stage.append(_combine_results(picks, (0, 2)))
-    pick_stage.append(_combine_results(picks, (2, 4)))
-    pick_stage.append(_combine_results(picks, (4, None)))
+    pick_stage.append(_combine_results(picks, [8, 9]))  # pick 1
+    pick_stage.append(_combine_results(picks, [13, 14, 15, 16, 17, 18]))  # pick 2, 3, 4
+    pick_stage.append(_combine_results(picks, [23, 24]))  # pick 5
 
-    for i, i_ax in enumerate(axes[0]):
-        if pick_stage[i][0:5].empty:
+    for p, i_ax, r in zip(pick_stage, picks_ax, pick_ratios):
+        if p[0:10].empty:
             i_ax.text(0.5, 0.5, "No Data", fontsize=14,
                       horizontalalignment='center',
                       verticalalignment='center')
             i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
             continue
-        pick_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
-                                    colormap=pick_colour, grid=True,
-                                    fontsize=8, sharey=True)
-        extra_artists += x_label_icon(i_ax, y_pos=-0.1, size=0.8)
+        p[0:10].plot.bar(ax=i_ax, legend=False, width=0.9,
+                         colormap=pick_colour, grid=True,
+                         fontsize=8)
+        extra_artists += x_label_icon(i_ax, y_pos=-0.12, size=0.65)
+        i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Bans
     ban_stage = []
-    ban_stage.append(_combine_results(bans, (0, 2)))
-    ban_stage.append(_combine_results(bans, (2, 5)))
-    ban_stage.append(_combine_results(bans, (5, None)))
+    ban_stage.append(_combine_results(bans, [1, 2, 3, 4, 5, 6, 7]))
+    ban_stage.append(_combine_results(bans, [10, 11, 12]))
+    ban_stage.append(_combine_results(bans, [19, 20, 21, 22]))
 
-    for i, i_ax in enumerate(axes[1]):
-        if ban_stage[i][0:5].empty:
+    for b, i_ax, r in zip(ban_stage, bans_ax, ban_ratios):
+        if b[0:10].empty:
             i_ax.text(0.5, 0.5, "No Data", fontsize=14,
                       horizontalalignment='center',
                       verticalalignment='center')
             i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
             continue
-        ban_stage[i][0:5].plot.bar(ax=i_ax, legend=False, width=0.9,
-                                   colormap=ban_colour, grid=True,
-                                   fontsize=8, sharey=True)
-        extra_artists += x_label_icon(i_ax, y_pos=-0.1, size=0.8)
+        b[0:10].plot.bar(ax=i_ax, legend=False, width=0.9,
+                         colormap=ban_colour, grid=True,
+                         fontsize=8)
+        extra_artists += x_label_icon(i_ax, y_pos=-0.12, size=0.65)
         i_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    axes[0][0].set_ylabel('Picks', fontsize=18)
-    axes[1][0].set_ylabel('Bans', fontsize=18)
-    axes[0][0].set_title('First Phase', fontsize=18)
-    axes[0][1].set_title('Second Phase', fontsize=18)
-    axes[0][2].set_title('Last Phase', fontsize=18)
+    picks_ax[0].set_ylabel('First Phase', fontsize=15)
+    picks_ax[1].set_ylabel('Second Phase', fontsize=15)
+    picks_ax[2].set_ylabel('Third Phase', fontsize=15)
+    picks_ax[0].set_title('Picks', fontsize=15)
+    bans_ax[0].set_title('Bans', fontsize=15)
+
 
     return fig, extra_artists
 

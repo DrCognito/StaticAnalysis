@@ -29,12 +29,14 @@ class OrderTimeRegion:
     end: datetime = None
 
 
-pb_order_7_33 = [
-        OrderTimeRegion(ImportantTimes['Patch_7_32'],
-                        [5, 8, 16, 17, 23],
-                        [6, 7, 15, 18, 24],
-                        None)
-    ]
+picks_patch_7_33 = OrderTimeRegion(ImportantTimes['Patch_7_33'],
+                                   [5, 8, 16, 17, 23],
+                                   [6, 7, 15, 18, 24],
+                                   ImportantTimes['Patch_7_34'])
+picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
+                                   [8, 14, 15, 18, 23],
+                                   [9, 13, 16, 17, 24],
+                                   None)
 
 
 class Table():
@@ -139,7 +141,8 @@ class Table():
     count_font_size = 16
     double_line_space = 5
     pick_orders = [
-        pb_order_7_33
+        picks_patch_7_33,
+        picks_patch_7_34
     ]
 
     def get_dataframe(self, as_percent) -> DataFrame:

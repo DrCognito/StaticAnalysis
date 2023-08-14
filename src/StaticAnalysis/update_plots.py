@@ -157,6 +157,8 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
             json_file = json.load(file)
         if dataset in json_file:
             return json_file[dataset]
+        if dataset is None:
+            return json_file
 
     return make_meta(dataset)
 
@@ -186,6 +188,7 @@ def store_generalstats(team: TeamInfo, statstring: str):
         with open(meta_json, 'r') as file:
             json_file = json.load(file)
     else:
+        team_path.mkdir(parents=True, exist_ok=True)
         json_file = {}
 
     json_file['general_stats'] = statstring
@@ -783,7 +786,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
 
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
-        pro_pub_time = ImportantTimes['PreviousMonth']
+        pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > mintime else mintime
         plot_team_pubs_timesplit(team, axes_second, pub_session, mintime=pro_pub_time, maxtime=maxtime)
     else:
         axes_first = fig.subplots(5)
@@ -816,6 +819,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     fig, extra = plot_draft_summary(*draft_summary_df, fig)
     output = team_path / f'draft_summary{postfix}.png'
     # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+    fig.subplots_adjust(wspace=0.1, hspace=0.25)
     fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))

@@ -13,8 +13,8 @@ BAD_REPLAY_SENTINEL = object()
 
 
 def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
-    first_pick_pattern = [[5,], [8,], [16, 17], [23,]]
-    second_pick_pattern = [[6, 7], [15,], [18,], [24,]]
+    first_pick_pattern = [[8,], [14, 15], [18], [23,]]
+    second_pick_pattern = [[9,], [13,], [16, 17], [24,]]
     titles = ["P1", "P2", "P3", "P4"]
     columns = [f"{x} {y}" for x in titles for y in ['Available', 'Picked']]
     df = DataFrame(0, index=heroShortName.keys(), columns=columns)
@@ -161,22 +161,16 @@ def plot_priority(table: DataFrame, ax_in,
 
 def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
                    first_pick=False, second_pick=False):
-    titles_both = [
-        "Pick 5 (first) or Picks 6 and 7",
-        "Pick 15 or Picks 16 and 17 (first)",
-        "Pick 23",
-        "Pick 24"
-    ]
     titles_first = [
-        "Pick 5",
         "Pick 8",
-        "Pick 16 and 17",
+        "Pick 14 and 15",
+        "Pick 18",
         "Pick 23"
     ]
     titles_second = [
-        "Pick 6 and 7",
-        "Pick 15",
-        "Pick 18",
+        "Pick 9",
+        "Pick 13",
+        "Pick 16 and 17",
         "Pick 24"
     ]
     if first_pick:
@@ -221,15 +215,15 @@ def priority_picks(team, r_query, fig: plt.Figure, nHeroes=20,
 
 def priority_picks_double(team, r_query, fig: plt.Figure, nHeroes=20):
     titles_first = [
-        "Pick 5",
         "Pick 8",
-        "Pick 16 and 17",
+        "Pick 14 and 15",
+        "Pick 18",
         "Pick 23"
     ]
     titles_second = [
-        "Pick 6 and 7",
-        "Pick 15",
-        "Pick 18",
+        "Pick 9",
+        "Pick 13",
+        "Pick 16 and 17",
         "Pick 24"
     ]
     first_df = priority_pick_df(r_query, team, first_pick=True, second_pick=False)
