@@ -401,7 +401,7 @@ class Table():
 
 
 class Cell():
-    def __init__(self, *, table: "Table", order, steam_id) -> None:
+    def __init__(self, *, table: "Table", order: set, steam_id: int) -> None:
         self.table = table
         self.heroes = {}
         self.total_heroes = 0
@@ -413,6 +413,16 @@ class Cell():
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __add__(self, other: "Cell") -> "Cell":
+        new_cell = Cell(self.table, self.order + other.self, self.steam_id)
+        new_cell.heroes = self.heroes
+        for h, i in other.heroes.items():
+            if h in new_cell.heroes:
+                new_cell.heroes[h] += i
+        new_cell.total_heroes = self.total_heroes + other.total_heroes
+
+        return new_cell
 
     def add_hero(self, hero: str):
         if hero in self.heroes:
@@ -541,6 +551,23 @@ class Cell():
 
     def total_heroes(self) -> int:
         return sum(self.heroes.values())
+
+
+class MultiCell(Cell):
+    def add_hero(self, hero: str):
+        raise NotImplementedError("add_hero not implemented on MultiCell")
+class PlayerRow():
+    def __init__(self, table: Table, steam_id: int) -> None:
+        self.table = table
+        self.steam_id = steam_id
+        self.cells = {}
+
+    def add_hero(self, order: int, hero: str):
+        c: Cell
+        c = self.cells.get().get(order,
+                                 Cell(table=self, order=order,
+                                      steam_id=self.steam_id))
+        c.add_hero(hero)
 
 
 def create_tables(r_query: Query, session: Session, team: TeamInfo,
