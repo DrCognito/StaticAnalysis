@@ -26,16 +26,23 @@ class OrderTimeRegion:
     first_pick: list
     second_pick: list
     end: datetime = None
+    grouped: list
 
 
 picks_patch_7_33 = OrderTimeRegion(ImportantTimes['Patch_7_33'],
                                    [5, 8, 16, 17, 23],
                                    [6, 7, 15, 18, 24],
-                                   ImportantTimes['Patch_7_34'])
+                                   ImportantTimes['Patch_7_34'],
+                                   [[5,], [6, 7], [8,]
+                                    [15,], [16, 17], [18,],
+                                    [23,], [24]])
 picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
                                    [8, 14, 15, 18, 23],
                                    [9, 13, 16, 17, 24],
-                                   None)
+                                   None,
+                                   [[8,], [9,],
+                                    [13,], [14, 15], [16, 17], [18,],
+                                    [23,], [24,]])
 
 
 @dataclass
@@ -72,11 +79,17 @@ default_table = TablePreferences(
     ],
 )
 
+# Grouping of the cells for picks
+grouped_picks = [
+    8, 9, 13, (14, 15), (16, 17), 18, 23, 24
+]
+
 
 class Cell():
     def __init__(self) -> None:
         self.heroes = {}
         self.total_heroes = 0
+        self.relative_width = 1
 
     def __add__(self, other: "Cell") -> "Cell":
         new_cell = Cell()
@@ -131,7 +144,7 @@ class Cell():
 
         return (width, height)
 
-    def draw(self, preferences: TablePreferences,  add_text=True) -> Image:
+    def draw(self, preferences: TablePreferences, add_text=True) -> Image:
         # Sort the heroes by total first
         self.heroes = {k: v for k, v in
                        sorted(self.heroes.items(), key=lambda i: i[1],
@@ -141,10 +154,11 @@ class Cell():
         cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
         cell_canvas = ImageDraw.Draw(cell_image)
         font = preferences.count_font
+        heroes_per_row = self.table.heroes_per_row * self.relative_width
 
         x, y = 0, self.table.padding
         tot = 0
-        for h, i in zip(self.heroes, cycle(range(self.table.heroes_per_row))):
+        for h, i in zip(self.heroes, cycle(range(heroes_per_row))):
             if tot >= self.table.summarize_after:
                 if self.table.add_other:
                     pass
@@ -172,7 +186,7 @@ class Cell():
                                  anchor="mt", align="right", fill=(0, 0, 0))
             x += self.table.hero_size
 
-            if i == self.table.heroes_per_row - 1:
+            if i == heroes_per_row - 1:
                 y += self.table.padding
                 y += self.table.hero_size
                 if add_text:
@@ -185,8 +199,60 @@ class Cell():
 
 
 class PlayerRow():
-    pass
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.cells = {}
+        self.max_height = 0
 
+    def add_hero(self, order: int, hero: str) -> Cell:
+        c: Cell
+        c = self.cells.get().get(order,
+                                 Cell(table=self, order=order,
+                                      steam_id=self.steam_id))
+        c.add_hero(hero)
+
+    def draw_name(self, preferences: TablePreferences):
+        font = preferences.header_font
+        left, top, right, bottom = font.getbbox(self.name)
+        width, height = right - left, bottom - top
+        text_image = Image.new('RGB', (width, height), height)
+        text_canvas = ImageDraw.Draw(text_image)
+        text_canvas.text((0, 0), text=self.name, font=font,
+                         anchor="rm", align="right", fill=(0, 0, 0))
+
+        return text_image
+
+    def draw(self, table: "Table", groupings=None, background=(255, 255, 255, 255)) -> Image:
+        cell_images = []
+        for g in groupings:
+            cell: Cell
+            cell = sum(x for x in g)
+            cell.relative_width = len(g)
+
+            cell_images.append(cell.draw)
+
+        # Widths should include padding already
+        width = sum(table.cell_widths)
+        # Add 2*table padding to image heights
+        height = max(i.size[1] for i in cell_images) + 2*(padding := table.preferences.padding)
+        row_image = Image.new('RGB', (width, height), height)
+
+        # "Curstor" for image pasting
+        y = padding
+        # Paste in name first, right aligned
+        name = self.draw_name(table.preferences)
+        x = table.cell_widths[0]
+        x -= padding
+        x -= name.size[0]
+        row_image.paste(name, (x, y), name)
+
+        # Now Paste in cells
+        x = 0
+        for w, c in zip(table.cell_widths[:-1], cell_images):
+            x += w
+            row_image.paste(c, (x+padding, y), c)
+
+        return row_image
 
 class Table():
     pass
