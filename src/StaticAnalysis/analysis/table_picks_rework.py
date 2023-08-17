@@ -58,7 +58,7 @@ class TablePreferences:
     count_font_size: int
     count_font: ImageFont
     double_line_space: 5
-    pick_orders: List[OrderTimeRegion]
+    pick_order: OrderTimeRegion
 
 
 default_table = TablePreferences(
@@ -73,10 +73,7 @@ default_table = TablePreferences(
     count_font_size=16,
     count_font=ImageFont.truetype('arialbd.ttf', 16),
     double_line_space=5,
-    pick_orders=[
-                picks_patch_7_33,
-                picks_patch_7_34,
-    ],
+    pick_order=picks_patch_7_34,
 )
 
 # Grouping of the cells for picks
@@ -250,5 +247,33 @@ class PlayerRow():
 
         return row_image
 
+
 class Table():
-    pass
+    def __init__(self, player_list: dict, preferences: TablePreferences, add_text=True) -> None:
+        self.players = {k: PlayerRow(n) for k, n in player_list.items()}
+        self.preferences = preferences
+        self.add_text = add_text
+
+    def import_teamselection(self, selection: TeamSelections,
+                             pick_order: OrderTimeRegion = None):
+        if pick_order is None:
+            pick_order = self.preferences.pick_order
+
+        # Check the times are in range for the pickorder
+        t = selection.replay.endTimeUTC
+        before_start = t < pick_order.start
+        after_end = t >= pick_order.end if pick_order.end is not None else False
+        if before_start or after_end:
+            print(f"Replay {selection.replay.replayID} is out of range for pick_order")
+            raise ValueError()
+
+        picks = [x for x in selection.draft if x.is_pick]
+        if selection.firstPick:
+            order = pick_order.first_pick
+        else:
+            order = pick_order.second_pick
+
+        for p, o in zip(picks, order):
+            if p.playerID not in self.players:
+                continue
+            self.players[p.playerID].add_hero(p.hero, o)
