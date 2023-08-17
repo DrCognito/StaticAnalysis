@@ -124,21 +124,17 @@ class Cell():
 
         # Width
         # Absolute minimum width is padding
-        width = preferences.padding
         if fixed_total > preferences.heroes_per_row:  # More heroes than fit a row so max size is a row
-            width += preferences.hero_size * preferences.heroes_per_row
+            width = preferences.hero_size * preferences.heroes_per_row
             width += preferences.padding * preferences.heroes_per_row
         else:  # Max size is the number of heroes with padding
-            width += preferences.hero_size * self.total_heroes
+            width = preferences.hero_size * self.total_heroes
             width += preferences.padding * self.total_heroes
-        width += preferences.padding
 
         # Height
         hero_lines = ceil(fixed_total/preferences.heroes_per_row)
-        height = preferences.padding
-        height += preferences.hero_size
+        height = preferences.hero_size
         height += (preferences.hero_size + preferences.padding)*hero_lines
-        height += preferences.padding
         if include_text:
             height += hero_lines*(preferences.padding + preferences.count_font_size)
 
