@@ -792,7 +792,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
         axes_first = fig.subplots(5)
 
     extra = plot_player_heroes(hero_picks_df, axes_first)
-    axes_first[0].set_title("Matches test")
+    axes_first[0].set_title("Matches")
     # fig.tight_layout(h_pad=2.0)
     output = team_path / f'hero_picks{postfix}.png'
     # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=200)
