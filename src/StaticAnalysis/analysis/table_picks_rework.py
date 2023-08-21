@@ -40,9 +40,9 @@ picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
                                    [8, 14, 15, 18, 23],
                                    [9, 13, 16, 17, 24],
                                    None,
-                                   [[8,], [9,],
-                                    [13,], [14, 15], [16, 17], [18,],
-                                    [23,], [24,]])
+                                   ((8,), (9,),
+                                    (13,), (14, 15), (16, 17), (18,),
+                                    (23,), (24,)))
 
 
 @dataclass
@@ -77,9 +77,9 @@ default_table = TablePreferences(
 )
 
 # Grouping of the cells for picks
-grouped_picks = [
+grouped_picks = (
     8, 9, 13, (14, 15), (16, 17), 18, 23, 24
-]
+)
 
 
 class Cell():
@@ -247,6 +247,17 @@ class PlayerRow():
 
         return row_image
 
+    def get_cell_images(self, table: "Table", groupings) -> List[Image]:
+
+        cell_images = {}
+        for g in groupings:
+            cell: Cell
+            cell = sum(self.cells(x) for x in g)
+            cell.relative_width = len(g)
+            cell_images[g] = cell.draw(table.preferences)
+
+        return cell_images
+
 
 class Table():
     def __init__(self, player_list: dict, preferences: TablePreferences, add_text=True) -> None:
@@ -277,3 +288,87 @@ class Table():
             if p.playerID not in self.players:
                 continue
             self.players[p.playerID].add_hero(p.hero, o)
+
+    def draw_order_labels(self, groupings):
+        def _process(t: tuple):
+            match len(t):
+                case 1:
+                    return f"{t[0]}"
+                case 2:
+                    return f"{t[0] and t[1]}"
+                case 3:
+                    return "".join(f"{x}, " for x in t[:-1]) + f"and {t[:-1]}"
+                
+        def _draw_text(t: str):
+            font = self.preferences.header_font
+            left, top, right, bottom = font.getbbox(t)
+            width, height = right - left, bottom - top
+            text_image = Image.new('RGB', (width, height), height)
+            text_canvas = ImageDraw.Draw(text_image)
+            text_canvas.text((0, 0), text=t, font=font,
+                             anchor="rm", align="right", fill=(0, 0, 0))
+
+            return text_image
+
+        label_images = []
+        for g in groupings:
+            text = _process(g)
+            text_image = _draw_text(text)
+            label_images.append(text_image)
+
+        return label_images
+
+    def draw(self, groupings=None):
+        if groupings is None:
+            groupings = self.preferences.pick_order.grouped
+            
+        pad = self.preferences.padding
+        cells = {}
+        # Max width of each row, add player name later
+        col_width = {k: 0 for k in groupings}
+        # Max height for the specific player
+        row_height = {k: 0 for k in self.players}
+        # Also get names
+        names = {}
+        col_name_width = 0
+        for p, row in self.players.items():
+            cells[p] = (r_c := row.get_cell_images(self, groupings))
+            # Keep track of the maximums for table layout, add padding here!
+            row_height[p] = max(c.size[1] + 2 * pad for c in r_c)
+            for g in groupings:
+                col_width[g] = max(col_width[g], r_c[g].size[0] + 2 * pad)
+
+            # Get the name, check its width, height
+            names[p] = row.draw_name(self.preferences)
+            col_name_width = max(col_name_width, names[p].size[0] + 2 * pad)
+            row_height[p] = max(row_height[p], names[p].size[1] + 2 * pad)
+
+        # Order labels for the header
+        label_images = self.draw_order_labels(groupings)
+        max_label_width = max(x.size[0] for x in label_images) + 2 * pad
+        max_label_height = max(x.size[1] for x in label_images) + 2 * pad
+
+        width = col_name_width + sum(x for x in col_width.values())
+        height = sum(x for x in row_height.values()) + max_label_height
+        # Draw the table Image, paste in cells
+        table_image = Image.new('RGBA', (width, height), (255,255,255,255))
+        table_canvas = ImageDraw.Draw(table_image)
+
+        row_bg_cycle = ((255, 255, 255, 255), (220, 220, 220, 255))
+        # Draw in labels, skip first cell as it is names
+        x, y = col_name_width, pad
+        l: ImageDraw
+        for l, w in zip(label_images, col_width.values()):
+            x += w
+            # Left align the x
+            x0 = x - pad - l.size[0]
+            table_image.paste(l, (x0, y), l)
+
+        # Draw in objects
+        x, y = col_name_width, max_label_height + pad
+        for (p, c), bg in zip(cells.items(), cycle(row_bg_cycle)):
+            # Name
+            pass
+
+
+
