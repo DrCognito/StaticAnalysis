@@ -795,12 +795,13 @@ def do_player_picks(team: TeamInfo, metadata: dict,
     axes_first[0].set_title("Matches")
     # fig.tight_layout(h_pad=2.0)
     output = team_path / f'hero_picks{postfix}.png'
-    fig.tight_layout()
     # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=200)
-    fig.tight_layout(w_pad=1.22, h_pad=2.5)
+    # fig.tight_layout(w_pad=1.22, h_pad=2.5)
+    fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
     # fig.tight_layout()
-    fig.savefig(output, bbox_inches="tight")
-    # fig.savefig(output)
+    # fig.savefig(output, bbox_inches="tight", bbox_extra_artists=extra)
+    # fig.savefig(output, bbox_extra_artists=extra)
+    fig.savefig(output)
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_picks{postfix}'] = relpath
@@ -1014,7 +1015,7 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
     r_filter = Replay.endTimeUTC >= time
 
     if replay_list:
-        r_filter = or_(Replay.replayID.in_(replay_list), r_filter)
+        r_filter = or_(and_(Replay.replayID.in_(replay_list), r_filter), r_filter)
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
@@ -1139,6 +1140,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
+    stat_time = ti if (ti := ImportantTimes[args.statistic_time]) is not None else time
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
@@ -1186,12 +1188,14 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         elif replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
             print(replay_list)
+            # Still do pubs!
+            pubs_updated = True
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
             print("Pub data is newer, remaking pick plots.")
             # No need to do limit plots as they are without pubs.
-            metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
+            metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
@@ -1269,8 +1273,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_summary(team, r_query, metadata, r_filter)
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
-        metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
-        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5", mintime=time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
+                                   mintime=stat_time, maxtime=end_time)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
