@@ -298,7 +298,7 @@ class Table():
                     return f"{t[0] and t[1]}"
                 case 3:
                     return "".join(f"{x}, " for x in t[:-1]) + f"and {t[:-1]}"
-                
+
         def _draw_text(t: str):
             font = self.preferences.header_font
             left, top, right, bottom = font.getbbox(t)
@@ -321,8 +321,13 @@ class Table():
     def draw(self, groupings=None):
         if groupings is None:
             groupings = self.preferences.pick_order.grouped
-            
         pad = self.preferences.padding
+
+        # Order labels for the header
+        label_images = self.draw_order_labels(groupings)
+        # max_label_width = max(x.size[0] for x in label_images) + 2 * pad
+        col_width = {k: i.size[0] + 2 * pad for k, i in zip(groupings, label_images)}
+        max_label_height = max(x.size[1] for x in label_images) + 2 * pad
         cells = {}
         # Max width of each row, add player name later
         col_width = {k: 0 for k in groupings}
@@ -343,27 +348,32 @@ class Table():
             col_name_width = max(col_name_width, names[p].size[0] + 2 * pad)
             row_height[p] = max(row_height[p], names[p].size[1] + 2 * pad)
 
-        # Order labels for the header
-        label_images = self.draw_order_labels(groupings)
-        max_label_width = max(x.size[0] for x in label_images) + 2 * pad
-        max_label_height = max(x.size[1] for x in label_images) + 2 * pad
-
         width = col_name_width + sum(x for x in col_width.values())
         height = sum(x for x in row_height.values()) + max_label_height
         # Draw the table Image, paste in cells
         table_image = Image.new('RGBA', (width, height), (255,255,255,255))
         table_canvas = ImageDraw.Draw(table_image)
 
-        row_bg_cycle = ((255, 255, 255, 255), (220, 220, 220, 255))
         # Draw in labels, skip first cell as it is names
         x, y = col_name_width, pad
-        l: ImageDraw
-        for l, w in zip(label_images, col_width.values()):
+        la: ImageDraw
+        for la, w in zip(label_images, col_width.values()):
             x += w
             # Left align the x
             x0 = x - pad - l.size[0]
             table_image.paste(l, (x0, y), l)
 
+        # Draw in rows
+        row_bg_cycle = ((255, 255, 255, 255), (220, 220, 220, 255))
+        # Header line
+        y0, y1 = max_label_height, max_label_height
+        x0, x1 = 0, width
+        table_canvas.line([x0, y0, x1, y1], (0, 0, 0, 255))
+        # Stripes
+        for h, bg in zip(row_height.values(), row_bg_cycle):
+            y1 += h
+            table_canvas.rectangle([x0, y0, x1, y1], fill=bg)
+            y0 += h
         # Draw in objects
         x, y = col_name_width, max_label_height + pad
         for (p, c), bg in zip(cells.items(), cycle(row_bg_cycle)):
