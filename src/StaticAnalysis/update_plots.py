@@ -1140,6 +1140,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
+    stat_time = ti if (ti := ImportantTimes[args.statistic_time]) is not None else time
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
@@ -1194,7 +1195,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         if pubs_updated:
             print("Pub data is newer, remaking pick plots.")
             # No need to do limit plots as they are without pubs.
-            metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
+            metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
@@ -1272,8 +1273,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_summary(team, r_query, metadata, r_filter)
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
-        metadata = do_player_picks(team, metadata, r_filter, mintime=time, maxtime=end_time)
-        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5", mintime=time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
+                                   mintime=stat_time, maxtime=end_time)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
