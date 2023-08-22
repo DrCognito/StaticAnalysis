@@ -1015,7 +1015,7 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
     r_filter = Replay.endTimeUTC >= time
 
     if replay_list:
-        r_filter = or_(Replay.replayID.in_(replay_list), r_filter)
+        r_filter = or_(and_(Replay.replayID.in_(replay_list), r_filter), r_filter)
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
