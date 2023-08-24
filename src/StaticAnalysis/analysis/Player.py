@@ -4,6 +4,7 @@ from operator import or_
 from pandas import DataFrame, Series, concat
 from sqlalchemy import and_
 
+from StaticAnalysis.lib.Common import distance_between
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
@@ -165,14 +166,43 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
 
 
 def player_positioning_single(session, replay_id, team: TeamInfo, steam_id: int,
-                              start: int, end: int):
+                              start: int, end: int, alive_only=None):
     t_filter = ()
     if start is not None:
         t_filter += (PlayerStatus.game_time >= start,)
     if end is not None:
         t_filter += (PlayerStatus.game_time <= end,)
+    if alive_only is not None:
+        t_filter += (PlayerStatus.is_alive == alive_only)
 
     # steam_id = team.players[player_slot].player_id
     p_filter = t_filter + (PlayerStatus.steamID == steam_id, PlayerStatus.replayID == replay_id)
 
     return session.query(PlayerStatus).filter(*p_filter)
+
+
+def player_positioning_replay(session, replay_id, start: int, end: int, alive_only=None):
+    t_filter = ()
+    if start is not None:
+        t_filter += (PlayerStatus.game_time >= start,)
+    if end is not None:
+        t_filter += (PlayerStatus.game_time <= end,)
+    if alive_only is not None:
+        t_filter += (PlayerStatus.is_alive == alive_only, )
+
+    # steam_id = team.players[player_slot].player_id
+    p_filter = t_filter + (PlayerStatus.replayID == replay_id, )
+
+    return session.query(PlayerStatus).filter(*p_filter)
+
+
+def closest_tower(position: tuple, tower_dict, scheme=['top', 'mid', 'bottom']):
+    t_dist = 99999999999999
+    name = "Fixme"
+    for tower in scheme:
+        t_cord = tower_dict[tower]
+        if (dist := distance_between(position, t_cord)) < t_dist:
+            t_dist = dist
+            name = tower
+
+    return name
