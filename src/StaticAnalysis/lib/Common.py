@@ -4,6 +4,7 @@ from typing import List
 import matplotlib.image as mpimg
 from os import environ as environment
 import pandas as pd
+from math import sqrt
 
 
 def relativeCellCord(cell):
@@ -62,6 +63,13 @@ dire_towers = {
     'off': ((1719) / 2048, (2048 - 1268) / 2048)
 }
 dire_towers = {k: (x_scale(v[0]), y_scale(v[1])) for k, v in dire_towers.items()}
+
+
+def distance_between(obj1: tuple, obj2: tuple):
+    r_x = obj2[0] - obj1[0]
+    r_y = obj2[1] - obj1[1]
+
+    return sqrt(r_x ** 2 + r_y ** 2)
 
 
 def location_filter(location, Type):
