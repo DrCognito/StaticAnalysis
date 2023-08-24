@@ -161,8 +161,30 @@ class NetWorth(Base):
         return self.time - creepSpawn
 
     @hybrid_property
-    def hero(self):
+    def hero(self) -> str:
         return self.player.hero
+
+    @hero.expression
+    def hero(cls) -> str:
+        return (
+            select([Player.hero])
+            .where(Player.replayID == cls.replayID)
+            .where(Player.steamID == cls.steamID)
+            .label("hero")
+        )
+    
+    @hybrid_property
+    def team(self) -> Team:
+        return self.player.team
+
+    @team.expression
+    def team(cls) -> Team:
+        return (
+            select([Player.team])
+            .where(Player.replayID == cls.replayID)
+            .where(Player.steamID == cls.steamID)
+            .label("team")
+        )
 
     # player = relationship(Player, back_populates="status", lazy="select")
     player = relationship("Player", back_populates="net_worth", primaryjoin=
