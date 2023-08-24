@@ -33,8 +33,35 @@ dire_ancient_cords = [[714/1024, 666/1024], [993/1024, 975/1024]]
 
 # [xMin, xMax, yMin, yMax] matches matplotlib "extent"
 MAP_EXTENT_733_CALC = [6711.773778920308, 25817.172236503855, 7001.94459833795, 26096.127423822712]
-MAP_EXTENT_733_MEASURED =  [7783.875000, 25120.000000, 7651.781250, 25227.125000]
+MAP_EXTENT_733_MEASURED = [7783.875000, 25120.000000, 7651.781250, 25227.125000]
 EXTENT = MAP_EXTENT_733_CALC
+
+
+# 7_33 outer towers
+def x_scale(x):
+    return (EXTENT[1] - EXTENT[0]) * x + EXTENT[0]
+
+
+def y_scale(y):
+    return (EXTENT[3] - EXTENT[2]) * y + EXTENT[2]
+
+
+radiant_towers = {
+    'top': ((370) / 2048, (2048 - 832) / 2048),
+    'off': ((370) / 2048, (2048 - 832) / 2048),
+    'mid': ((883) / 2048, (2048 - 1178) / 2048),
+    'bottom': ((1580) / 2048, (2048 - 1681) / 2048),
+    'safe': ((1580) / 2048, (2048 - 1681) / 2048)
+}
+radiant_towers = {k: (x_scale(v[0]), y_scale(v[1])) for k, v in radiant_towers.items()}
+dire_towers = {
+    'top': ((550) / 2048, (2048 - 384) / 2048),
+    'safe': ((550) / 2048, (2048 - 384) / 2048),
+    'mid': ((1105) / 2048, (2048 - 960) / 2048),
+    'bottom': ((1719) / 2048, (2048 - 1268) / 2048),
+    'off': ((1719) / 2048, (2048 - 1268) / 2048)
+}
+dire_towers = {k: (x_scale(v[0]), y_scale(v[1])) for k, v in dire_towers.items()}
 
 
 def location_filter(location, Type):
