@@ -136,6 +136,24 @@ class PlayerStatus(Base):
         creepSpawn = select([Replay.creepSpawn]).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.time - creepSpawn
+
+    @hybrid_property
+    def hero(self) -> str:
+        return (
+            select([Player.hero])
+            .where(Player.replayID == self.replayID)
+            .where(Player.steamID == self.steamID)
+            .label("hero")
+        )
+
+    @hybrid_property
+    def team(self) -> Team:
+        return (
+            select([Player.team])
+            .where(Player.replayID == self.replayID)
+            .where(Player.steamID == self.steamID)
+            .label("team")
+        )
     # Relationships
     # player = relationship(Player, back_populates="status", lazy="select")
 
@@ -172,7 +190,7 @@ class NetWorth(Base):
             .where(Player.steamID == cls.steamID)
             .label("hero")
         )
-    
+
     @hybrid_property
     def team(self) -> Team:
         return self.player.team
