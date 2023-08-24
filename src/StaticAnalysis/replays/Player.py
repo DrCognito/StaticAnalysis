@@ -13,7 +13,8 @@ from StaticAnalysis.replays.JSONProcess import (get_accumulating_lists,
                                                 get_pick_ban,
                                                 get_player_created,
                                                 get_player_status,
-                                                get_player_team)
+                                                get_player_team,
+                                                get_net_worth)
 
 
 class Player(Base):
@@ -59,6 +60,13 @@ class Player(Base):
                              '''and_(LastHits.steam_ID == Player.steamID,
                              LastHits.replay_ID == Player.replayID)'''
                              )
+    net_worth = relationship("NetWorth", lazy="select",
+                             cascade="all, delete-orphan", primaryjoin=
+                             '''and_(NetWorth.steamID == Player.steamID,
+                             NetWorth.replayID == Player.replayID)''',
+                             back_populates="player"
+                             )
+    # net_worth = relationship("NetWorth", back_populates="player", foreign_keys=["NetWorth.replayID", "Networth.steamID"])
 
     def __init__(self, replay_in):
         self.replayID = replay_in.replayID
@@ -136,24 +144,34 @@ class PlayerStatus(Base):
         self.replayID = player_in.replayID
 
 
-# class PlayerSmoke(Base):
-#     __tablename__ = "playersmokes"
-#     replayID = Column(BigInteger, ForeignKey("Replays.replayID"),
-#                       primary_key=True)
-#     steamID = Column(BigInteger, ForeignKey(Player.steamID), primary_key=True)
+class NetWorth(Base):
+    __tablename__ = "networth"
+    replayID = Column(BigInteger, ForeignKey(Player.replayID),
+                      primary_key=True)
+    steamID = Column(BigInteger, ForeignKey(Player.steamID), primary_key=True)
+    time = Column(Integer, primary_key=True)
 
-#     start_time = Column(Integer, primary_key=True)
-#     end_time = Column(Integer)
+    networth = Column(Integer)
 
-#     # Relationships
-#     player = relationship(Player, back_populates="smokes", lazy="select")
+    @hybrid_property
+    def game_time(self):
+        from .Replay import Replay
+        creepSpawn = select([Replay.creepSpawn]).\
+            where(self.replayID == Replay.replayID).as_scalar()
+        return self.time - creepSpawn
 
-#     def __init__(self, player_in):
-#         self.player = player_in
-#         self.replayID = player_in.replayID
+    @hybrid_property
+    def hero(self):
+        return self.player.hero
 
-#     def get_smoke_positions(self):
-#         return self.player.get_position_range(self.start_time, self.end_time)
+    # player = relationship(Player, back_populates="status", lazy="select")
+    player = relationship("Player", back_populates="net_worth", primaryjoin=
+                             '''and_(NetWorth.steamID == Player.steamID,
+                                NetWorth.replayID == Player.replayID)''')
+
+    def __init__(self, player_in):
+        # self.player = player_in
+        self.replayID = player_in.replayID
 
 
 class CumulativePlayerStatus():
@@ -218,6 +236,18 @@ def populate_from_JSON(json, replay_in, session):
             status_out.append(new_status)
 
         return status_out
+
+    def _networth(player, json):
+        net_worth = list()
+        for t, gp in enumerate(get_net_worth(player.hero, json)):
+            new_class = NetWorth(player)
+            new_class.steamID = player.steamID
+            new_class.time = t + player.created_at
+            new_class.networth = gp
+
+            net_worth.append(new_class)
+
+        return net_worth
 
     def _accumulating_stats(player, json):
         list_in = get_accumulating_lists(player.hero, json)
@@ -295,6 +325,7 @@ def populate_from_JSON(json, replay_in, session):
         new_player.denies = accumulators['denies']
         new_player.kills = accumulators['kills']
         new_player.last_hits = accumulators['last_hits']
+        new_player.net_worth = _networth(new_player, json)
 
         session.add(new_player)
         players_out.append(new_player)
