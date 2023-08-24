@@ -119,10 +119,14 @@ def get_accumulating_lists(hero, json_in):
     kills = next((x['killList'] for x in json_in if x['type'] ==
                  "HeroEntity" and x['cName'] == hero), None)
     last_hits = next((x['last_hitList'] for x in json_in if x['type'] ==
-                 "HeroEntity" and x['cName'] == hero), None)
+                      "HeroEntity" and x['cName'] == hero), None)
 
     return {'assists': assists, 'deaths': deaths, 'denies': denies,
             'kills': kills, 'last_hits': last_hits}
+
+
+def get_net_worth(hero, json_in):
+    return next((x['net_worth'] for x in json_in if x['type'] == "HeroEntity" and x['cName'] == hero), None)
 
 
 def get_smoke_summary(json_in, team):
