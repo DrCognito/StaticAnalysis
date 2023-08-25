@@ -1032,13 +1032,14 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf.add_page()
     pdf.set_font("helvetica", "B", 24)
     dataset = metadata['name']
-    time_string = metadata['time_string']
+    time_string = metadata.get('time_string', "(No replay data)")
     pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
     # Stats
     pdf.cell(0, 5, f"Win rates:", new_x="LMARGIN", new_y="NEXT")
     stats = metadata['stat_win_rate']
-    pdf.write_html(stats)
+    if stats:
+        pdf.write_html(stats)
     general_stats = get_generalstats(team)
     if general_stats:
         pdf.write_html(general_stats)
@@ -1049,9 +1050,15 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     # Basic table:
     # replays_dire = {str(x) for x in metadata['replays_dire']}
     replays_dire = metadata['replays_dire']
-    replays_dire.sort(reverse=True)
+    if replays_dire:
+        replays_dire.sort(reverse=True)
+    else:
+        replays_dire = []
     replays_radiant = metadata['replays_radiant']
-    replays_radiant.sort(reverse=True)
+    if replays_radiant:
+        replays_radiant.sort(reverse=True)
+    else:
+        replays_radiant = []
 
     with pdf.table() as table:
         row = table.row()
@@ -1063,13 +1070,20 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
             row.cell(str(radiant))
 
     # Draft onlys
-    drafts_dire = [x for x in metadata['drafts_only_dire'] if x not in replays_dire]
-    drafts_dire.sort(reverse=True)
-    # drafts_dire = drafts_dire - replays_dire
-    # drafts_radiant = {str(x) for x in metadata['drafts_only_radiant']}
-    # drafts_radiant = drafts_radiant - replays_radiant
-    drafts_radiant = [x for x in metadata['drafts_only_radiant'] if x not in replays_radiant]
-    drafts_radiant.sort(reverse=True)
+    drafts_only_dire = metadata['drafts_only_dire']
+    if drafts_only_dire:
+        drafts_dire = [x for x in drafts_only_dire if x not in replays_dire]
+        drafts_dire.sort(reverse=True)
+    else:
+        drafts_dire = []
+
+    drafts_only_radiant = metadata['drafts_only_radiant']
+    if drafts_only_radiant:
+        drafts_radiant = [x for x in drafts_only_radiant if x not in replays_radiant]
+        drafts_radiant.sort(reverse=True)
+    else:
+        drafts_radiant = []
+
     if drafts_dire or drafts_radiant:
         pdf.set_font('helvetica', size=12)
         pdf.cell(40, 10, f"Drafts only:", new_y="NEXT")
@@ -1117,9 +1131,9 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
-    for d in plot_drafts_first[1:]:
-        pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_first[1:]:
+            pdf.add_page()
+            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
     # Second Pick Drafts
     plot_drafts_second = metadata.get('plot_drafts_second')
     if plot_drafts_second:
@@ -1127,9 +1141,9 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
-    for d in plot_drafts_second[1:]:
-        pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_second[1:]:
+            pdf.add_page()
+            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
 
     # Write pdf
     pdf.output(output)
