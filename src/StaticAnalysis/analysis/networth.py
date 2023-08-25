@@ -86,7 +86,6 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
     neg_map = get_cmap("Reds")
     if result < 0:
         fraction = main_team['networth'] / opposition['networth']
-        print(fraction)
         if fraction < (1.0 - significance_percent):
             outcome = "L"
         else:
@@ -99,7 +98,6 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
         frac_diff = fraction - 1
     else:
         fraction = opposition['networth'] / main_team['networth']
-        print(fraction)
         if fraction < (1.0 - significance_percent):
             outcome = "W"
         else:
