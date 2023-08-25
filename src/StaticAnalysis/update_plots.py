@@ -58,21 +58,22 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
+from StaticAnalysis import session, team_session, pub_session
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
+# engine = InitDB(DB_PATH)
+# Session = sessionmaker(bind=engine)
+# session = Session()
 
-team_engine = InitTeamDB()
-team_maker = sessionmaker(bind=team_engine)
-team_session = team_maker()
+# team_engine = InitTeamDB()
+# team_maker = sessionmaker(bind=team_engine)
+# team_session = team_maker()
 
-pub_engine = InitPubDB()
-pub_maker = sessionmaker(bind=pub_engine)
-pub_session = pub_maker()
+# pub_engine = InitPubDB()
+# pub_maker = sessionmaker(bind=pub_engine)
+# pub_session = pub_maker()
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
