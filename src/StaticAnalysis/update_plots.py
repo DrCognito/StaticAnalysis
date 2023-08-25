@@ -58,21 +58,22 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
+from StaticAnalysis import session, team_session, pub_session
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
+# engine = InitDB(DB_PATH)
+# Session = sessionmaker(bind=engine)
+# session = Session()
 
-team_engine = InitTeamDB()
-team_maker = sessionmaker(bind=team_engine)
-team_session = team_maker()
+# team_engine = InitTeamDB()
+# team_maker = sessionmaker(bind=team_engine)
+# team_session = team_maker()
 
-pub_engine = InitPubDB()
-pub_maker = sessionmaker(bind=pub_engine)
-pub_session = pub_maker()
+# pub_engine = InitPubDB()
+# pub_maker = sessionmaker(bind=pub_engine)
+# pub_session = pub_maker()
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
@@ -1083,34 +1084,34 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
                 row.cell(str(radiant))
 
     # Pick priority
-    pick_priority = metadata['pick_priority']
+    pick_priority = metadata.get('pick_priority')
     if pick_priority:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
     # Draft summary + pick tables
-    plot_draft_summary = metadata['plot_draft_summary']
-    plot_picktables = metadata['plot_picktables']
+    plot_draft_summary = metadata.get('plot_draft_summary')
+    plot_picktables = metadata.get('plot_picktables')
     if plot_draft_summary or plot_picktables:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
         pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
-    plot_hero_picks = metadata['plot_hero_picks']
+    plot_hero_picks = metadata.get('plot_hero_picks')
     if plot_hero_picks:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
     # Hero Flex
-    plot_hero_flex = metadata['plot_hero_flex']
+    plot_hero_flex = metadata.get('plot_hero_flex')
     if plot_hero_flex:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
-    plot_win_rate = metadata['plot_win_rate']
+    plot_win_rate = metadata.get('plot_win_rate')
     if plot_win_rate:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
     # First Pick Drafts
-    plot_drafts_first = metadata['plot_drafts_first']
+    plot_drafts_first = metadata.get('plot_drafts_first')
     if plot_drafts_first:
         pdf.add_page()
         pdf.set_font('helvetica', size=12)
@@ -1120,7 +1121,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
     # Second Pick Drafts
-    plot_drafts_second = metadata['plot_drafts_second']
+    plot_drafts_second = metadata.get('plot_drafts_second')
     if plot_drafts_second:
         pdf.add_page()
         pdf.set_font('helvetica', size=12)

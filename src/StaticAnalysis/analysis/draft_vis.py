@@ -15,6 +15,9 @@ from PIL import Image, ImageDraw, ImageFont
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import TeamSelections
+from StaticAnalysis.analysis.networth import get_laning_image
+from StaticAnalysis import session
+import matplotlib.pyplot as plt
 
 scims_json = environment['SCRIMS_JSON']
 try:
@@ -443,7 +446,8 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
-                       add_team_name=True, add_league_date=True, caching=True):
+                       add_team_name=True, add_league_date=True, caching=True,
+                       fig=plt.gcf()):
     if caching:
         cache_dir = Path(environment["CACHE"])
         file_name = f"{replay.replayID}_{team.name}.png"
@@ -482,6 +486,11 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     spacerDraw = ImageDraw.Draw(spacer)
     spacerDraw.line([(0,0),(0,team_line.size[1])], fill='black', width=2*spacing)
 
+    # Lane outcome line
+    # Add networth line
+    lane_outcome = get_laning_image(session, fig, main_team_faction, replay)
+    fig.clf()
+
     # Opposition team name text, size concerns?
     opp_box_width = 0
     if add_team_name:
@@ -510,21 +519,33 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     else:
         height = team_line.size[1]
 
-    width = team_line.size[0] + spacer.size[0] + opposition_line.size[0]
+    width = (draft_width := team_line.size[0] + spacer.size[0] + opposition_line.size[0])
+    width = max(width, lane_outcome.size[0])
+    if lane_outcome is not None:
+        y_lanepos = height
+        height += lane_outcome.size[1]
+        x_lanepos = (width - lane_outcome.size[0]) // 2
+
+    # Probably zero but there might be edge cases where lane outcome is larger
+    x_draft_off = (width - draft_width) // 2
+
     out_box = Image.new('RGB', (width, height), (255, 255, 255, 0))
 
     if add_team_name:
-        out_box.paste(faction_image, (0, 0))
-        out_box.paste(team_line, (0, text_image.size[1]))
+        out_box.paste(faction_image, (x_draft_off, 0))
+        out_box.paste(team_line, (x_draft_off, text_image.size[1]))
 
-        out_box.paste(text_image, (team_line.size[0] + spacer.size[0], 0))
+        out_box.paste(text_image, (team_line.size[0] + spacer.size[0] + x_draft_off, 0))
         out_box.paste(opposition_line,
-                      (team_line.size[0] + spacer.size[0], text_image.size[1]))
+                      (team_line.size[0] + spacer.size[0] + x_draft_off, text_image.size[1]))
     else:
-        out_box.paste(team_line, (0, 0), team_line)
+        out_box.paste(team_line, (x_draft_off, 0), team_line)
 
         out_box.paste(opposition_line,
-                    (team_line.size[0] + spacer.size[0], 0))
+                    (team_line.size[0] + spacer.size[0] + x_draft_off, 0))
+
+    if lane_outcome is not None:
+        out_box.paste(lane_outcome, (x_lanepos, y_lanepos), lane_outcome)
 
     if add_league_date:
         font_size = 12
@@ -576,15 +597,19 @@ def chunks(lst: list, n: int):
 
 
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
-                       first_pick=True, second_pick=True, line_limit=13):
+                       first_pick=True, second_pick=True, line_limit=9):
     line_sets = list()
     line_lengths = list()
     max_width = 0
     vert_spacing = 3
 
+    # fig for networths
+    fig = plt.gcf()
+
     # Get the lines for each replay and store so we can build our sheet
     lines = []
     tot_height = 0
+    replay: Replay
     for replay in replays:
         # Check to see if our team is picked first
         # If it is our team then this is true if they had first pick too, else false
@@ -601,7 +626,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         if not is_first and not second_pick:
             continue
 
-        line = pickban_line_image(replay, team, add_team_name=True, caching=True)
+        line = pickban_line_image(replay, team, add_team_name=True, caching=True, fig=fig)
         if line is None:
             continue
 
@@ -637,7 +662,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         if tot_height <= 0:
             continue
         if first_sheet:
-            sheet = Image.new('RGB', (max_width, tot_height+font_size+5),
+            sheet = Image.new('RGB', (max_width, tot_height + font_size + 5),
                               (255, 255, 255, 255))
             canvas = ImageDraw.Draw(sheet)
 
@@ -654,7 +679,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         for line in lines:
             off_set = 0
             if line.size[0] < max_width:
-                off_set = math.floor((max_width - line.size[0])/2)
+                off_set = math.floor((max_width - line.size[0]) / 2)
             sheet.paste(line, (off_set, y_off))
             y_off += line.size[1]
             y_off += vert_spacing

@@ -1,19 +1,44 @@
-from StaticAnalysis.replays.Replay import Replay, Team
-from StaticAnalysis.replays.Player import Player, NetWorth, PlayerStatus
-from StaticAnalysis.analysis.Player import player_positioning_replay, closest_tower
-from StaticAnalysis.analysis.visualisation import make_image_annotation
+from enum import Enum
+
+import matplotlib.pyplot as plt
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  heroShortName)
-from StaticAnalysis.lib.Common import dire_towers, radiant_towers
-from pandas import DataFrame, read_sql
-import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-from enum import Enum
 from matplotlib.cm import get_cmap
+from pandas import DataFrame, read_sql
+from PIL import Image
+
+from StaticAnalysis.analysis.Player import (closest_tower,
+                                            player_positioning_replay)
+from StaticAnalysis.analysis.visualisation import make_image_annotation
+from StaticAnalysis.lib.Common import dire_towers, fig2img, radiant_towers
+from StaticAnalysis.replays.Player import NetWorth, Player, PlayerStatus
+from StaticAnalysis.replays.Replay import Replay, Team
+
+
+scheme_geo = ['top', 'mid', 'bottom']
+scheme_log = ['safe', 'mid', 'off']
+
+
+def get_laning_image(session, fig, main_team: Team,
+                     replay: Replay = None, replay_id: int = None,
+                     time_limit: int = 60 * 7, scheme=scheme_geo) -> Image:
+
+    lane_res = get_lane_results(session,
+                                replay=replay, replay_id=replay_id,
+                                time_limit=time_limit, scheme=scheme)
+
+    if lane_res.empty:
+        return None
+
+    fig = plot_networth_bar(fig, lane_res, main_team, scheme)
+    fig.subplots_adjust(wspace=0.05, left=0.02, right=0.98, top=0.99, bottom=0.1)
+
+    return fig2img(fig)
 
 
 def get_lane_results(session, replay: Replay = None, replay_id: int = None,
-                     time_limit: int = 7 * 60):
+                     time_limit: int = 7 * 60, scheme=scheme_log):
     if replay is None and replay_id is None:
         print("Must pass either a replay or replay_id!")
         raise ValueError
@@ -45,7 +70,7 @@ def get_lane_results(session, replay: Replay = None, replay_id: int = None,
         if row['team'] == Team.RADIANT:
             tower_dict = radiant_towers
 
-        return closest_tower((x, y), tower_dict)
+        return closest_tower((x, y), tower_dict, scheme=scheme)
     pos_df['lane'] = pos_df.apply(_asign_lane, axis=1)
     # Summarise by grouping up and using the top value count
     lanes = pos_df.groupby(by=['team', 'hero',])['lane'].apply(lambda x: x.value_counts().index[0])
@@ -91,7 +116,7 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
         else:
             outcome = "D"
         col = neg_map(fraction)
-        tcol = 'red'
+        out_col = 'red'
         text = f" {result}gp ({outcome})"
         textx = -1.0
         ha = "left"
@@ -103,19 +128,20 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
         else:
             outcome = "D"
         col = pos_map(fraction)
-        tcol = 'green'
+        out_col = 'green'
         text = f"{result}gp ({outcome}) "
         textx = 1.0
         ha = "right"
         frac_diff = 1 - fraction
 
+    tcol = 'black'
     y = [0,]
     barheight = 0.4
     if plot_fraction:
-        axis.barh(y, [frac_diff,], height=barheight, color=col, edgecolor=tcol)
+        axis.barh(y, [frac_diff,], height=barheight, color=col, edgecolor=out_col)
         axis.set_xlim(-1.0, 1.0)
     else:
-        axis.barh(y, [result,], height=barheight, color=col, edgecolor=tcol)
+        axis.barh(y, [result,], height=barheight, color=col, edgecolor=out_col)
         axis.set_xlim(-2500, 2500)
     axis.set_ylim(0, 0.5)
     # Add line at 0
@@ -142,13 +168,19 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
     return axis
 
 
-def plot_networth_bar(fig, networths: DataFrame, main_team: Team):
+def plot_networth_bar(fig, networths: DataFrame, main_team: Team, scheme):
     # Main team should be on the left always
-    order = ['top', 'mid', 'bottom']
+    order = scheme
 
-    opp_team = Team.RADIANT if main_team == Team.DIRE else Team.DIRE
+    # For dire top is safe, bottom is off
+    if main_team == Team.DIRE:
+        opp_team = Team.RADIANT
+        order = scheme_geo
+    if main_team == Team.RADIANT: # Reversed for Radiant, reverse the scheme!
+        opp_team = Team.DIRE
+        order = scheme_geo[::-1]
 
-    fig, axes = plt.subplots(1, 4)
+    axes = fig.subplots(1, 4)
     fig.set_figheight(0.6)
     fig.set_figwidth(11.69)
     for o, axis in zip(order, axes[:3]):
