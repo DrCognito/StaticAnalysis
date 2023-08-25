@@ -1202,6 +1202,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             print("Metadata file updated at {}".format(str(path)))
             plt.close('all')
 
+            print("Making PDF report.")
+            report_path = Path(PLOT_BASE_PATH) / team.name
+            report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
+            make_report(team, metadata, report_path)
+
             return metadata
 
         return
