@@ -1,10 +1,13 @@
-from sqlalchemy import not_, and_
-from sqlalchemy.orm import Session
-from typing import List
-import matplotlib.image as mpimg
-from os import environ as environment
-import pandas as pd
+import io
 from math import sqrt
+from os import environ as environment
+from typing import List
+
+import matplotlib.image as mpimg
+import pandas as pd
+from PIL import Image
+from sqlalchemy import and_, not_
+from sqlalchemy.orm import Session
 
 
 def relativeCellCord(cell):
@@ -245,3 +248,14 @@ class ChainedAssignent:
 
     def __exit__(self, *args):
         pd.options.mode.chained_assignment = self.saved_swcw
+
+
+# https://stackoverflow.com/questions/57316491/how-to-convert-matplotlib-figure-to-pil-image-object-without-saving-image
+def fig2img(fig):
+    """Convert a Matplotlib figure to a PIL Image and return it"""
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+
+    return img
