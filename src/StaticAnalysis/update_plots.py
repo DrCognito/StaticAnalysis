@@ -1222,6 +1222,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
             make_report(team, metadata, report_path)
 
+            path = store_metadata(team, metadata)
+            print("Metadata file updated at {}".format(str(path)))
+
             return metadata
 
         return
