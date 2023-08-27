@@ -126,7 +126,14 @@ def get_accumulating_lists(hero, json_in):
 
 
 def get_net_worth(hero, json_in):
-    return next((x['net_worth'] for x in json_in if x['type'] == "HeroEntity" and x['cName'] == hero), None)
+    for x in json_in:
+        if x['type'] == "HeroEntity" and x['cName'] == hero:
+            if 'net_worth' not in x:
+                raise ValueError(f"Missing networth for {hero}")
+                # return []
+            return x['net_worth']
+    raise ValueError(f"Hero not found {hero}")
+    # return next((x['net_worth'] for x in json_in if x['type'] == "HeroEntity" and x['cName'] == hero), None)
 
 
 def get_smoke_summary(json_in, team):
