@@ -37,6 +37,9 @@ def get_laning_image(session, fig, main_team: Team,
     return fig2img(fig)
 
 
+NO_RESULTS_SENTINEL = object()
+
+
 def get_lane_results(session, replay: Replay = None, replay_id: int = None,
                      time_limit: int = 7 * 60, scheme=scheme_log):
     if replay is None and replay_id is None:
@@ -60,6 +63,8 @@ def get_lane_results(session, replay: Replay = None, replay_id: int = None,
                                           PlayerStatus.team)
 
     pos_df = read_sql(player_pos.statement, session.bind)
+    if pos_df.empty:
+        return pos_df
 
     # Asign a lane for each time position
     def _asign_lane(row):
