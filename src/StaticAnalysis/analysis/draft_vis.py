@@ -520,8 +520,8 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         height = team_line.size[1]
 
     width = (draft_width := team_line.size[0] + spacer.size[0] + opposition_line.size[0])
-    width = max(width, lane_outcome.size[0])
     if lane_outcome is not None:
+        width = max(width, lane_outcome.size[0])
         y_lanepos = height
         height += lane_outcome.size[1]
         x_lanepos = (width - lane_outcome.size[0]) // 2
