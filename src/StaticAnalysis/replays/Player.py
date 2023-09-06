@@ -417,19 +417,10 @@ def populate_from_JSON(json, replay_in, session):
 
 def InitDB(path):
     from StaticAnalysis.replays.TeamSelections import TeamSelections
-    # t_selection: TeamSelections = aliased(TeamSelections)
-    # pl: Player = aliased(Player)
+    # My understanding of how this works is retrieving the team has to be from a second instance of PlayerStatus
+    # This is p_status.
+    # p_status also has to be "set" to the current PlayerStatus with the first two lines or it uses first result (Alliance)
     p_status: PlayerStatus = aliased(PlayerStatus)
-    # inspect(PlayerStatus).add_property(
-    #     "team",
-    #     column_property(
-    #         select([Player.team])
-    #         .where(Player.replayID == PlayerStatus.replayID)
-    #         .where(Player.steamID == PlayerStatus.steamID)
-    #         .scalar_subquery()
-    #         .label("team")
-    #     )
-    # )
     inspect(PlayerStatus).add_property(
         "team_id",
         column_property(
