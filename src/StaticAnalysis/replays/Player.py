@@ -15,6 +15,9 @@ from StaticAnalysis.replays.JSONProcess import (get_accumulating_lists,
                                                 get_player_status,
                                                 get_player_team,
                                                 get_net_worth)
+from sqlalchemy.orm import aliased
+from sqlalchemy import inspect
+# from StaticAnalysis.replays.Replay import Replay
 
 
 class Player(Base):
@@ -182,14 +185,6 @@ class PlayerStatus(Base):
     #         .where(TeamSelections.team == cls.team)
     #         .label("team_id")
     #     )
-    from StaticAnalysis.replays.TeamSelections import TeamSelections
-    team_id = column_property( 
-        select([TeamSelections.teamID])
-        .where(TeamSelections.replay_ID == replayID)
-        .where(TeamSelections.team == team)
-        .scalar_subquery()
-        .label("team_id")
-    )
 
     # @team_id.expression
     # def team_id(cls) -> int:
@@ -206,6 +201,7 @@ class PlayerStatus(Base):
     def __init__(self, player_in):
         # self.player = player_in
         self.replayID = player_in.replayID
+
 
 
 class NetWorth(Base):
@@ -420,5 +416,31 @@ def populate_from_JSON(json, replay_in, session):
 
 
 def InitDB(path):
+    from StaticAnalysis.replays.TeamSelections import TeamSelections
+    # t_selection: TeamSelections = aliased(TeamSelections)
+    # pl: Player = aliased(Player)
+    p_status: PlayerStatus = aliased(PlayerStatus)
+    # inspect(PlayerStatus).add_property(
+    #     "team",
+    #     column_property(
+    #         select([Player.team])
+    #         .where(Player.replayID == PlayerStatus.replayID)
+    #         .where(Player.steamID == PlayerStatus.steamID)
+    #         .scalar_subquery()
+    #         .label("team")
+    #     )
+    # )
+    inspect(PlayerStatus).add_property(
+        "team_id",
+        column_property(
+            select([TeamSelections.teamID])
+            .where(p_status.replayID == PlayerStatus.replayID)
+            .where(p_status.steamID == PlayerStatus.steamID)
+            .where(TeamSelections.replay_ID == p_status.replayID)
+            .where(TeamSelections.team == p_status.team)
+            .scalar_subquery()
+            .label("team_id")
+        )
+    )
     engine = create_engine(path, echo=False)
     Base.metadata.create_all(engine)

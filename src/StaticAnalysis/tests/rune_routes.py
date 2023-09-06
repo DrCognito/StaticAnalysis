@@ -52,3 +52,5 @@ blah = (
         .where(TeamSelections.replay_ID == 7287618636)
         .where(TeamSelections.team == Team.RADIANT)
 )
+p_grp = p_pos.groupby(['steamID', 'team_id']).agg(list)
+p_grp.xs(2586976, level=1) 
