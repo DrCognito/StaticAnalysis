@@ -517,22 +517,24 @@ def plot_pick_context(picks: DataFrame, team, r_query, fig: Figure, summarise=Fa
     return fig, axes, extra_artists
 
 
-def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7,0.999), extent=EXTENT):
-    binning = [float(x)/bins for x in range(bins)]
+def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7, 0.999), extent=EXTENT):
+    binning = [float(x) / bins for x in range(bins)]
 
     xExtent = float(abs(extent[1] - extent[0]))
-    xBins = [extent[0] + x*xExtent for x in binning]
+    xBins = [extent[0] + x * xExtent for x in binning]
 
     yExtent = float(abs(extent[3] - extent[2]))
-    yBins = [extent[2] + y*yExtent for y in binning]
+    yBins = [extent[2] + y * yExtent for y in binning]
 
     df['xBin'] = cut(df['xCoordinate'], xBins)
     df['yBin'] = cut(df['yCoordinate'], yBins)
 
     weightSeries = df.groupby(['xBin', 'yBin']).size()
 
-    return weightSeries.quantile(percentile[0]),\
-           weightSeries.quantile(percentile[1])
+    return (
+        weightSeries.quantile(percentile[0]),
+        weightSeries.quantile(percentile[1])
+    )
 
 
 def get_binning_max_xy(df: DataFrame, bins=64):
