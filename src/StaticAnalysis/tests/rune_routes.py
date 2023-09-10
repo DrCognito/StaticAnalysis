@@ -7,6 +7,8 @@ from sqlalchemy import and_, or_
 from pandas import read_sql
 import numpy as np
 from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.analysis.visualisation import plot_player_positioning
+from StaticAnalysis.analysis.route_vis import plot_player_paths
 
 
 def get_team(name) -> TeamInfo:
@@ -53,4 +55,4 @@ blah = (
         .where(TeamSelections.team == Team.RADIANT)
 )
 p_grp = p_pos.groupby(['steamID', 'team_id']).agg(list)
-p_grp.xs(2586976, level=1) 
+p_grp.xs(2586976, level=1)
