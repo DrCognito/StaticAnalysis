@@ -2,7 +2,7 @@ from StaticAnalysis import session, team_session
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.Player import PlayerStatus, Player
 from herotools.important_times import MAIN_TIME
-from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
 from sqlalchemy import and_, or_
 from pandas import read_sql
 import numpy as np
@@ -23,7 +23,7 @@ r_query = team.get_replays(session).filter(Replay.endTimeUTC >= MAIN_TIME)
 t_filter = (PlayerStatus.game_time > 7 * 60 - 30,
             PlayerStatus.game_time <= 7 * 60 + 10)
 p_query = (session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate,
-                         PlayerStatus.team_id, PlayerStatus.steamID)
+                         PlayerStatus.team_id, PlayerStatus.steamID, PlayerStatus.team)
                   .join(r_query.subquery()).filter(*t_filter)
 )
 t_query = (session.query(PlayerStatus)
@@ -56,3 +56,5 @@ blah = (
 )
 p_grp = p_pos.groupby(['steamID', 'team_id']).agg(list)
 p_grp.xs(2586976, level=1)
+
+t_player = team_session.query(TeamPlayer).filter(TeamPlayer.player_id == 76561198053884305)
