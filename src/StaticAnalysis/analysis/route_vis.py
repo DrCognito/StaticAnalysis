@@ -17,19 +17,23 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 def plot_player_paths(paths, colours, names, axis):
     assert(len(paths) <= len(colours))
     # add_map(axis)
+    plots = []
     for colour, path, name in zip(colours, paths, names):
         if path.empty:
             continue
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
 
-        axis.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1],
-                    scale_units='xy', angles='xy', scale=1,
-                    zorder=2, color=colour, label=name)
+        plot = axis.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1],
+                           scale_units='xy', angles='xy', scale=1,
+                           zorder=2, color=colour, label=name)
+        plots.append(plot)
         axis.axis('off')
     xMin, xMax, yMin, yMax = EXTENT
     axis.set_xlim(xMin, xMax)
     axis.set_ylim(yMin, yMax)
+
+    return plots
 
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
