@@ -28,7 +28,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
-from StaticAnalysis.analysis.Player import player_heroes, player_position
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays
 from StaticAnalysis.analysis.priority_picks import (priority_picks,
                                                     priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -126,6 +126,7 @@ arguments.add_argument("--scans", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--prioritypicks", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--runes", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
 arguments.add_argument('--scrim_time',
@@ -900,6 +901,48 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     return metadata
 
 
+def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radiant: bool, reprocess: False) -> dict:
+    if not new_dire and not new_radiant:
+        return metadata
+    # Check out directories exist
+    team_path = Path(PLOT_BASE_PATH) / team.name
+
+    meta_path = team_path / metadata['name']
+    meta_path.mkdir(parents=True, exist_ok=True)
+
+    positions = team_path / 'positions'
+    positions.mkdir(parents=True, exist_ok=True)
+
+    start = 6 * 60
+    end = 7.5 * 60
+    table = player_position_replays(session, r_query,
+                                    start=start, end=end,)
+
+    fig = plt.figure()
+    fig.set_size_inches(8.27, 11.69)
+
+    from StaticAnalysis.analysis.rune import plot_player_positions
+    plot_player_positions(table, team, fig)
+    out_path = meta_path / "rune_pos_7m.png"
+    fig.savefig(out_path)
+    metadata["plot_rune_pos_7m"] = str(out_path.relative_to(Path(PLOT_BASE_PATH)))
+
+    fig.clf()
+
+    from StaticAnalysis.analysis.rune import plot_player_routes
+    metadata["rune_routes_7m"] = []
+    for r_id in table['replayID'].unique():
+        out_path = positions / f"{r_id}.png"
+        if out_path.exists() and not reprocess:
+            continue
+
+        plot_player_routes(table[table["replayID"] == r_id], team, fig)
+        fig.savefig(out_path)
+        fig.clf()
+
+    return metadata
+
+
 def do_counters(team: TeamInfo, r_query, metadata: dict):
     counters_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     counters_path = counters_path / 'counters'
@@ -1290,6 +1333,12 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
+    if args.runes:
+        print("Processing runes", end=" ")
+        start = t.process_time()
+        metadata = do_runes(team, r_query, metadata, new_dire, new_radiant)
+        plt.close('all')
+        print(f"Processed in {t.process_time() - start}")
     if args.summary:
         print("Processing summary.", end=" ")
         start = t.process_time()
@@ -1525,6 +1574,8 @@ if __name__ == "__main__":
         args.counters = default_process
     if args.prioritypicks is None:
         args.prioritypicks = default_process
+    if args.runes is None:
+        args.runes = default_process
 
     scims_json = environment['SCRIMS_JSON']
     try:
