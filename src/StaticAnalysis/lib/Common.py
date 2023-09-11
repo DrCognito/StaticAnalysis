@@ -139,6 +139,11 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
         return player[0]
 
 
+def get_player_simple(steam_id: int, team_session: Session) -> "TeamPlayer":
+    from StaticAnalysis.lib.team_info import TeamPlayer
+    return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == steam_id).one_or_none()
+
+
 def get_player_map(team_session: Session, steam_ids: set, team)-> dict():
     """Takes a set of steam_ids and returns a dictionary map to their name.
     Unknown players are labeled as "Un" + an incrementing number.
