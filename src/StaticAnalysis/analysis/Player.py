@@ -1,7 +1,7 @@
 from datetime import timedelta
 from operator import or_
 
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, Series, concat, read_sql
 from sqlalchemy import and_
 
 from StaticAnalysis.lib.Common import distance_between
@@ -163,6 +163,30 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
         return player_q, player_q_limited
 
     return _process_side(Team.DIRE), _process_side(Team.RADIANT)
+
+
+def player_position_replays(session, r_query, start: int, end: int, extra_filter: tuple = None) -> DataFrame:
+    '''
+    More general player position table.
+    start: int in seconds
+    end: int in seconds
+    extra_filter: tuple that is added to time filter
+    '''
+    filter = (PlayerStatus.game_time > start,
+              PlayerStatus.game_time <= end)
+    if filter is not None:
+        filter += extra_filter
+
+    query = (
+        session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
+                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team)
+               .join(r_query.sub_query())
+               .filter(filter)
+    )
+
+    pos_table = read_sql(query.statement, session.bind)
+
+    return pos_table
 
 
 def player_positioning_single(session, replay_id, team: TeamInfo, steam_id: int,
