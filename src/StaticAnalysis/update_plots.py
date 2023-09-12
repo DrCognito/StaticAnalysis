@@ -59,6 +59,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis import session, team_session, pub_session
+from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -921,7 +922,6 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     fig = plt.figure()
     fig.set_size_inches(8.27, 11.69)
 
-    from StaticAnalysis.analysis.rune import plot_player_positions
     plot_player_positions(table, team, fig)
     out_path = meta_path / "rune_pos_7m.png"
     fig.subplots_adjust(wspace=0.01, hspace=0.01, left=0.06, right=0.94, top=0.97, bottom=0.01)
@@ -931,12 +931,10 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     fig.clf()
 
-    from StaticAnalysis.analysis.rune import plot_player_routes
     metadata["rune_routes_7m"] = []
     for r_id in table['replayID'].unique():
         out_path = positions / f"{r_id}.png"
         if out_path.exists() and not reprocess:
-        # if out_path.exists():
             continue
 
         plot_player_routes(table[table["replayID"] == r_id], team, fig)
