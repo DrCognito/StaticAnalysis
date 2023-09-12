@@ -240,7 +240,7 @@ def add_map(axis, extent=[0, 1, 0, 1], zorder=0):
 
 
 # https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
-class ChainedAssignent:
+class ChainedAssignment:
     def __init__(self, chained=None):
         acceptable = [None, 'warn', 'raise']
         assert chained in acceptable, "chained must be in " + str(acceptable)

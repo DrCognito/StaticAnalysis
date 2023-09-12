@@ -47,7 +47,7 @@ from StaticAnalysis.analysis.visualisation import (
 from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
-from StaticAnalysis.lib.Common import (ChainedAssignent, dire_ancient_cords,
+from StaticAnalysis.lib.Common import (ChainedAssignment, dire_ancient_cords,
                                        location_filter, radiant_ancient_cords)
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
                                          make_meta)
@@ -837,7 +837,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
     flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
     flex_picks = flex_picks.query('Counts > 1')
-    with ChainedAssignent():
+    with ChainedAssignment():
         flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
     flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
     fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
@@ -924,6 +924,8 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     from StaticAnalysis.analysis.rune import plot_player_positions
     plot_player_positions(table, team, fig)
     out_path = meta_path / "rune_pos_7m.png"
+    fig.subplots_adjust(wspace=0.01, hspace=0.01, left=0.06, right=0.94, top=0.97, bottom=0.01)
+    # fig.tight_layout()
     fig.savefig(out_path)
     metadata["plot_rune_pos_7m"] = str(out_path.relative_to(Path(PLOT_BASE_PATH)))
 
@@ -934,9 +936,12 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     for r_id in table['replayID'].unique():
         out_path = positions / f"{r_id}.png"
         if out_path.exists() and not reprocess:
+        # if out_path.exists():
             continue
 
         plot_player_routes(table[table["replayID"] == r_id], team, fig)
+        # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
+        fig.tight_layout()
         fig.savefig(out_path)
         fig.clf()
 
@@ -1336,7 +1341,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if args.runes:
         print("Processing runes", end=" ")
         start = t.process_time()
-        metadata = do_runes(team, r_query, metadata, new_dire, new_radiant)
+        metadata = do_runes(team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.summary:
