@@ -915,8 +915,8 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
 
-    start = 6 * 60
-    end = 7.5 * 60
+    start = 6.5 * 60
+    end = 7 * 60 + 5
     table = player_position_replays(session, r_query,
                                     start=start, end=end,)
 
