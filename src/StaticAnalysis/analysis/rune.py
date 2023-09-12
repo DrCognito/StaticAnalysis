@@ -9,8 +9,11 @@ from StaticAnalysis.lib.Common import get_player_simple
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from StaticAnalysis.replays.Common import Team
-from StaticAnalysis.lib.Common import add_map, EXTENT
+from StaticAnalysis.lib.Common import add_map, EXTENT, prepare_retrieve_figure
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axis import Axis
 
 
 def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
@@ -54,9 +57,7 @@ def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
     return axes
 
 
-def plot_player_routes(table: DataFrame, main_team: TeamInfo, fig: Figure):
-    axis = fig.subplots()
-    add_map(axis, extent=EXTENT)
+def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
     colours = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple",
                "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan",]
     grp = table.groupby(['steamID', 'team_id']).agg({'xCoordinate': list, 'yCoordinate': list,
