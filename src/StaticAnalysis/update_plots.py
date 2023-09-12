@@ -934,7 +934,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     metadata["rune_routes_7m"] = []
 
-    fig.set_size_inches(8.27, 9.0)
+    fig.set_size_inches(8.27, 8.27)
     for r_id in table['replayID'].unique():
         # fig, axis = prepare_retrieve_figure("1x1_map_a4", lambda: _prep(fig))
         axis = fig.subplots()
