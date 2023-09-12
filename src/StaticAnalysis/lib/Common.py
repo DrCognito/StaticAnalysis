@@ -1,13 +1,14 @@
 import io
 from math import sqrt
 from os import environ as environment
-from typing import List
+from typing import List, Callable
 
 import matplotlib.image as mpimg
 import pandas as pd
 from PIL import Image
 from sqlalchemy import and_, not_
 from sqlalchemy.orm import Session
+import pickle
 
 
 def relativeCellCord(cell):
@@ -237,6 +238,18 @@ def add_map(axis, extent=[0, 1, 0, 1], zorder=0):
     axis.imshow(img, extent=extent, zorder=zorder)
 
     return axis
+
+
+figure_pickle_jar = {}
+def prepare_retrieve_figure(identifier: str, prep_func: Callable):
+    if identifier in figure_pickle_jar:
+        return pickle.loads(figure_pickle_jar[identifier])
+    
+    fig, axis = prep_func()
+    figure_pickle_jar[identifier] = pickle.dumps((fig, axis))
+
+    return fig, axis
+
 
 
 # https://stackoverflow.com/questions/20625582/how-to-deal-with-settingwithcopywarning-in-pandas
