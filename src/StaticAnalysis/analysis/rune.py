@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axis import Axis
+import matplotlib.patheffects as PathEffects
 
 
 def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
@@ -64,8 +65,9 @@ def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
                                                      'team': 'first'})
     dire_positions = []
     radiant_positions = []
+    replay_id = table['replayID'].iloc[0]
     if main_team.team_id not in table['team_id'].unique():
-        print(f"Missing main team in {table['replayID'].iloc[0]}")
+        print(f"Missing main team in {replay_id}")
 
     for (p, t_id), c in zip(grp.index, colours):
         player = get_player_simple(p, team_session)
@@ -95,6 +97,13 @@ def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
     axis.add_artist(first_legend)
     # Create another legend for the second line.
     axis.legend(handles=radiant_positions, loc='lower left')
+
+    axis.text(s=str(replay_id), x=1.0, y=0,
+            ha='right', va='bottom', zorder=5,
+            path_effects=[PathEffects.withStroke(linewidth=3,
+                          foreground="w")],
+            color='black',
+            transform=axis.transAxes)
 
     return axis
 
