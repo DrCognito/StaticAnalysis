@@ -19,6 +19,7 @@ from PIL import Image
 from StaticAnalysis.analysis.Player import pick_context
 from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.lib.Common import ChainedAssignment
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -526,8 +527,9 @@ def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7, 0.999), e
     yExtent = float(abs(extent[3] - extent[2]))
     yBins = [extent[2] + y * yExtent for y in binning]
 
-    df['xBin'] = cut(df['xCoordinate'], xBins)
-    df['yBin'] = cut(df['yCoordinate'], yBins)
+    with ChainedAssignment():
+        df['xBin'] = cut(df['xCoordinate'], xBins)
+        df['yBin'] = cut(df['yCoordinate'], yBins)
 
     weightSeries = df.groupby(['xBin', 'yBin']).size()
 
