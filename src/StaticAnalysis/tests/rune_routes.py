@@ -23,7 +23,7 @@ r_query = team.get_replays(session).filter(Replay.endTimeUTC >= MAIN_TIME)
 t_filter = (PlayerStatus.game_time > 7 * 60 - 30,
             PlayerStatus.game_time <= 7 * 60 + 10)
 p_query = (session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate,
-                         PlayerStatus.team_id, PlayerStatus.steamID, PlayerStatus.team)
+                         PlayerStatus.team_id, PlayerStatus.steamID, PlayerStatus.team, PlayerStatus.replayID)
                   .join(r_query.subquery()).filter(*t_filter)
 )
 t_query = (session.query(PlayerStatus)
@@ -58,3 +58,18 @@ p_grp = p_pos.groupby(['steamID', 'team_id']).agg(list)
 p_grp.xs(2586976, level=1)
 
 t_player = team_session.query(TeamPlayer).filter(TeamPlayer.player_id == 76561198053884305)
+
+import timeit
+# Get player ids manually
+start_time = timeit.default_timer()
+player_query = session.query(Player).filter(Player.replayID == 7287618636)
+players_queries = [(p.steamID, p.team) for p in player_query]
+print(timeit.default_timer() - start_time)
+
+# Get player ids from our table
+filtered_tab = p_pos.loc[p_pos['replayID'] == 7287618636]
+start_time = timeit.default_timer()
+#.groupby(['steamID']).agg(min)
+players_filt = filtered_tab.loc[:, ["steamID", "team"]].drop_duplicates()
+ft_players = list(players_filt.itertuples(index=False, name=None))
+print(timeit.default_timer() - start_time)
