@@ -48,7 +48,8 @@ from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
 from StaticAnalysis.lib.Common import (ChainedAssignment, dire_ancient_cords,
-                                       location_filter, radiant_ancient_cords)
+                                       location_filter, radiant_ancient_cords,
+                                       prepare_retrieve_figure, add_map, EXTENT)
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
                                          make_meta)
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
@@ -932,12 +933,18 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     fig.clf()
 
     metadata["rune_routes_7m"] = []
+
+    fig.set_size_inches(8.27, 9.0)
     for r_id in table['replayID'].unique():
+        # fig, axis = prepare_retrieve_figure("1x1_map_a4", lambda: _prep(fig))
+        axis = fig.subplots()
+        add_map(axis, extent=EXTENT)
+
         out_path = positions / f"{r_id}.png"
         if out_path.exists() and not reprocess:
             continue
 
-        plot_player_routes(table[table["replayID"] == r_id], team, fig)
+        plot_player_routes(table[table["replayID"] == r_id], team, axis)
         # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
         fig.tight_layout()
         fig.savefig(out_path)
