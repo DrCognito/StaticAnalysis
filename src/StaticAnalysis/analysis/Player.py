@@ -174,14 +174,14 @@ def player_position_replays(session, r_query, start: int, end: int, extra_filter
     '''
     filter = (PlayerStatus.game_time > start,
               PlayerStatus.game_time <= end)
-    if filter is not None:
+    if extra_filter is not None:
         filter += extra_filter
 
     query = (
         session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
                       PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team)
-               .join(r_query.sub_query())
-               .filter(filter)
+               .join(r_query.subquery())
+               .filter(*filter)
     )
 
     pos_table = read_sql(query.statement, session.bind)
