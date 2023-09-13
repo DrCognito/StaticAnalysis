@@ -60,7 +60,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis import session, team_session, pub_session
-from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions
+from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -915,8 +915,12 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
 
+    rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
+
     start = 6.5 * 60
-    end = 7 * 60 + 5
+    # Set the maximum by max overall and then filter later
+    # Maybe could be done better but not trivially so?
+    end = rune_times['game_time'].max()
     table = player_position_replays(session, r_query,
                                     start=start, end=end,)
 
@@ -932,24 +936,44 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     fig.clf()
 
-    metadata["rune_routes_7m"] = []
+    metadata["rune_routes_7m_dire"] = []
+    metadata["rune_routes_7m_radiant"] = []
 
     fig.set_size_inches(8.27, 8.27)
     for r_id in table['replayID'].unique():
-        # fig, axis = prepare_retrieve_figure("1x1_map_a4", lambda: _prep(fig))
+        side = None
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
 
         out_path = positions / f"{r_id}.png"
         if out_path.exists() and not reprocess:
             continue
-
-        plot_player_routes(table[table["replayID"] == r_id], team, axis)
+        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
+        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
+        replay_pos =  table[
+            (table["replayID"] == r_id) &
+            (table["game_time"] > t_min_rune) &
+            (table["game_time"] <= t_max_rune)
+            ]
+        plot_player_routes(replay_pos, team, axis)
         # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
         fig.tight_layout()
         fig.savefig(out_path)
         fig.clf()
-
+        if r_id in metadata['replays_dire']:
+            side = Team.DIRE
+        elif r_id in metadata['replays_radiant']:
+            side = Team.RADIANT
+        else:
+            r: Replay = session.query(Replay).filter(Replay.replayID == str(r_id)).one_or_none()
+            if r:
+                side = r.get_side(team)
+        if side == Team.DIRE:
+            metadata["rune_routes_7m_dire"].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+        elif side == Team.RADIANT:
+            metadata["rune_routes_7m_radiant"].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+        else:
+            print(f"Unable to allocate side for {r_id}")
     return metadata
 
 
