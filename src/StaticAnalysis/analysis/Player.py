@@ -179,7 +179,7 @@ def player_position_replays(session, r_query, start: int, end: int, extra_filter
 
     query = (
         session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
-                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team)
+                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
                .join(r_query.subquery())
                .filter(*filter)
     )
