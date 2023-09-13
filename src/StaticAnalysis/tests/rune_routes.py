@@ -1,6 +1,7 @@
 from StaticAnalysis import session, team_session
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.Player import PlayerStatus, Player
+from StaticAnalysis.replays.Rune import Rune, RuneID
 from herotools.important_times import MAIN_TIME
 from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
 from sqlalchemy import and_, or_
@@ -73,3 +74,9 @@ start_time = timeit.default_timer()
 players_filt = filtered_tab.loc[:, ["steamID", "team"]].drop_duplicates()
 ft_players = list(players_filt.itertuples(index=False, name=None))
 print(timeit.default_timer() - start_time)
+
+rune_query = (    
+    session.query(Rune.game_time, Rune.replayID)
+                  .join(r_query.subquery())
+                  .filter(Rune.runeType == RuneID.Wisdom, Rune.game_time < 13 * 60)
+)
