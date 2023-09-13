@@ -1,6 +1,7 @@
 from StaticAnalysis import session, team_session
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.Player import PlayerStatus
+from StaticAnalysis.replays.Rune import Rune, RuneID
 from StaticAnalysis.analysis.visualisation import plot_object_position, get_binning_percentile_xy
 from StaticAnalysis.analysis.route_vis import plot_player_paths
 from pandas import DataFrame
@@ -15,6 +16,17 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axis import Axis
 import matplotlib.patheffects as PathEffects
+from pandas import read_sql
+
+
+def wisdom_rune_times(r_query, max_time: int, session=session, extra_filter: tuple = None) -> DataFrame:
+    rune_query = (    
+        session.query(Rune.game_time, Rune.replayID)
+               .join(r_query.subquery())
+               .filter(Rune.runeType == RuneID.Wisdom, Rune.game_time < max_time)
+    )
+
+    return read_sql(rune_query.statement, session.bind)
 
 
 def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
@@ -59,8 +71,8 @@ def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
 
 
 def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
-    colours = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple",
-               "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan",]
+    colours = ["tab:blue", "tab:orange", "yellow", "tab:red", "tab:purple",
+               "lime", "tab:pink", "black", "tab:olive", "tab:cyan",]
     grp = table.groupby(['steamID', 'team_id']).agg({'xCoordinate': list, 'yCoordinate': list,
                                                      'team': 'first'})
     dire_positions = []
