@@ -942,24 +942,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     fig.set_size_inches(8.27, 8.27)
     for r_id in table['replayID'].unique():
         side = None
-        axis = fig.subplots()
-        add_map(axis, extent=EXTENT)
-
         out_path = positions / f"{r_id}.png"
-        if out_path.exists() and not reprocess:
-            continue
-        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
-        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
-        replay_pos =  table[
-            (table["replayID"] == r_id) &
-            (table["game_time"] > t_min_rune) &
-            (table["game_time"] <= t_max_rune)
-            ]
-        plot_player_routes(replay_pos, team, axis)
-        # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
-        fig.tight_layout()
-        fig.savefig(out_path)
-        fig.clf()
         if r_id in metadata['replays_dire']:
             side = Team.DIRE
         elif r_id in metadata['replays_radiant']:
@@ -974,6 +957,24 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             metadata["rune_routes_7m_radiant"].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
         else:
             print(f"Unable to allocate side for {r_id}")
+        if out_path.exists() and not reprocess:
+            continue
+
+        axis = fig.subplots()
+        add_map(axis, extent=EXTENT)
+
+        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
+        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
+        replay_pos =  table[
+            (table["replayID"] == r_id) &
+            (table["game_time"] > t_min_rune) &
+            (table["game_time"] <= t_max_rune)
+            ]
+        plot_player_routes(replay_pos, team, axis)
+        # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
+        fig.tight_layout()
+        fig.savefig(out_path)
+        fig.clf()
     return metadata
 
 
