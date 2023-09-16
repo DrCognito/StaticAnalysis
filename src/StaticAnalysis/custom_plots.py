@@ -223,12 +223,12 @@ def get_team(name):
 if __name__ == '__main__':
     team_og = get_team(2586976)
     team_liquid = get_team(2163)
-    teams = [team_liquid, team_liquid, team_og]
-    replay_ids = [7256512720, 7256414790, 7254795299]
+    team_gaimin = get_team(8599101)
+    teams = [team_gaimin,]
+    replay_ids = [7330464651,]
 
     for te, i in zip(teams, replay_ids):
         player_heatmap_report(session, i, te)
         player_route_report(session, i, te)
-        pass
 
-    do_comparison_report(session, [7254795299, 7256414790], [team_og, team_liquid])
+    # do_comparison_report(session, [7254795299, 7256414790], [team_og, team_liquid])
