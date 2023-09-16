@@ -189,8 +189,16 @@ def plot_networth_bar(fig, networths: DataFrame, main_team: Team, scheme):
     fig.set_figheight(0.6)
     fig.set_figwidth(11.69)
     for o, axis in zip(order, axes[:3]):
-        main = networths.loc[main_team, o]
-        opp = networths.loc[opp_team, o]
+        # main = networths.loc[main_team, o]
+        try:
+            main = networths.loc[main_team, o]
+        except KeyError:
+            main = {'hero': [], 'networth': 0}
+        try:
+            opp = networths.loc[opp_team, o]
+        except KeyError:
+            opp = {'hero': [], 'networth': 0}
+        # opp = networths.get[opp_team, o]
         plot_networth(axis, main, opp)
 
 
