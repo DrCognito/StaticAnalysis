@@ -75,6 +75,10 @@ def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
                "lime", "tab:pink", "black", "tab:olive", "tab:cyan",]
     grp = table.groupby(['steamID', 'team_id']).agg({'xCoordinate': list, 'yCoordinate': list,
                                                      'team': 'first'})
+    # Sometimes replays have nothing1
+    if table.empty:
+        return axis
+
     dire_positions = []
     radiant_positions = []
     replay_id = table['replayID'].iloc[0]
