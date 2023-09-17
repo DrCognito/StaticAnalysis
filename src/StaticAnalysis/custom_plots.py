@@ -20,6 +20,11 @@ from StaticAnalysis.analysis.visualisation import (dataframe_xy,
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
 from StaticAnalysis.replays.Player import PlayerStatus
 from StaticAnalysis.replays.Replay import InitDB, Replay
+from StaticAnalysis.update_plots import do_general_stats
+from StaticAnalysis.analysis.Replay import hero_win_rate
+from herotools.important_times import ImportantTimes
+import json
+from sqlalchemy import and_, or_
 
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
@@ -220,6 +225,14 @@ def get_team(name):
     return team
 
 
+
+# def custom_stats(time: datetime, extra_filter):
+scims_json = environment['SCRIMS_JSON']
+try:
+    with open(scims_json) as file:
+        SCRIM_REPLAY_DICT = json.load(file)
+except IOError:
+    print(f"Failed to read scrim_list {scims_json}")
 if __name__ == '__main__':
     team_og = get_team(2586976)
     team_liquid = get_team(2163)
@@ -227,8 +240,16 @@ if __name__ == '__main__':
     teams = [team_gaimin,]
     replay_ids = [7330464651,]
 
-    for te, i in zip(teams, replay_ids):
-        player_heatmap_report(session, i, te)
-        player_route_report(session, i, te)
+    # for te, i in zip(teams, replay_ids):
+    #     player_heatmap_report(session, i, te)
+    #     player_route_report(session, i, te)
 
+    ceb_time = ImportantTimes['Patch_7_34']
+    r_filter = Replay.endTimeUTC >= ceb_time
+    team_scrims = SCRIM_REPLAY_DICT.get(str(team_og.team_id))
+    # r_query = team_og.get_replays(session).filter(or_(r_filter, Replay.replayID.in_(team_scrims)))
+    r_query = team_og.get_replays(session).filter(r_filter)
+    hero_df = hero_win_rate(r_query, team_og)
+    print(hero_df.loc['npc_dota_hero_wisp'])
+    print(hero_df.loc['npc_dota_hero_keeper_of_the_light'])
     # do_comparison_report(session, [7254795299, 7256414790], [team_og, team_liquid])
