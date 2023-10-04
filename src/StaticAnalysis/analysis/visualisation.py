@@ -531,7 +531,8 @@ def get_binning_percentile_xy(df: DataFrame, bins=64, percentile=(0.7, 0.999), e
         df['xBin'] = cut(df['xCoordinate'], xBins)
         df['yBin'] = cut(df['yCoordinate'], yBins)
 
-    weightSeries = df.groupby(['xBin', 'yBin']).size()
+    # Observed limits the bins to ones with actual data in
+    weightSeries = df.groupby(['xBin', 'yBin'], observed=True).size()
 
     return (
         weightSeries.quantile(percentile[0]),
@@ -550,7 +551,7 @@ def get_binning_max_xy(df: DataFrame, bins=64):
     working_df['xBin'] = cut(df['xCoordinate'], binning_x)
     working_df['yBin'] = cut(df['yCoordinate'], binning_y)
 
-    weightSeries = working_df.groupby(['xBin', 'yBin']).size()
+    weightSeries = working_df.groupby(['xBin', 'yBin'], observed=True).size()
 
     return weightSeries.max()
 
