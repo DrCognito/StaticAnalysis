@@ -10,7 +10,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.table import Table
 from matplotlib.text import Text
 from pandas import DataFrame, read_sql
-from PIL.Image import Image, ANTIALIAS
+from PIL.Image import Image, LANCZOS
 from PIL.Image import open as Image_open
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
@@ -376,10 +376,10 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
             rdraft = process_team_portrait(replay, t)
             rdraft.thumbnail((width,
                              rdraft.size[1]*width/rdraft.size[0]),
-                             ANTIALIAS)
+                             LANCZOS)
             rdraft.thumbnail((width,
                              rdraft.size[1]*width/rdraft.size[0]),
-                             ANTIALIAS)
+                             LANCZOS)
             r_draft_box = make_image_annotation2(rdraft, ax_in, x=0.5, y=1.1,
                                                 size=0.78)
             r_name_box = ax_in.text(s=r_name, x=0, y=1.0 + 0.18,
@@ -393,7 +393,7 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
             ddraft = process_team_portrait(replay, t)
             ddraft.thumbnail((width,
                              ddraft.size[1]*width/ddraft.size[0]),
-                             ANTIALIAS)
+                             LANCZOS)
 
             d_draft_box = make_image_annotation2(ddraft, ax_in, x=0.5, y=1.0,
                                                 size=0.78)
