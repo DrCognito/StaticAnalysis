@@ -49,7 +49,7 @@ def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
     # Text
     font_size = size[1] - size[0]
     font = ImageFont.truetype('arialbd.ttf', font_size)
-    x_pos = math.floor(size[0]/2 - font.getsize(text)[0]/2)
+    x_pos = math.floor(size[0]/2 - font.getlength(text)/2)
     canvas.text((x_pos, size[0]), text, fill=outline_colour,
                 font=font)
 
@@ -73,7 +73,8 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
 
         font_size = size[0]
         font = ImageFont.truetype('arialbd.ttf', font_size)
-        offset = font.getsize(text)[0]
+        # offset = font.getsize(text)[0]
+        offset = font.getlength(text)
         text_canv.text(((size[1] - offset)/2, 0), text=text,
                        font=font, fill=(255, 255, 255))
 
@@ -134,8 +135,8 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox
                         boarder + text_box_x,
                         text_off_y + text_box_y), fill='black')
 
-        text_size = font.getsize(text)
-        text_off = text_box_x // 2 - text_size[0] // 2 + extra_graphic.size[0] // 2
+        text_size = int(font.getlength(text))
+        text_off = text_box_x // 2 - text_size // 2 + extra_graphic.size[0] // 2
         canvas.text((text_off, text_off_y + 1), text, fill='white',
                     font=font)
 
@@ -202,8 +203,9 @@ def hero_box_image(hero, isPick, isFirst=False, isWinner=False):
         font_size = size[1] - size[0]
         font = ImageFont.truetype('arialbd.ttf', font_size)
         outline_colour = (255, 255, 255, 255)
-        w, h = font.getsize(text)
-        x, y = (0,0)
+        left, top, right, bottom = font.getbbox(text)
+        w, h = right - left, bottom - top
+        x, y = (0, 0)
         canvas.rectangle((x, y, x + w, y + h), fill='black')
         canvas.text((x, y), text, fill='white',
                     font=font)
