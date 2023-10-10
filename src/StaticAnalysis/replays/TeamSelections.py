@@ -47,6 +47,7 @@ class PickBans(Base):
         select(TeamSelections.teamID).
         where(replayID == TeamSelections.replay_ID).
         where(team == TeamSelections.team).scalar_subquery()
+        .label("teamID")
     )
 
     from .Player import Player
@@ -54,6 +55,7 @@ class PickBans(Base):
         select(Player.steamID).
         where(replayID == Player.replayID).
         where(hero == Player.hero).scalar_subquery()
+        .label("playerID")
     )
 
 
