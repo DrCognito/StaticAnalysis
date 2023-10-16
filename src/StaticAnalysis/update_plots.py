@@ -941,6 +941,16 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     fig.set_size_inches(8.27, 8.27)
     for r_id in table['replayID'].unique():
+        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
+        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
+        replay_pos = table[
+            (table["replayID"] == r_id) &
+            (table["game_time"] > t_min_rune) &
+            (table["game_time"] <= t_max_rune)
+            ]
+        if replay_pos.empty:
+            continue
+
         side = None
         out_path = positions / f"{r_id}.png"
         if r_id in metadata['replays_dire']:
@@ -960,15 +970,6 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
         if out_path.exists() and not reprocess:
             continue
 
-        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
-        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
-        replay_pos =  table[
-            (table["replayID"] == r_id) &
-            (table["game_time"] > t_min_rune) &
-            (table["game_time"] <= t_max_rune)
-            ]
-        if replay_pos.empty:
-            continue
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
         plot_player_routes(replay_pos, team, axis)
