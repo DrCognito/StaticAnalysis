@@ -60,6 +60,21 @@ class TeamInfo(TeamInfo_DB):
                                             self.stack_id)
         return or_(id_filter, stack_filter)
 
+    def custom_filter(self, id_comp: Column, stack_comp: Column):
+        """
+        Returns a filter that compares id_comp to ids and stack_comp to stacks
+        """
+        id_filter = id_comp == self.team_id
+        if self.extra_id_filter is not None:
+            id_filter = and_(self.extra_id_filter, id_filter)
+
+        if self.extra_stackid is not None:
+            stack_filter = (stack_comp.in_(
+                            (self.stack_id, self.extra_stackid)))
+        else:
+            stack_filter = stack_comp == self.stack_id
+        return or_(id_filter, stack_filter)
+
     def replay_count(self, session):
         return session.query(Replay).filter(self.filter).count()
 
