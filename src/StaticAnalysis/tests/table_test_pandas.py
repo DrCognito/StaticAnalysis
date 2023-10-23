@@ -122,4 +122,7 @@ def verify_fix_order(df_in: DataFrame, order: list):
 # secondp_df = verify_fix_order(secondp_df, picks_patch_7_34.first_pick)
 
 verify_fix_order(firstp_df, picks_patch_7_34.first_pick)
-verify_fix_order(secondp_df, picks_patch_7_34.first_pick)
+verify_fix_order(secondp_df, picks_patch_7_34.second_pick)
+
+from pandas import concat
+pick_df = concat([firstp_df, secondp_df], ignore_index=True)
