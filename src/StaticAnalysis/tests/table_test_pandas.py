@@ -31,6 +31,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import io
+import numpy as np
 
 og_id = 2586976
 entity = 8605863
@@ -69,6 +70,12 @@ from sqlalchemy import and_
 #       .filter(TeamSelections.firstPick == False)
 #       .join(r_query.subquery())
 # )
+fq = first_selection.subquery()
+first_selection_pb = (
+    db.session.query(PickBans)
+      .filter(PickBans.is_pick == True)
+      .join(fq, and_(fq.c.replay_ID == PickBans.replayID, fq.c.team == PickBans.team))
+)
 sq = second_selection.subquery()
 second_selection_pb = (
     db.session.query(PickBans)
@@ -83,6 +90,36 @@ class OrderTimeRegion:
     second_pick: list
     end: datetime = None
 
+picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
+                                   [8, 14, 15, 18, 23],
+                                   [9, 13, 16, 17, 24],
+                                   None)
+
 
 df = read_sql(q_test.statement, db.session.bind)
+firstp_df = read_sql(first_selection_pb.statement, db.session.bind)
 secondp_df = read_sql(second_selection_pb.statement, db.session.bind)
+
+# Pick patterns that do not match
+print(firstp_df[~firstp_df['order'].isin(picks_patch_7_34.first_pick)])
+print(secondp_df[~secondp_df['order'].isin(picks_patch_7_34.second_pick)])
+
+
+def verify_fix_order(df_in: DataFrame, order: list):
+    broken = df_in.loc[~df_in['order'].isin(order)]
+    if broken.empty:
+        return
+    r_ids = broken.loc[:, 'replayID'].unique()
+    print(f"Broken pick ban pattern in: {r_ids}")
+
+    for r in r_ids:
+        section = df_in.loc[df_in['replayID'] == r, 'order']
+        # Limit to the length of the part
+        df_in.loc[df_in['replayID'] == r, 'order'] = order[:len(section)]
+
+    return
+# firstp_df = verify_fix_order(firstp_df, picks_patch_7_34.first_pick)
+# secondp_df = verify_fix_order(secondp_df, picks_patch_7_34.first_pick)
+
+verify_fix_order(firstp_df, picks_patch_7_34.first_pick)
+verify_fix_order(secondp_df, picks_patch_7_34.first_pick)
