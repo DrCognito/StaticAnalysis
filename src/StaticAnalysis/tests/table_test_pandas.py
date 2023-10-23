@@ -37,7 +37,8 @@ entity = 8605863
 psg = 15
 team_id = og_id
 time = MAIN_TIME
-team = db.get_team(team_id)
+time = ImportantTimes['Patch_7_34']
+team: TeamInfo = db.get_team(team_id)
 r_query = team.get_replays(db.session).filter(Replay.endTimeUTC >= time)
 
 q_test = (db.session.query(PickBans)
@@ -45,6 +46,35 @@ q_test = (db.session.query(PickBans)
                     .filter(PickBans.teamID == team_id)
                     .join(r_query.subquery()))
 
+from sqlalchemy import or_
+first_selection = (
+    db.session.query(TeamSelections)
+      .filter(team.custom_filter(TeamSelections.teamID, TeamSelections.stackID))
+      .filter(TeamSelections.firstPick == True)
+      .join(r_query.subquery())
+)
+second_selection = (
+    db.session.query(TeamSelections)
+      .filter(team.custom_filter(TeamSelections.teamID, TeamSelections.stackID))
+      .filter(TeamSelections.firstPick == False)
+      .join(r_query.subquery())
+)
+from sqlalchemy.orm import contains_eager
+from sqlalchemy import and_
+# second_selection_pb = (
+#     db.session.query(PickBans)
+#       .join(TeamSelections, and_(TeamSelections.replay_ID == PickBans.replayID, TeamSelections.team == PickBans.team))
+#       .options(contains_eager(TeamSelections.draft))
+#       .filter(team.custom_filter(TeamSelections.teamID, TeamSelections.stackID))
+#       .filter(TeamSelections.firstPick == False)
+#       .join(r_query.subquery())
+# )
+sq = second_selection.subquery()
+second_selection_pb = (
+    db.session.query(PickBans)
+      .filter(PickBans.is_pick == True)
+      .join(sq, and_(sq.c.replay_ID == PickBans.replayID, sq.c.team == PickBans.team))
+)
 
 @dataclass
 class OrderTimeRegion:
@@ -55,3 +85,4 @@ class OrderTimeRegion:
 
 
 df = read_sql(q_test.statement, db.session.bind)
+secondp_df = read_sql(second_selection_pb.statement, db.session.bind)
