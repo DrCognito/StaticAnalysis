@@ -126,3 +126,9 @@ verify_fix_order(secondp_df, picks_patch_7_34.second_pick)
 
 from pandas import concat
 pick_df = concat([firstp_df, secondp_df], ignore_index=True)
+
+from collections import Counter
+count_df = pick_df.groupby(['playerID', 'order']).agg({'hero':Counter})
+from pandas import pivot_table
+# This provides a more natural representation, moving the order out to columns
+rotatioed = pivot_table(pick_df, index='playerID', columns='order', values='hero', aggfunc=Counter, fill_value=Counter())
