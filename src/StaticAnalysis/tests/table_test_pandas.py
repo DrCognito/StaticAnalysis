@@ -132,3 +132,43 @@ count_df = pick_df.groupby(['playerID', 'order']).agg({'hero':Counter})
 from pandas import pivot_table
 # This provides a more natural representation, moving the order out to columns
 rotatioed = pivot_table(pick_df, index='playerID', columns='order', values='hero', aggfunc=Counter, fill_value=Counter())
+
+@dataclass
+class column_desc:
+    columns: tuple
+    name: str
+    rel_width: float
+
+
+DIVIDER = object()
+
+
+table_desc = [
+    column_desc((8,), "8", 1.0),
+    column_desc((9,), "9", 1.0),
+    DIVIDER,
+    column_desc((13,), "13", 1.0),
+    column_desc((14, 15,), "14 and 15", 2.0),
+    column_desc((16, 17,), "16 and 17", 2.0),
+    column_desc((18,), "18", 1.0),
+    DIVIDER,
+    column_desc((23,), "23", 1.0),
+    column_desc((24,), "24", 1.0),
+]
+
+
+def build_table(df: DataFrame, table_desc: list, team: TeamInfo) -> DataFrame:
+    out_df = DataFrame()
+    # Names for the first column
+    out_df['Name'] = df['playerID'].apply(lambda x: get_player_name(db.team_session, x, team))
+
+    c: column_desc
+    for c in table_desc:
+        if c is DIVIDER:
+            continue
+        out_df[c.name] = df.loc[:, c.columns].sum(axis=1)
+
+    return out_df
+
+rotatioed = rotatioed.reset_index()
+final_df = build_table(rotatioed, table_desc, team)
