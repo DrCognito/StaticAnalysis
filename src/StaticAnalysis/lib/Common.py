@@ -134,7 +134,7 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
                              .filter(TeamPlayer.player_id == steam_id)\
                              .first()
     if player is None:
-        raise ValueError
+        return f"Unknown: {steam_id}"
     else:
         player_cache[f"{steam_id}_{team.team_id}"] = player[0]
         return player[0]
