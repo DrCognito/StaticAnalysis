@@ -23,6 +23,7 @@ from itertools import cycle
 from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
 import matplotlib.patches as patches
 from PIL import Image, ImageDraw, ImageFont
+from PIL.ImageFont import FreeTypeFont
 from math import ceil, floor
 from dataclasses import dataclass
 from datetime import datetime
@@ -134,7 +135,7 @@ from pandas import pivot_table
 rotatioed = pivot_table(pick_df, index='playerID', columns='order', values='hero', aggfunc=Counter, fill_value=Counter())
 
 @dataclass
-class column_desc:
+class ColumnDesc:
     columns: tuple
     name: str
     rel_width: float
@@ -144,16 +145,16 @@ DIVIDER = object()
 
 
 table_desc = [
-    column_desc((8,), "8", 1.0),
-    column_desc((9,), "9", 1.0),
+    ColumnDesc((8,), "8", 1.0),
+    ColumnDesc((9,), "9", 1.0),
     DIVIDER,
-    column_desc((13,), "13", 1.0),
-    column_desc((14, 15,), "14 and 15", 2.0),
-    column_desc((16, 17,), "16 and 17", 2.0),
-    column_desc((18,), "18", 1.0),
+    ColumnDesc((13,), "13", 1.0),
+    ColumnDesc((14, 15,), "14 and 15", 2.0),
+    ColumnDesc((16, 17,), "16 and 17", 2.0),
+    ColumnDesc((18,), "18", 1.0),
     DIVIDER,
-    column_desc((23,), "23", 1.0),
-    column_desc((24,), "24", 1.0),
+    ColumnDesc((23,), "23", 1.0),
+    ColumnDesc((24,), "24", 1.0),
 ]
 
 
@@ -162,7 +163,7 @@ def build_table(df: DataFrame, table_desc: list, team: TeamInfo) -> DataFrame:
     # Names for the first column
     out_df['Name'] = df['playerID'].apply(lambda x: get_player_name(db.team_session, x, team))
 
-    c: column_desc
+    c: ColumnDesc
     for c in table_desc:
         if c is DIVIDER:
             continue
@@ -170,5 +171,89 @@ def build_table(df: DataFrame, table_desc: list, team: TeamInfo) -> DataFrame:
 
     return out_df
 
+
 rotatioed = rotatioed.reset_index()
 final_df = build_table(rotatioed, table_desc, team)
+
+
+@dataclass
+class TableProperties:
+    hero_size: int
+    padding: int
+    heroes_per_row: int
+    count_font_size: int
+    header_size: int
+    header_font_size: int
+    divider_spacing: int
+    font: FreeTypeFont
+
+
+table_setup = TableProperties(
+    hero_size=22,
+    padding=2,
+    heroes_per_row=5
+    count_font_size=16,
+    header_size=22,
+    header_font_size=22 - 2,  # header_size - padding
+    divider_spacing=5,
+)
+
+from math import ceil
+def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: float = 1.0) -> Image:
+    # For reference, PIL image coordinate system is (0, 0) is the upper left corner!
+    # Initial image properties from table properties
+    n_rows = ceil(len(heroes) / table_setup)
+    n_cols = ceil(table_setup.heroes_per_row * width_scale)
+
+    width = (
+        table_setup.padding
+        + min(len(heroes), n_cols)
+        * (table_setup.hero_size + table_setup.padding)
+    )
+    height = (
+        table_setup.padding
+        + (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)
+        * n_rows
+    )
+    # Image setup
+    cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    cell_canvas = ImageDraw.Draw(cell_image)
+    font = table_setup.font
+
+    # Setup iters to use as cursors
+    # x_iter is just a range of hero sized spacing up to the edge (width)
+    x_iter = range(table_setup.padding, width, table_setup.hero_size + table_setup.padding)
+    # y_iter uses full size of hero and text with pad, repeats for n_cols each row
+    y_iter = [
+        [table_setup.padding 
+        + i*(2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)] * n_cols
+        for i in range(n_rows)
+        ]
+    assert(len(y_iter) >= len(heroes))
+
+    for (h,c), x, y in zip(heroes.most_common(), cycle(x_iter), y_iter):
+        # Adjusted locations as icon is bellow text and text is centered
+        y_icon = y + table_setup.padding + table_setup.count_font_size
+        x_text = x + table_setup.hero_size // 2
+
+        # Get the hero icon
+        try:
+            # Get and resize the hero icon.
+            icon = HeroIconPrefix / convertName(h, HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+        except (ValueError, KeyError):
+            print("Unable to find hero icon for (table): " + h)
+            continue
+        # Paste it in
+        h_icon = Image.open(icon)
+        h_icon = h_icon.resize((table_setup.hero_size, table_setup.hero_size))
+        cell_image.paste(h_icon, (x, y_icon))
+
+        # Add the text
+        cell_canvas.text(
+            (x_text, y), text=str(c),
+            font=table_setup.font,
+            anchor="mt", align="right", fill=(0, 0, 0)
+            )
+
+    return cell_image
