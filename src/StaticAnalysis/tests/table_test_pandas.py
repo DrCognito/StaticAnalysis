@@ -191,23 +191,25 @@ class TableProperties:
 table_setup = TableProperties(
     hero_size=22,
     padding=2,
-    heroes_per_row=5
+    heroes_per_row=5,
     count_font_size=16,
     header_size=22,
     header_font_size=22 - 2,  # header_size - padding
     divider_spacing=5,
+    # font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
+    font='arialbd.ttf'
 )
 
 from math import ceil
 def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: float = 1.0) -> Image:
     # For reference, PIL image coordinate system is (0, 0) is the upper left corner!
     # Initial image properties from table properties
-    n_rows = ceil(len(heroes) / table_setup)
-    n_cols = ceil(table_setup.heroes_per_row * width_scale)
+    heroes_per_row = ceil(table_setup.heroes_per_row * width_scale)
+    n_rows = ceil(len(heroes) / heroes_per_row)
 
     width = (
         table_setup.padding
-        + min(len(heroes), n_cols)
+        + min(len(heroes), heroes_per_row)
         * (table_setup.hero_size + table_setup.padding)
     )
     height = (
@@ -218,17 +220,22 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
     # Image setup
     cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     cell_canvas = ImageDraw.Draw(cell_image)
-    font = table_setup.font
+    count_font = ImageFont.truetype(table_setup.font, table_setup.count_font_size)
 
     # Setup iters to use as cursors
     # x_iter is just a range of hero sized spacing up to the edge (width)
     x_iter = range(table_setup.padding, width, table_setup.hero_size + table_setup.padding)
     # y_iter uses full size of hero and text with pad, repeats for n_cols each row
-    y_iter = [
-        [table_setup.padding 
-        + i*(2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)] * n_cols
-        for i in range(n_rows)
-        ]
+    # y_iter = [
+    #     [table_setup.padding 
+    #     + i*(2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)] * heroes_per_row
+    #     for i in range(n_rows)
+    #     ]
+    y_iter = []
+    for i in range(n_rows):
+        y_pos = (table_setup.padding 
+                 + i * (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size))
+        y_iter += [y_pos] * heroes_per_row
     assert(len(y_iter) >= len(heroes))
 
     for (h,c), x, y in zip(heroes.most_common(), cycle(x_iter), y_iter):
@@ -250,10 +257,19 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
         cell_image.paste(h_icon, (x, y_icon))
 
         # Add the text
-        cell_canvas.text(
-            (x_text, y), text=str(c),
-            font=table_setup.font,
-            anchor="mt", align="right", fill=(0, 0, 0)
-            )
+        if c > 1:
+            cell_canvas.text(
+                (x_text, y), text=str(c),
+                font=count_font,
+                anchor="mt", align="right", fill=(0, 0, 0)
+                )
 
     return cell_image
+
+test_cell = final_df.iloc[1, 1]
+cell_image = draw_cell_image(test_cell, table_setup)
+cell_image.save("test_cell.png")
+
+test_cell_bigger = final_df.iloc[5, -3]
+cell_image2 = draw_cell_image(test_cell_bigger, table_setup)
+cell_image2.save("test_cell2.png")
