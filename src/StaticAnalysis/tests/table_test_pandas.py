@@ -217,6 +217,7 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
         + (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)
         * n_rows
     )
+    # Adjustment for final row
     # Image setup
     cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     cell_canvas = ImageDraw.Draw(cell_image)
@@ -270,3 +271,55 @@ cell_image.save("test_cell.png")
 test_cell_bigger = final_df.iloc[5, -3]
 cell_image2 = draw_cell_image(test_cell_bigger, table_setup)
 cell_image2.save("test_cell2.png")
+
+
+def draw_name(name: str, table_setup: TableProperties) -> Image:
+    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    width = (
+        4 * table_setup.padding
+        + int(font.getlength(name))
+    )
+    height = (
+        2 * table_setup.padding
+        + table_setup.header_font_size
+    )
+    # Right justified
+    x_text = width - table_setup.padding
+    y_text = table_setup.padding
+
+    name_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    name_canvas = ImageDraw.Draw(cell_image)
+
+    name_canvas.text((x_text, y_text), anchor="rt",
+                     font=font, fill=(0, 0, 0),
+                     text=name)
+
+    return name_image
+
+
+def draw_header(title: str, table_setup: TableProperties) -> Image:
+    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    width = (
+        2 * table_setup.padding
+        + int(font.getlength(title))
+    )
+    height = (
+        2 * table_setup.padding
+        + table_setup.header_font_size
+    )
+    # Right justified
+    x_text = width - table_setup.padding
+    y_text = table_setup.padding
+
+    header_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    header_canvas = ImageDraw.Draw(cell_image)
+
+    header_canvas.text((x_text, y_text), anchor="rt",
+                       font=font, fill=(0, 0, 0),
+                       text=title)
+
+    return header_image
+
+
+def image_table(counter_df: DataFrame, table_desc: list):
+    pass
