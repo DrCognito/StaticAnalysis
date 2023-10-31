@@ -320,6 +320,35 @@ def draw_header(title: str, table_setup: TableProperties) -> Image:
 
     return header_image
 
+@dataclass(frozen=True)
+class Image_PH:
+    size: (int, int) = (0, 0)
+    real_image: bool = False
 
-def image_table(counter_df: DataFrame, table_desc: list):
-    pass
+
+header_ph = Image_PH((0, 0), real_image=False)
+divider = Image.new('RGBA', (table_setup.divider_spacing, table_setup.padding), (255, 255, 255, 0))
+def image_table(counter_df: DataFrame, table_desc: list, table_setup: TableProperties):
+    out_df = DataFrame()
+    # Names
+    names = [header_ph, ]
+    for _, n in counter_df['Name'].items():
+        names.append(draw_name(n, table_setup))
+    out_df['Names'] = names
+
+    div_count = 1
+    col: ColumnDesc
+    for col in table_desc:
+        if col is DIVIDER:
+            # Dividers all the way down so we can facilitate getting widths and max heights!
+            out_df[f'DIVIDER{div_count}'] = [divider] * len(names)
+            div_count += 1
+        else:
+            c = [draw_header(col.name, table_setup), ]
+            for _, heroes in counter_df[col.name].items():
+                c.append(draw_cell_image(heroes, table_setup, col.rel_width))
+            out_df[col.name] = c
+
+    return out_df
+
+image_df = image_table(final_df, table_desc, table_setup)
