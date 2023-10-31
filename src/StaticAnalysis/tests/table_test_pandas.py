@@ -226,21 +226,18 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
     # x_iter is just a range of hero sized spacing up to the edge (width)
     x_iter = range(table_setup.padding, width, table_setup.hero_size + table_setup.padding)
     # y_iter uses full size of hero and text with pad, repeats for n_cols each row
-    # y_iter = [
-    #     [table_setup.padding 
-    #     + i*(2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)] * heroes_per_row
-    #     for i in range(n_rows)
-    #     ]
     y_iter = []
     for i in range(n_rows):
-        y_pos = (table_setup.padding 
+        y_pos = (table_setup.padding
                  + i * (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size))
         y_iter += [y_pos] * heroes_per_row
-    assert(len(y_iter) >= len(heroes))
+    assert (len(y_iter) >= len(heroes))
 
-    for (h,c), x, y in zip(heroes.most_common(), cycle(x_iter), y_iter):
+    for (h, c), x, y in zip(heroes.most_common(), cycle(x_iter), y_iter):
         # Adjusted locations as icon is bellow text and text is centered
-        y_icon = y + table_setup.padding + table_setup.count_font_size
+        # y_icon = y + table_setup.padding + table_setup.count_font_size
+        y_icon = y
+        y_text = y + table_setup.padding + table_setup.hero_size
         x_text = x + table_setup.hero_size // 2
 
         # Get the hero icon
@@ -259,10 +256,10 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
         # Add the text
         if c > 1:
             cell_canvas.text(
-                (x_text, y), text=str(c),
+                (x_text, y_text), text=str(c),
                 font=count_font,
                 anchor="mt", align="right", fill=(0, 0, 0)
-                )
+            )
 
     return cell_image
 
