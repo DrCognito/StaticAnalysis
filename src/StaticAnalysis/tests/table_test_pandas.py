@@ -352,3 +352,78 @@ def image_table(counter_df: DataFrame, table_desc: list, table_setup: TablePrope
     return out_df
 
 image_df = image_table(final_df, table_desc, table_setup)
+
+
+def draw_table(image_df: DataFrame, table_setup: TableProperties):
+    # Spacing calculations
+    col_widths = []
+    sum_width = 0
+    # .items is over columns
+    for _, c in image_df.items():
+        max_width = max(c.apply(lambda x: x.size[0]))
+        sum_width += max_width + 1
+        col_widths.append(sum_width)
+
+    col_heights = []
+    sum_height = 0
+    for _, r in image_df.iterrows():
+        max_height = max(c.apply(lambda x: x.size[1]))
+        sum_height += max_height + 1
+        col_heights.append(sum_height)
+
+    # Image setup
+    table_image = Image.new('RGBA', (sum_width, sum_height), (255, 255, 255, 0))
+    table_canvas = ImageDraw.Draw(table_image)
+    # Add stripes, skipping headers
+    row_bg_cycle = [(255, 255, 255, 255), (220, 220, 220, 255)]
+    for r_bg, y1, y2 in zip(cycle(row_bg_cycle), col_heights[1:-1], col_heights[2:]):
+        table_canvas.rectangle(
+            [(0, y1), (sum_width, y2)],
+            fill=r_bg,
+        )
+    # Add lines
+    # vertical
+    table_canvas.line(xy=[(0, sum_height), (0, 0)],
+                      fill=(0, 0, 0, 255),
+                      width=1
+                      )
+    for x in col_widths:
+        table_canvas.line([(x, sum_height), (x, 0)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+    # horizontal
+    # table_canvas.line([(sum_width, 0), (0, 0)],
+    #                   fill=(0, 0, 0, 255),
+    #                   width=1
+    #                   )
+    for y in col_heights:
+        table_canvas.line([(sum_height, y), (0, y)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+
+    # header text, right aligned
+    # y = table_setup.padding
+    y = 0
+    for (_, img), x in zip(image_df.loc[0].items(), col_widths):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+    # name text right aligned, skip top one
+    x = col_widths[0]
+    for (_, img), y in zip(image_df.iloc[1:, 0].items(), col_heights[1:]):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+
+    # Paste in the cells.
+    # Go row by row on a fixed y.
+    # Get each cell in each row and iterate over x as widths.
+    for (_, row), y in zip(image_df.iloc[1:].iterrows(), col_heights[:-1]):
+        for img, x in zip(row, col_widths[:-1]):
+            table_image.paste(img, (x, y), img)
+
+    return table_image
+
+
+table_image = draw_table(image_df, table_setup)
+table_image.save("test_table.png")
