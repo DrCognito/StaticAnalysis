@@ -331,7 +331,7 @@ divider = Image.new('RGBA', (table_setup.divider_spacing, table_setup.padding), 
 def image_table(counter_df: DataFrame, table_desc: list, table_setup: TableProperties):
     out_df = DataFrame()
     # Names
-    names = [header_ph, ]
+    names = [divider, ]
     for _, n in counter_df['Name'].items():
         names.append(draw_name(n, table_setup))
     out_df['Names'] = names
