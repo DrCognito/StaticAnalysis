@@ -418,9 +418,9 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties):
     # Paste in the cells.
     # Go row by row on a fixed y.
     # Get each cell in each row and iterate over x as widths.
-    for (_, row), y in zip(image_df.iloc[1:].iterrows(), col_heights[:-1]):
-        for img, x in zip(row, col_widths[:-1]):
-            # table_image.paste(img, (x, y), img)
+    for (_, row), y in zip(image_df.iloc[1:].iterrows(), col_heights[1:-1]):
+        for img, x in zip(row[1:], col_widths[1:-1]):
+            table_image.paste(img, (x, y), img)
             pass
 
     return table_image
