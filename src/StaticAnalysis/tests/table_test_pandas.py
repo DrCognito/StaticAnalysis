@@ -280,12 +280,12 @@ def draw_name(name: str, table_setup: TableProperties) -> Image:
         + int(font.getlength(name))
     )
     height = (
-        2 * table_setup.padding
+        4 * table_setup.padding
         + table_setup.header_font_size
     )
     # Right justified
     x_text = width - table_setup.padding
-    y_text = table_setup.padding
+    y_text = 2 * table_setup.padding
 
     name_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     name_canvas = ImageDraw.Draw(name_image)
@@ -304,12 +304,12 @@ def draw_header(title: str, table_setup: TableProperties) -> Image:
         + int(font.getlength(title))
     )
     height = (
-        2 * table_setup.padding
+        4 * table_setup.padding
         + table_setup.header_font_size
     )
     # Right justified
     x_text = width - table_setup.padding
-    y_text = table_setup.padding
+    y_text = 2*table_setup.padding
 
     header_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     header_canvas = ImageDraw.Draw(header_image)
@@ -367,7 +367,7 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties):
     col_heights = [0, ]
     sum_height = 0
     for _, r in image_df.iterrows():
-        max_height = max(c.apply(lambda x: x.size[1]))
+        max_height = max(r.apply(lambda x: x.size[1]))
         sum_height += max_height + 1
         col_heights.append(sum_height)
 
