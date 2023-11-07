@@ -428,3 +428,26 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties):
 
 table_image = draw_table(image_df, table_setup)
 table_image.save("test_table.png")
+
+phases = {
+    "1st Phase": ["8", "9"],
+    "2nd Phase": ["13", "14 and 15", "16 and 17", "18"],
+    "Final Phase": ["23", "24"],
+}
+def totals_table(counter_df: DataFrame, phase_summary: dict) -> DataFrame:
+    # Get totals from counter total function
+    # Skip the first column as it should be names
+    out_df = counter_df.iloc[:, 1:].map(lambda x: x.total())
+    totals = out_df.sum(axis=1)
+    # Calculate percentages, note the axis arg here to work on rows
+    out_df = out_df.divide(totals, axis=0).multiply(100)
+    # Add the name back
+    out_df['Name'] = counter_df['Name']
+    # Add the summary columns
+    for name, cols in phase_summary.items():
+        out_df[name] = out_df[cols].sum(axis=1)
+
+    return out_df
+
+
+percent_df = totals_table(final_df, phases)
