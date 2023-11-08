@@ -354,7 +354,7 @@ def image_table(counter_df: DataFrame, table_desc: list, table_setup: TablePrope
 image_df = image_table(final_df, table_desc, table_setup)
 
 
-def draw_table(image_df: DataFrame, table_setup: TableProperties):
+def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
     # Spacing calculations
     col_widths = [0, ]
     sum_width = 0
@@ -434,20 +434,46 @@ phases = {
     "2nd Phase": ["13", "14 and 15", "16 and 17", "18"],
     "Final Phase": ["23", "24"],
 }
-def totals_table(counter_df: DataFrame, phase_summary: dict) -> DataFrame:
-    # Get totals from counter total function
+def totals_table(counter_df: DataFrame, percent_desc: list) -> DataFrame:
+    # Get totals from counter total function, temp for calculating totals for counters.
     # Skip the first column as it should be names
-    out_df = counter_df.iloc[:, 1:].map(lambda x: x.total())
-    totals = out_df.sum(axis=1)
-    # Calculate percentages, note the axis arg here to work on rows
-    out_df = out_df.divide(totals, axis=0).multiply(100)
+    temp = counter_df.iloc[:, 1:].map(lambda x: x.total())
+    totals = temp.sum(axis=1)
     # Add the name back
+    out_df = DataFrame()
     out_df['Name'] = counter_df['Name']
     # Add the summary columns
-    for name, cols in phase_summary.items():
-        out_df[name] = out_df[cols].sum(axis=1)
+    for col in percent_desc:
+        name, cols = col.name, col.columns
+        # Convert totals to percents
+        out_df[name] = (temp.loc[:, cols].divide(totals, axis=0).multiply(100).sum(axis=1))
+        # Nice formatting for percents
+        out_df[name] = out_df[name].map(lambda x: f"{x:.0f}%")
 
     return out_df
 
 
-percent_df = totals_table(final_df, phases)
+# Column headers are all strings in final_df
+percent_desc = [
+    ColumnDesc(("8",), "8", 1.0),
+    ColumnDesc(("9",), "9", 1.0),
+    ColumnDesc(("8", "9"), "1st Phase", 1.0),
+    ColumnDesc(("13",), "13", 1.0),
+    ColumnDesc(("14 and 15",), "14 and 15", 1.0),
+    ColumnDesc(("16 and 17",), "16 and 17", 1.0),
+    ColumnDesc(("18",), "18", 1.0),
+    ColumnDesc(("13", "14 and 15", "16 and 17", "18"), "2nd Phase", 1.0),
+    ColumnDesc(("23",), "23", 1.0),
+    ColumnDesc(("24",), "24", 1.0),
+    ColumnDesc(("23", "24"), "Final Phase", 1.0),
+]
+percent_df = totals_table(final_df, percent_desc)
+
+from pandas import Series
+def percent_image(percent_table: DataFrame, table_setup: TableProperties) -> Image:
+    image_df = DataFrame()
+    image_df['Name'] = (Series(header_ph) +
+                        percent_table['Name'].map(lambda x: draw_name(x, table_setup)))
+    for name, col in percent_table.loc[:, percent_table.columns != "Name"].items():
+        c = Series(draw_header(name, table_setup))
+        image_df[name] = c + col.map(lambda x: draw_name(x, table_setup))
