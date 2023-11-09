@@ -1233,6 +1233,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, end_time: datetime = None, replay_list=None):
 
+    if len(team.players) != 5:
+        print(f"Team {team.name} ({team.team_id}) has incorrect number of players ({len(team.players)})! Skipping!")
+        return
+
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
     stat_time = ti if (ti := ImportantTimes[args.statistic_time]) is not None else time
