@@ -78,7 +78,11 @@ def populate_from_JSON(json, replay_in, session):
         new_rune.id = id
         id += 1
 
-        new_rune.player = replay_in.get_player_by_hero(r['unitName'])
+        try:
+            new_rune.player = replay_in.get_player_by_hero(r['unitName'])
+        except KeyError:
+            print(f"Failed to add rune due to unknown unit at {r['time']}")
+            continue
         new_rune.steamID = new_rune.player.steamID
         new_rune.time = r['time']
         new_rune.runeType = RuneID(r['runeValue'])
