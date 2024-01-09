@@ -334,6 +334,7 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
         col_heights.append(sum_height)
 
     # Image setup
+    sum_width += 1  # This should cover the boarder
     table_image = Image.new('RGBA', (sum_width, sum_height), (255, 255, 255, 0))
     table_canvas = ImageDraw.Draw(table_image)
     # Add stripes, skipping headers
@@ -345,25 +346,17 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
         )
     # Add lines
     # vertical
-    table_canvas.line(xy=[(0, sum_height), (0, 0)],
-                      fill=(0, 0, 0, 255),
-                      width=1
-                      )
-    for x in col_widths:
+    for x in col_widths[1:]:
         table_canvas.line([(x, sum_height), (x, 0)],
                           fill=(0, 0, 0, 255),
                           width=1
                           )
+
     # horizontal
-    # table_canvas.line([(sum_width, 0), (0, 0)],
-    #                   fill=(0, 0, 0, 255),
-    #                   width=1
-    #                   )
-    for y in col_heights:
-        table_canvas.line([(sum_width, y), (0, y)],
-                          fill=(0, 0, 0, 255),
-                          width=1
-                          )
+    table_canvas.line([(sum_width, col_heights[1]), (0, col_heights[1])],
+                      fill=(0, 0, 0, 255),
+                      width=1
+                      )
 
     # header text, right aligned
     # y = table_setup.padding
@@ -407,7 +400,9 @@ def percent_table(counter_df: DataFrame, desc: list = percent_desc) -> DataFrame
     return out_df
 
 
-def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Image:
+percent_min_width = 100
+def draw_percent(percent_table: DataFrame, table_setup: TableProperties,
+                 min_width=percent_min_width) -> Image:
     image_df = DataFrame()
     image_df['Name'] = concat(
                         [Series(divider),
@@ -426,7 +421,7 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
     # .items is over columns
     for _, c in image_df.items():
         max_width = max(c.apply(lambda x: x.size[0]))
-        sum_width += max_width + 1
+        sum_width += max(max_width, min_width) + 1
         col_widths.append(sum_width)
 
     col_heights = [0, ]
@@ -437,6 +432,7 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
         col_heights.append(sum_height)
 
     # Image setup
+    sum_width += 1  # Should allow for the boarder to be drawn
     table_image = Image.new('RGBA', (sum_width, sum_height), (255, 255, 255, 0))
     table_canvas = ImageDraw.Draw(table_image)
     # Add stripes, skipping headers
@@ -448,25 +444,16 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
         )
     # Add lines
     # vertical
-    table_canvas.line(xy=[(0, sum_height), (0, 0)],
-                      fill=(0, 0, 0, 255),
-                      width=1
-                      )
-    for x in col_widths:
+    for x in col_widths[1:]:
         table_canvas.line([(x, sum_height), (x, 0)],
                           fill=(0, 0, 0, 255),
                           width=1
                           )
     # horizontal
-    # table_canvas.line([(sum_width, 0), (0, 0)],
-    #                   fill=(0, 0, 0, 255),
-    #                   width=1
-    #                   )
-    for y in col_heights:
-        table_canvas.line([(sum_width, y), (0, y)],
-                          fill=(0, 0, 0, 255),
-                          width=1
-                          )
+    table_canvas.line([(sum_width, col_heights[1]), (0, col_heights[1])],
+                      fill=(0, 0, 0, 255),
+                      width=1
+                      )
 
     # header text, right aligned
     # y = table_setup.padding
