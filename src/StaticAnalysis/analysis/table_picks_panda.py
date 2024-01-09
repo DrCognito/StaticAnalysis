@@ -1,13 +1,8 @@
-import io
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import cycle
 from math import ceil
-from typing import Tuple
 
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
-import seaborn as sns
 from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName
 from herotools.important_times import ImportantTimes
 from PIL import Image, ImageDraw, ImageFont
@@ -15,13 +10,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from pandas import DataFrame
-from StaticAnalysis.analysis.visualisation import make_image_annotation_table
 from StaticAnalysis.lib.team_info import TeamInfo
-from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections, PickBans
+from StaticAnalysis import session, team_session
 from PIL.ImageFont import FreeTypeFont
 from sqlalchemy import and_
-from pandas import read_sql
+from pandas import Series, concat, pivot_table, read_sql
+from collections import Counter
+from StaticAnalysis.lib.Common import get_player_name
 
 @dataclass
 class OrderTimeRegion:
@@ -82,6 +78,7 @@ percent_desc = [
     ColumnDesc(("24",), "24", 1.0),
     ColumnDesc(("23", "24"), "Final Phase", 1.0),
 ]
+
 
 @dataclass
 class TableProperties:
@@ -232,21 +229,20 @@ def draw_header(title: str, table_setup: TableProperties) -> Image:
     return header_image
 
 
-
-def build_table_query(r_query: Query, session: Session, team: TeamInfo, firstPick: bool) -> Query:
+def build_table_query(r_query: Query, sess: Session, team: TeamInfo, firstPick: bool) -> Query:
     # Get Team Selections first
     _team_filter = team.custom_filter(TeamSelections.teamID, TeamSelections.stackID)
     selections_query = (
-        session.query(TeamSelections)
+        sess.query(TeamSelections)
         .filter(_team_filter)
         .filter(TeamSelections.firstPick == firstPick)
         .join(r_query.subquery())
         )
-    
+
     # Get corresponding pick bans by joining on a sub_query of selections
     sq = selections_query.subquery()
     pickbans_query = (
-        session.query(PickBans)
+        sess.query(PickBans)
         .filter(PickBans.is_pick == True)
         .join(sq, and_(sq.c.replay_ID == PickBans.replayID, sq.c.team == PickBans.team))
     )
@@ -268,9 +264,7 @@ def verify_fix_order(df_in: DataFrame, order: list):
 
     return
 
-from pandas import concat, pivot_table
-from collections import Counter
-from StaticAnalysis.lib.Common import get_player_name
+
 def process_df(first_df: DataFrame, second_df: DataFrame,
                team_session: Session, team: TeamInfo,
                desc=table_desc) -> DataFrame:
@@ -412,7 +406,7 @@ def percent_table(counter_df: DataFrame, desc: list = percent_desc) -> DataFrame
 
     return out_df
 
-from pandas import Series
+
 def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Image:
     image_df = DataFrame()
     image_df['Name'] = concat(
@@ -499,22 +493,23 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
     return table_image
 
 
-def create_tables(r_query: Query, session: Session, team_session: Session,
-                  team: TeamInfo, add_text=True) -> Image:
+def create_tables(r_query: Query,
+                  team: TeamInfo,
+                  sess: Session = session, team_sess: Session = team_session) -> Image:
     # Get queries
-    first_query = build_table_query(r_query, session, team, firstPick=True)
-    second_query = build_table_query(r_query, session, team, firstPick=False)
+    first_query = build_table_query(r_query, sess, team, firstPick=True)
+    second_query = build_table_query(r_query, sess, team, firstPick=False)
 
     # Make tables from queries
-    first_df = read_sql(first_query.statement, session.bind)
-    second_df = read_sql(second_query.statement, session.bind)
+    first_df = read_sql(first_query.statement, sess.bind)
+    second_df = read_sql(second_query.statement, sess.bind)
 
     # Normalise the pick inputs incase of some funny business
     verify_fix_order(first_df, CURRENT_PATCH.first_pick)
     verify_fix_order(second_df, CURRENT_PATCH.second_pick)
 
     # Final processing
-    final_df = process_df(first_df, second_df, team_session)
+    final_df = process_df(first_df, second_df, team_sess)
     image_df = image_table(final_df, table_desc, table_setup)
 
     # Image of the picks
