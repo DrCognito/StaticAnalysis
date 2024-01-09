@@ -18,8 +18,10 @@ from pandas import DataFrame
 from StaticAnalysis.analysis.visualisation import make_image_annotation_table
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay
-from StaticAnalysis.replays.TeamSelections import TeamSelections
-
+from StaticAnalysis.replays.TeamSelections import TeamSelections, PickBans
+from PIL.ImageFont import FreeTypeFont
+from sqlalchemy import and_
+from pandas import read_sql
 
 @dataclass
 class OrderTimeRegion:
@@ -28,12 +30,16 @@ class OrderTimeRegion:
     second_pick: list
     end: datetime = None
 
+
 @dataclass
 class ColumnDesc:
     columns: tuple
     name: str
     rel_width: float
 
+
+# Placeholder for a divider in the table
+DIVIDER = object()
 
 # Definitions for picking/table layout
 picks_patch_7_33 = OrderTimeRegion(ImportantTimes['Patch_7_33'],
@@ -44,6 +50,8 @@ picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
                                    [8, 14, 15, 18, 23],
                                    [9, 13, 16, 17, 24],
                                    None)
+
+CURRENT_PATCH = picks_patch_7_34
 
 
 table_desc = [
@@ -59,6 +67,21 @@ table_desc = [
     ColumnDesc((24,), "24", 1.0),
 ]
 
+# Description for percent tables.
+# Column headers are strings that match the table
+percent_desc = [
+    ColumnDesc(("8",), "8", 1.0),
+    ColumnDesc(("9",), "9", 1.0),
+    ColumnDesc(("8", "9"), "1st Phase", 1.0),
+    ColumnDesc(("13",), "13", 1.0),
+    ColumnDesc(("14 and 15",), "14 and 15", 1.0),
+    ColumnDesc(("16 and 17",), "16 and 17", 1.0),
+    ColumnDesc(("18",), "18", 1.0),
+    ColumnDesc(("13", "14 and 15", "16 and 17", "18"), "2nd Phase", 1.0),
+    ColumnDesc(("23",), "23", 1.0),
+    ColumnDesc(("24",), "24", 1.0),
+    ColumnDesc(("23", "24"), "Final Phase", 1.0),
+]
 
 @dataclass
 class TableProperties:
@@ -207,106 +230,310 @@ def draw_header(title: str, table_setup: TableProperties) -> Image:
                        text=title)
 
     return header_image
-def create_tables(r_query: Query, session: Session, team: TeamInfo,
-                  add_text=True) -> Image:
+
+
+
+def build_table_query(r_query: Query, session: Session, team: TeamInfo, firstPick: bool) -> Query:
+    # Get Team Selections first
+    _team_filter = team.custom_filter(TeamSelections.teamID, TeamSelections.stackID)
+    selections_query = (
+        session.query(TeamSelections)
+        .filter(_team_filter)
+        .filter(TeamSelections.firstPick == firstPick)
+        .join(r_query.subquery())
+        )
     
+    # Get corresponding pick bans by joining on a sub_query of selections
+    sq = selections_query.subquery()
+    pickbans_query = (
+        session.query(PickBans)
+        .filter(PickBans.is_pick == True)
+        .join(sq, and_(sq.c.replay_ID == PickBans.replayID, sq.c.team == PickBans.team))
+    )
 
-    pass
+    return pickbans_query
 
 
-def render_percent_table(df: DataFrame, min_width=50,
-                         header_font_size=20, text_font_size=16):
-    header_font = ImageFont.truetype('arialbd.ttf', header_font_size)
-    text_font = ImageFont.truetype('arialbd.ttf', text_font_size)
-    padding = 2
-    widths = {k:min_width for k in df.columns}
-    columns = ['Index'] + list(df.columns)
-    widths['Index'] = 0
-    for row in df.itertuples(name=None):
-        # Use text_font for other
-        for n, t in zip(columns, row):
-            if n == 'Index':
-                font = header_font
-                pad = 4*padding + 1
-            else:
-                font = text_font
-                pad = 2*padding
-            text = str(t)
-            length = ceil(font.getlength(text)) + pad
-            widths[n] = max(widths[n], length)
-    # Do column names too!
-    for c in columns:
-        if c == 'Index':
+def verify_fix_order(df_in: DataFrame, order: list):
+    broken = df_in.loc[~df_in['order'].isin(order)]
+    if broken.empty:
+        return
+    r_ids = broken.loc[:, 'replayID'].unique()
+    print(f"Broken pick ban pattern in: {r_ids}")
+
+    for r in r_ids:
+        section = df_in.loc[df_in['replayID'] == r, 'order']
+        # Limit to the length of the part
+        df_in.loc[df_in['replayID'] == r, 'order'] = order[:len(section)]
+
+    return
+
+from pandas import concat, pivot_table
+from collections import Counter
+from StaticAnalysis.lib.Common import get_player_name
+def process_df(first_df: DataFrame, second_df: DataFrame,
+               team_session: Session, team: TeamInfo,
+               desc=table_desc) -> DataFrame:
+    if first_df.empty:
+        pick_df = second_df
+    elif second_df.empty:
+        pick_df = first_df
+    else:
+        pick_df = concat([first_df, second_df], ignore_index=True)
+    # Pivot provides a more natural representation, moving the order out to columns
+    pick_df = pivot_table(pick_df, index='playerID', columns='order',
+                          values='hero', aggfunc=Counter, fill_value=Counter())
+    pick_df.reset_index()
+    # Build the final table
+    out_df = DataFrame()
+    # Names for the first column
+    out_df['Name'] = pick_df['playerID'].apply(lambda x: get_player_name(team_session, x, team))
+
+    c: ColumnDesc
+    for c in desc:
+        if c is DIVIDER:
             continue
-        text = str(c)
-        font = header_font
-        length = ceil(font.getlength(text)) + 2*padding
-        widths[c] = max(widths[n], length)
-    # Now make the table!
-    cell_height = header_font_size + 2*padding
-    font_pos = cell_height//2
+        out_df[c.name] = pick_df.loc[:, c.columns].sum(axis=1)
+
+    return out_df
+
+
+def image_table(counter_df: DataFrame, table_desc: list, table_setup: TableProperties):
+    out_df = DataFrame()
+    # Names
+    names = [divider, ]
+    for _, n in counter_df['Name'].items():
+        names.append(draw_name(n, table_setup))
+    out_df['Names'] = names
+
+    div_count = 1
+    col: ColumnDesc
+    for col in table_desc:
+        if col is DIVIDER:
+            # Dividers all the way down so we can facilitate getting widths and max heights!
+            out_df[f'DIVIDER{div_count}'] = [divider] * len(names)
+            div_count += 1
+        else:
+            c = [draw_header(col.name, table_setup), ]
+            for _, heroes in counter_df[col.name].items():
+                c.append(draw_cell_image(heroes, table_setup, col.rel_width))
+            out_df[col.name] = c
+
+    return out_df
+
+
+def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
+    # Spacing calculations
+    col_widths = [0, ]
+    sum_width = 0
+    # .items is over columns
+    for _, c in image_df.items():
+        max_width = max(c.apply(lambda x: x.size[0]))
+        sum_width += max_width + 1
+        col_widths.append(sum_width)
+
+    col_heights = [0, ]
+    sum_height = 0
+    for _, r in image_df.iterrows():
+        max_height = max(r.apply(lambda x: x.size[1]))
+        sum_height += max_height + 1
+        col_heights.append(sum_height)
+
+    # Image setup
+    table_image = Image.new('RGBA', (sum_width, sum_height), (255, 255, 255, 0))
+    table_canvas = ImageDraw.Draw(table_image)
+    # Add stripes, skipping headers
     row_bg_cycle = [(255, 255, 255, 255), (220, 220, 220, 255)]
-    rows = []
-    # Header
-    header_cells = []
-    for c in columns:
-        image = Image.new('RGBA', (widths[c], cell_height),
-                          (255, 255, 255, 255))
-        image_canvas = ImageDraw.Draw(image)
-        image_canvas.line([(widths[c] - 1, 0), (widths[c]  - 1, cell_height)],
-                           fill='black', width=1)
-        image_canvas.line([(0, cell_height - 1), (widths[c], cell_height - 1)],
-                           fill='black', width=1)
-        if c != 'Index':
-            font = header_font
-            x = widths[c] - padding - 1
-            y = font_pos
-            text = str(c)
-            image_canvas.text((x, y), text=text, font=font,
-                              anchor="rm", align="right", fill=(0, 0, 0))
-        header_cells.append(image)
-    full_width = sum(x.size[0] for x in header_cells)
-    image = Image.new('RGBA', (full_width, cell_height),
-                       (255, 255, 255, 255))
+    for r_bg, y1, y2 in zip(cycle(row_bg_cycle), col_heights[:-1], col_heights[1:]):
+        table_canvas.rectangle(
+            [(0, y1), (sum_width, y2)],
+            fill=r_bg,
+        )
+    # Add lines
+    # vertical
+    table_canvas.line(xy=[(0, sum_height), (0, 0)],
+                      fill=(0, 0, 0, 255),
+                      width=1
+                      )
+    for x in col_widths:
+        table_canvas.line([(x, sum_height), (x, 0)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+    # horizontal
+    # table_canvas.line([(sum_width, 0), (0, 0)],
+    #                   fill=(0, 0, 0, 255),
+    #                   width=1
+    #                   )
+    for y in col_heights:
+        table_canvas.line([(sum_width, y), (0, y)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+
+    # header text, right aligned
+    # y = table_setup.padding
+    y = 0
+    for (_, img), x in zip(image_df.loc[0].items(), col_widths[1:]):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+    # name text right aligned, skip top one
+    x = col_widths[1]
+    for (_, img), y in zip(image_df.iloc[1:, 0].items(), col_heights[1:]):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+
+    # Paste in the cells.
+    # Go row by row on a fixed y.
+    # Get each cell in each row and iterate over x as widths.
+    for (_, row), y in zip(image_df.iloc[1:].iterrows(), col_heights[1:-1]):
+        for img, x in zip(row[1:], col_widths[1:-1]):
+            table_image.paste(img, (x, y), img)
+            pass
+
+    return table_image
+
+
+def percent_table(counter_df: DataFrame, desc: list = percent_desc) -> DataFrame:
+    # Get totals from counter total function, temp for calculating totals for counters.
+    # Skip the first column as it should be names
+    temp = counter_df.iloc[:, 1:].map(lambda x: x.total())
+    totals = temp.sum(axis=1)
+    # Add the name back
+    out_df = DataFrame()
+    out_df['Name'] = counter_df['Name']
+    # Add the summary columns
+    for col in desc:
+        name, cols = col.name, col.columns
+        # Convert totals to percents
+        out_df[name] = (temp.loc[:, cols].divide(totals, axis=0).multiply(100).sum(axis=1))
+        # Nice formatting for percents
+        out_df[name] = out_df[name].map(lambda x: f"{x:.0f}%")
+
+    return out_df
+
+from pandas import Series
+def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Image:
+    image_df = DataFrame()
+    image_df['Name'] = concat(
+                        [Series(divider),
+                         percent_table['Name'].map(lambda x: draw_name(x, table_setup))]
+                         )
+    for name, col in percent_table.loc[:, percent_table.columns != "Name"].items():
+        # c = Series(draw_header(name, table_setup))
+        image_df[name] = concat([Series(draw_header(name, table_setup)),
+                                 col.map(lambda x: draw_name(x, table_setup))])
+    # Handle our weird concat behaviour
+    image_df = image_df.reset_index(drop=True)
+
+    # Spacing calculations
+    col_widths = [0, ]
+    sum_width = 0
+    # .items is over columns
+    for _, c in image_df.items():
+        max_width = max(c.apply(lambda x: x.size[0]))
+        sum_width += max_width + 1
+        col_widths.append(sum_width)
+
+    col_heights = [0, ]
+    sum_height = 0
+    for _, r in image_df.iterrows():
+        max_height = max(r.apply(lambda x: x.size[1]))
+        sum_height += max_height + 1
+        col_heights.append(sum_height)
+
+    # Image setup
+    table_image = Image.new('RGBA', (sum_width, sum_height), (255, 255, 255, 0))
+    table_canvas = ImageDraw.Draw(table_image)
+    # Add stripes, skipping headers
+    row_bg_cycle = [(255, 255, 255, 255), (220, 220, 220, 255)]
+    for r_bg, y1, y2 in zip(cycle(row_bg_cycle), col_heights[:-1], col_heights[1:]):
+        table_canvas.rectangle(
+            [(0, y1), (sum_width, y2)],
+            fill=r_bg,
+        )
+    # Add lines
+    # vertical
+    table_canvas.line(xy=[(0, sum_height), (0, 0)],
+                      fill=(0, 0, 0, 255),
+                      width=1
+                      )
+    for x in col_widths:
+        table_canvas.line([(x, sum_height), (x, 0)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+    # horizontal
+    # table_canvas.line([(sum_width, 0), (0, 0)],
+    #                   fill=(0, 0, 0, 255),
+    #                   width=1
+    #                   )
+    for y in col_heights:
+        table_canvas.line([(sum_width, y), (0, y)],
+                          fill=(0, 0, 0, 255),
+                          width=1
+                          )
+
+    # header text, right aligned
+    # y = table_setup.padding
+    y = 0
+    for (_, img), x in zip(image_df.loc[0].items(), col_widths[1:]):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+    # name text right aligned, skip top one
+    x = col_widths[1]
+    for (_, img), y in zip(image_df.iloc[1:, 0].items(), col_heights[1:]):
+        x_img = x - img.size[0]
+        table_image.paste(img, (x_img, y), img)
+
+    # Paste in the cells.
+    # Go row by row on a fixed y.
+    # Get each cell in each row and iterate over x as widths.
+    # Unlike previous table, the right alignment means we start with second third width
+    for (_, row), y in zip(image_df.iloc[1:].iterrows(), col_heights[1:-1]):
+        for img, x in zip(row[1:], col_widths[2:]):
+            x = x - img.size[0]
+            table_image.paste(img, (x, y), img)
+            pass
+
+    return table_image
+
+
+def create_tables(r_query: Query, session: Session, team_session: Session,
+                  team: TeamInfo, add_text=True) -> Image:
+    # Get queries
+    first_query = build_table_query(r_query, session, team, firstPick=True)
+    second_query = build_table_query(r_query, session, team, firstPick=False)
+
+    # Make tables from queries
+    first_df = read_sql(first_query.statement, session.bind)
+    second_df = read_sql(second_query.statement, session.bind)
+
+    # Normalise the pick inputs incase of some funny business
+    verify_fix_order(first_df, CURRENT_PATCH.first_pick)
+    verify_fix_order(second_df, CURRENT_PATCH.second_pick)
+
+    # Final processing
+    final_df = process_df(first_df, second_df, team_session)
+    image_df = image_table(final_df, table_desc, table_setup)
+
+    # Image of the picks
+    pick_image = draw_table(image_df, table_setup)
+
+    # Percent table
+    percent_df = percent_table(final_df)
+    percent_image = draw_percent(percent_df, table_setup)
+
+    # Combine the two images
+    spacing = 50
+    width = max(pick_image.size[0], percent_image.size[0])
+    height = pick_image.size[1] + percent_image.size[1] + spacing
+
+    final = Image.new('RGBA', (width, height),
+                    (255, 255, 255, 255))
     x, y = 0, 0
-    for c in header_cells:
-        image.paste(c, (x, y), c)
-        x += c.size[0]
-    rows.append(image)
+    final.paste(pick_image, (x, y), pick_image)
+    y += pick_image.size[1] + spacing
+    final.paste(percent_image, (x, y), percent_image)
 
-    for row, bg in zip(df.itertuples(), cycle(row_bg_cycle)):
-        cells = []
-        for c, t in zip(columns, row):
-            font = header_font if c == 'Index' else text_font
-            image = Image.new('RGBA', (widths[c], cell_height),
-                              bg)
-            image_canvas = ImageDraw.Draw(image)
-            image_canvas.line([(widths[c] -1, 0), (widths[c]  -1, cell_height)],
-                              fill='black', width=1)
-            x = widths[c] - padding - 1
-            y = font_pos
-            text = str(t)
-            image_canvas.text((x, y), text=text, font=font,
-                              anchor="rm", align="right", fill=(0, 0, 0))
-            cells.append(image)
-
-        full_width = sum(x.size[0] for x in cells)
-        image = Image.new('RGBA', (full_width, cell_height),
-                          bg)
-        x, y = 0, 0
-        for c in cells:
-            image.paste(c, (x, y), c)
-            x += c.size[0]
-        rows.append(image)
-
-    full_width = rows[0].size[0]
-    full_height = sum(x.size[1] for x in rows)
-    image = Image.new('RGBA', (full_width, full_height),
-                      (255, 255, 255, 255))
-    x, y = 0, 0
-    for r in rows:
-        image.paste(r, (x, y), r)
-        y += r.size[1]
-
-    return image
-
+    return final
