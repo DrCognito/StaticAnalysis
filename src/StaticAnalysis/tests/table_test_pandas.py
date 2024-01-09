@@ -1,38 +1,20 @@
-import os
-import sys
-from typing import Tuple
-
-
 import StaticAnalysis.tests.minimal_db as db
-from StaticAnalysis.replays.Player import Player
 from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
 
 from StaticAnalysis.lib.team_info import TeamInfo
 
-import matplotlib.pyplot as plt
 
-from os import environ as environment
-from dotenv import load_dotenv
-from StaticAnalysis.analysis.ward_vis import colour_list, plot_labels
-from pandas import DataFrame, Interval, IntervalIndex, cut, read_sql
-from StaticAnalysis.replays.Replay import Replay, Team
-from StaticAnalysis.lib.Common import seconds_to_nice, get_player_map,get_player_name
+from pandas import DataFrame, read_sql
+from StaticAnalysis.replays.Replay import Replay
+from StaticAnalysis.lib.Common import get_player_name
 from herotools.important_times import ImportantTimes, MAIN_TIME
-from StaticAnalysis.analysis.visualisation import make_image_annotation_flex, make_image_annotation, make_image_annotation_table
 from itertools import cycle
-from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
-import matplotlib.patches as patches
+from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ImageFont import FreeTypeFont
-from math import ceil, floor
+from math import ceil
 from dataclasses import dataclass
 from datetime import datetime
-from sqlalchemy.orm.query import Query
-import matplotlib
-import matplotlib.pyplot as plt
-import seaborn as sns
-import io
-import numpy as np
 
 og_id = 2586976
 entity = 8605863
@@ -48,7 +30,6 @@ q_test = (db.session.query(PickBans)
                     .filter(PickBans.teamID == team_id)
                     .join(r_query.subquery()))
 
-from sqlalchemy import or_
 first_selection = (
     db.session.query(TeamSelections)
       .filter(team.custom_filter(TeamSelections.teamID, TeamSelections.stackID))
@@ -61,7 +42,6 @@ second_selection = (
       .filter(TeamSelections.firstPick == False)
       .join(r_query.subquery())
 )
-from sqlalchemy.orm import contains_eager
 from sqlalchemy import and_
 # second_selection_pb = (
 #     db.session.query(PickBans)
@@ -84,12 +64,14 @@ second_selection_pb = (
       .join(sq, and_(sq.c.replay_ID == PickBans.replayID, sq.c.team == PickBans.team))
 )
 
+
 @dataclass
 class OrderTimeRegion:
     start: datetime
     first_pick: list
     second_pick: list
     end: datetime = None
+
 
 picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
                                    [8, 14, 15, 18, 23],
@@ -200,7 +182,6 @@ table_setup = TableProperties(
     font='arialbd.ttf'
 )
 
-from math import ceil
 def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: float = 1.0) -> Image:
     # For reference, PIL image coordinate system is (0, 0) is the upper left corner!
     # Initial image properties from table properties
