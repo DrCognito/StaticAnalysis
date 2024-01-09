@@ -949,6 +949,16 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     fig.set_size_inches(8.27, 8.27)
     for r_id in table['replayID'].unique():
+        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
+        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
+        replay_pos = table[
+            (table["replayID"] == r_id) &
+            (table["game_time"] > t_min_rune) &
+            (table["game_time"] <= t_max_rune)
+            ]
+        if replay_pos.empty:
+            continue
+
         side = None
         out_path = positions / f"{r_id}.png"
         if r_id in metadata['replays_dire']:
@@ -970,14 +980,6 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
-
-        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
-        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
-        replay_pos =  table[
-            (table["replayID"] == r_id) &
-            (table["game_time"] > t_min_rune) &
-            (table["game_time"] <= t_max_rune)
-            ]
         plot_player_routes(replay_pos, team, axis)
         # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
         fig.tight_layout()
@@ -1238,6 +1240,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
 
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, end_time: datetime = None, replay_list=None):
+
+    if len(team.players) != 5:
+        print(f"Team {team.name} ({team.team_id}) has incorrect number of players ({len(team.players)})! Skipping!")
+        return
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid

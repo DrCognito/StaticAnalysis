@@ -81,7 +81,7 @@ def get_lane_results(session, replay: Replay = None, replay_id: int = None,
     lanes = pos_df.groupby(by=['team', 'hero',])['lane'].apply(lambda x: x.value_counts().index[0])
     # Add the lane info and group up
     df['lane'] = df.apply(lambda x: lanes[x['team'], x['hero']], axis=1)
-    lane_diff = df.groupby(['team', 'lane']).agg({'hero': list, 'networth': sum})
+    lane_diff = df.groupby(['team', 'lane']).agg({'hero': list, 'networth': 'sum'})
 
     return lane_diff
 
