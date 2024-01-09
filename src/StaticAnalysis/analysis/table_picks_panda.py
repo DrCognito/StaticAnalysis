@@ -277,7 +277,7 @@ def process_df(first_df: DataFrame, second_df: DataFrame,
     # Pivot provides a more natural representation, moving the order out to columns
     pick_df = pivot_table(pick_df, index='playerID', columns='order',
                           values='hero', aggfunc=Counter, fill_value=Counter())
-    pick_df.reset_index()
+    pick_df = pick_df.reset_index()
     # Build the final table
     out_df = DataFrame()
     # Names for the first column
@@ -509,7 +509,7 @@ def create_tables(r_query: Query,
     verify_fix_order(second_df, CURRENT_PATCH.second_pick)
 
     # Final processing
-    final_df = process_df(first_df, second_df, team_sess)
+    final_df = process_df(first_df, second_df, team_sess, team)
     image_df = image_table(final_df, table_desc, table_setup)
 
     # Image of the picks
