@@ -38,7 +38,8 @@ from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
                                             get_smoke, hero_win_rate,
                                             pair_rate, win_rate_table)
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
-from StaticAnalysis.analysis.table_picks import create_tables
+# from StaticAnalysis.analysis.table_picks import create_tables
+from StaticAnalysis.analysis.table_picks_panda import create_tables
 from StaticAnalysis.analysis.visualisation import (
     dataframe_xy, dataframe_xy_time, dataframe_xy_time_smoke,
     get_binning_percentile_xy, plot_draft_summary, plot_flex_picks,
@@ -893,9 +894,16 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_rune_control{postfix}'] = relpath
 
+    # if limit is not None:
+    #     output = team_path / "pick_tables.png"
+    #     table_image = create_tables(r_query, session, team)
+    #     table_image.save(output)
+    #     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    #     metadata['plot_picktables'] = relpath
+
     if limit is not None:
         output = team_path / "pick_tables.png"
-        table_image = create_tables(r_query, session, team)
+        table_image = create_tables(r_query, team)
         table_image.save(output)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_picktables'] = relpath
