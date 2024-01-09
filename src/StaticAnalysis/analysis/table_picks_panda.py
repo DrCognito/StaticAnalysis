@@ -28,7 +28,14 @@ class OrderTimeRegion:
     second_pick: list
     end: datetime = None
 
+@dataclass
+class ColumnDesc:
+    columns: tuple
+    name: str
+    rel_width: float
 
+
+# Definitions for picking/table layout
 picks_patch_7_33 = OrderTimeRegion(ImportantTimes['Patch_7_33'],
                                    [5, 8, 16, 17, 23],
                                    [6, 7, 15, 18, 24],
@@ -39,7 +46,167 @@ picks_patch_7_34 = OrderTimeRegion(ImportantTimes['Patch_7_34'],
                                    None)
 
 
+table_desc = [
+    ColumnDesc((8,), "8", 1.0),
+    ColumnDesc((9,), "9", 1.0),
+    DIVIDER,
+    ColumnDesc((13,), "13", 1.0),
+    ColumnDesc((14, 15,), "14 and 15", 2.0),
+    ColumnDesc((16, 17,), "16 and 17", 2.0),
+    ColumnDesc((18,), "18", 1.0),
+    DIVIDER,
+    ColumnDesc((23,), "23", 1.0),
+    ColumnDesc((24,), "24", 1.0),
+]
 
+
+@dataclass
+class TableProperties:
+    hero_size: int
+    padding: int
+    heroes_per_row: int
+    count_font_size: int
+    header_size: int
+    header_font_size: int
+    divider_spacing: int
+    font: FreeTypeFont
+
+
+# Definition for table styling
+table_setup = TableProperties(
+    hero_size=22,
+    padding=2,
+    heroes_per_row=5,
+    count_font_size=16,
+    header_size=22,
+    header_font_size=22 - 2,  # header_size - padding
+    divider_spacing=5,
+    # font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
+    font='arialbd.ttf'
+)
+# Divider image, also used as placeholder
+divider = Image.new('RGBA', (table_setup.divider_spacing, table_setup.padding), (255, 255, 255, 0))
+
+
+def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: float = 1.0) -> Image:
+    '''
+    Draws a "cell" of heroes from a counter container according to table_setup.
+    '''
+    # For reference, PIL image coordinate system is (0, 0) is the upper left corner!
+    # Initial image properties from table properties
+    heroes_per_row = ceil(table_setup.heroes_per_row * width_scale)
+    n_rows = ceil(len(heroes) / heroes_per_row)
+
+    width = (
+        table_setup.padding
+        + min(len(heroes), heroes_per_row)
+        * (table_setup.hero_size + table_setup.padding)
+    )
+    height = (
+        table_setup.padding
+        + (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)
+        * n_rows
+    )
+    # Adjustment for final row
+    # Image setup
+    cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    cell_canvas = ImageDraw.Draw(cell_image)
+    count_font = ImageFont.truetype(table_setup.font, table_setup.count_font_size)
+
+    # Setup iters to use as cursors
+    # x_iter is just a range of hero sized spacing up to the edge (width)
+    x_iter = range(table_setup.padding, width, table_setup.hero_size + table_setup.padding)
+    # y_iter uses full size of hero and text with pad, repeats for n_cols each row
+    y_iter = []
+    for i in range(n_rows):
+        y_pos = (table_setup.padding
+                 + i * (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size))
+        y_iter += [y_pos] * heroes_per_row
+    assert (len(y_iter) >= len(heroes))
+
+    for (h, c), x, y in zip(heroes.most_common(), cycle(x_iter), y_iter):
+        # Adjusted locations as icon is bellow text and text is centered
+        # y_icon = y + table_setup.padding + table_setup.count_font_size
+        y_icon = y
+        y_text = y + table_setup.padding + table_setup.hero_size
+        x_text = x + table_setup.hero_size // 2
+
+        # Get the hero icon
+        try:
+            # Get and resize the hero icon.
+            icon = HeroIconPrefix / convertName(h, HeroIDType.NPC_NAME,
+                                                HeroIDType.ICON_FILENAME)
+        except (ValueError, KeyError):
+            print("Unable to find hero icon for (table): " + h)
+            continue
+        # Paste it in
+        h_icon = Image.open(icon)
+        h_icon = h_icon.resize((table_setup.hero_size, table_setup.hero_size))
+        cell_image.paste(h_icon, (x, y_icon))
+
+        # Add the text
+        if c > 1:
+            cell_canvas.text(
+                (x_text, y_text), text=str(c),
+                font=count_font,
+                anchor="mt", align="right", fill=(0, 0, 0)
+            )
+
+    return cell_image
+
+
+def draw_name(name: str, table_setup: TableProperties) -> Image:
+    '''
+    Draws a name image according to table_setup.
+    '''
+    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    width = (
+        4 * table_setup.padding
+        + int(font.getlength(name))
+    )
+    height = (
+        4 * table_setup.padding
+        + table_setup.header_font_size
+    )
+    # Right justified
+    x_text = width - table_setup.padding
+    y_text = 2 * table_setup.padding
+
+    name_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    name_canvas = ImageDraw.Draw(name_image)
+
+    name_canvas.text((x_text, y_text), anchor="rt",
+                     font=font, fill=(0, 0, 0), align="right",
+                     text=name)
+
+    return name_image
+
+
+def draw_header(title: str, table_setup: TableProperties) -> Image:
+    '''
+    Draws a header title image according to table_setup.
+    '''
+    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    width = (
+        2 * table_setup.padding
+        + int(font.getlength(title))
+    )
+    height = (
+        4 * table_setup.padding
+        + table_setup.header_font_size
+    )
+    # Right justified
+    x_text = width - table_setup.padding
+    y_text = 2*table_setup.padding
+
+    header_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    header_canvas = ImageDraw.Draw(header_image)
+
+    header_canvas.text((x_text, y_text), anchor="rt",
+                       font=font, fill=(0, 0, 0), align="right",
+                       text=title)
+
+    return header_image
 def create_tables(r_query: Query, session: Session, team: TeamInfo,
                   add_text=True) -> Image:
     
