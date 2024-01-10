@@ -246,11 +246,13 @@ def build_table_query(r_query: Query, sess: Session, team: TeamInfo, firstPick: 
         .join(r_query.subquery())
         )
 
+    pids = [x.player_id for x in team.players]
     # Get corresponding pick bans by joining on a sub_query of selections
     sq = selections_query.subquery()
     pickbans_query = (
         sess.query(PickBans)
         .filter(PickBans.is_pick == True)
+        .filter(PickBans.playerID.in_(pids))
         .join(sq, and_(sq.c.replay_ID == PickBans.replayID, sq.c.team == PickBans.team))
     )
 
@@ -274,7 +276,7 @@ def verify_fix_order(df_in: DataFrame, order: list):
 
 def process_df(first_df: DataFrame, second_df: DataFrame,
                team_session: Session, team: TeamInfo,
-               desc=table_desc) -> DataFrame:
+               c_desc=table_desc) -> DataFrame:
     if first_df.empty:
         pick_df = second_df
     elif second_df.empty:
@@ -300,9 +302,13 @@ def process_df(first_df: DataFrame, second_df: DataFrame,
 
 
     c: ColumnDesc
-    for c in desc:
+    for c in c_desc:
         if c is DIVIDER:
             continue
+        for icol in c.columns:
+            if icol not in pick_df.columns:
+                print(f"Missing column for {icol} in pick table.")
+                pick_df[icol] = [Counter() for _ in range(pick_df.shape[0])]
         out_df[c.name] = pick_df.loc[:, c.columns].sum(axis=1)
 
     return out_df
