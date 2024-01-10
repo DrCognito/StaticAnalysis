@@ -55,8 +55,8 @@ table_desc = [
     ColumnDesc((9,), "9", 1.0),
     DIVIDER,
     ColumnDesc((13,), "13", 1.0),
-    ColumnDesc((14, 15,), "14 and 15", 2.0),
-    ColumnDesc((16, 17,), "16 and 17", 2.0),
+    ColumnDesc((14, 15,), "14 + 15", 2.0),
+    ColumnDesc((16, 17,), "16 + 17", 2.0),
     ColumnDesc((18,), "18", 1.0),
     DIVIDER,
     ColumnDesc((23,), "23", 1.0),
@@ -70,10 +70,10 @@ percent_desc = [
     ColumnDesc(("9",), "9", 1.0),
     ColumnDesc(("8", "9"), "1st Phase", 1.0),
     ColumnDesc(("13",), "13", 1.0),
-    ColumnDesc(("14 and 15",), "14 and 15", 1.0),
-    ColumnDesc(("16 and 17",), "16 and 17", 1.0),
+    ColumnDesc(("14 + 15",), "14 + 15", 1.0),
+    ColumnDesc(("16 + 17",), "16 + 17", 1.0),
     ColumnDesc(("18",), "18", 1.0),
-    ColumnDesc(("13", "14 and 15", "16 and 17", "18"), "2nd Phase", 1.0),
+    ColumnDesc(("13", "14 + 15", "16 + 17", "18"), "2nd Phase", 1.0),
     ColumnDesc(("23",), "23", 1.0),
     ColumnDesc(("24",), "24", 1.0),
     ColumnDesc(("23", "24"), "Final Phase", 1.0),
@@ -90,6 +90,8 @@ class TableProperties:
     header_font_size: int
     divider_spacing: int
     font: FreeTypeFont
+    min_cell_height: int
+    min_cell_width: int
 
 
 # Definition for table styling
@@ -102,7 +104,9 @@ table_setup = TableProperties(
     header_font_size=22 - 2,  # header_size - padding
     divider_spacing=5,
     # font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
-    font='arialbd.ttf'
+    font='arialbd.ttf',
+    min_cell_height=50,
+    min_cell_width=100,
 )
 # Divider image, also used as placeholder
 divider = Image.new('RGBA', (table_setup.divider_spacing, table_setup.padding), (255, 255, 255, 0))
@@ -122,11 +126,13 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
         + min(len(heroes), heroes_per_row)
         * (table_setup.hero_size + table_setup.padding)
     )
+    width = max(table_setup.min_cell_width, width)
     height = (
         table_setup.padding
         + (2 * table_setup.padding + table_setup.hero_size + table_setup.count_font_size)
         * n_rows
     )
+    height = max(table_setup.min_cell_height, height)
     # Adjustment for final row
     # Image setup
     cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
@@ -184,6 +190,7 @@ def draw_name(name: str, table_setup: TableProperties) -> Image:
         4 * table_setup.padding
         + int(font.getlength(name))
     )
+    width = max(width, table_setup.min_cell_width)
     height = (
         4 * table_setup.padding
         + table_setup.header_font_size
@@ -278,10 +285,19 @@ def process_df(first_df: DataFrame, second_df: DataFrame,
     pick_df = pivot_table(pick_df, index='playerID', columns='order',
                           values='hero', aggfunc=Counter, fill_value=Counter())
     pick_df = pick_df.reset_index()
+    # Sorting solution using categories
+    # https://stackoverflow.com/questions/23482668/sorting-by-a-custom-list-in-pandas
+    pids = [x.player_id for x in team.players]
+
+    pick_df['playerID'] = pick_df['playerID'].astype('category')
+    pick_df['playerID'] = pick_df['playerID'].cat.set_categories(pids)
+    pick_df = pick_df.sort_values(["playerID"])
+
     # Build the final table
     out_df = DataFrame()
     # Names for the first column
     out_df['Name'] = pick_df['playerID'].apply(lambda x: get_player_name(team_session, x, team))
+
 
     c: ColumnDesc
     for c in desc:
@@ -323,6 +339,7 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
     # .items is over columns
     for _, c in image_df.items():
         max_width = max(c.apply(lambda x: x.size[0]))
+        # sum_width += max(table_setup.min_cell_width, max_width + 1)
         sum_width += max_width + 1
         col_widths.append(sum_width)
 
@@ -330,6 +347,7 @@ def draw_table(image_df: DataFrame, table_setup: TableProperties) -> Image:
     sum_height = 0
     for _, r in image_df.iterrows():
         max_height = max(r.apply(lambda x: x.size[1]))
+        # sum_height += max(table_setup.min_cell_height, max_height + 1)
         sum_height += max_height + 1
         col_heights.append(sum_height)
 
@@ -388,7 +406,7 @@ def percent_table(counter_df: DataFrame, desc: list = percent_desc) -> DataFrame
     totals = temp.sum(axis=1)
     # Add the name back
     out_df = DataFrame()
-    out_df['Name'] = counter_df['Name']
+    out_df['Name'] = counter_df['Name'].astype('str')
     # Add the summary columns
     for col in desc:
         name, cols = col.name, col.columns
@@ -400,9 +418,7 @@ def percent_table(counter_df: DataFrame, desc: list = percent_desc) -> DataFrame
     return out_df
 
 
-percent_min_width = 100
-def draw_percent(percent_table: DataFrame, table_setup: TableProperties,
-                 min_width=percent_min_width) -> Image:
+def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Image:
     image_df = DataFrame()
     image_df['Name'] = concat(
                         [Series(divider),
@@ -421,13 +437,15 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties,
     # .items is over columns
     for _, c in image_df.items():
         max_width = max(c.apply(lambda x: x.size[0]))
-        sum_width += max(max_width, min_width) + 1
+        sum_width += max(max_width + 1, table_setup.min_cell_width)
+        # sum_width += max_width + 1
         col_widths.append(sum_width)
 
     col_heights = [0, ]
     sum_height = 0
     for _, r in image_df.iterrows():
         max_height = max(r.apply(lambda x: x.size[1]))
+        # sum_height += max(max_height + 1, table_setup.min_cell_height)
         sum_height += max_height + 1
         col_heights.append(sum_height)
 
