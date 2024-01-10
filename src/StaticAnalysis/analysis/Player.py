@@ -58,12 +58,20 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
         p_picks = session.query(Player.hero).filter(p_f)\
                                             .join(replays)
 
+        p_picks = session.query(Player).filter(p_f)\
+                                       .join(replays)
+
         p_res = Series(name=player.name, dtype='UInt16')
+        pick: Player
         for pick in p_picks:
-            if pick[0] in p_res:
-                p_res[pick[0]] += 1
+            # Check if the player is actually on the right team!
+            if pick.replay.get_side(team) != pick.team:
+                print(f"Skipped {pick.steamID} in {pick.replayID} (wrong side).")
+                continue
+            if pick.hero in p_res:
+                p_res[pick.hero] += 1
             else:
-                p_res[pick[0]] = 1
+                p_res[pick.hero] = 1
 
         if summarise and len(p_res) > nHeroes:
             p_res.sort_values(ascending=False, inplace=True)
@@ -150,7 +158,8 @@ def player_position(session, r_query, team: TeamInfo, player_slot: int,
         replays = r_query.filter(r_filter).subquery()
         replays_limited = r_query.filter(r_filter).order_by(Replay.replayID.desc()).limit(recent_limit).subquery()
 
-        p_filter = t_filter + (PlayerStatus.steamID == steam_id,)
+        p_filter = t_filter + (PlayerStatus.steamID == steam_id,
+                               PlayerStatus.team == side)
 
         player_q = session.query(PlayerStatus)\
                           .filter(*p_filter)\
