@@ -13,6 +13,7 @@ from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
 
 from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.lib.metadata import has_networth
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.analysis.networth import get_laning_image
@@ -450,9 +451,13 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, add_league_date=True, caching=True,
                        fig=plt.gcf()):
+    has_nw = has_networth(session, replay)
     if caching:
         cache_dir = Path(environment["CACHE"])
-        file_name = f"{replay.replayID}_{team.name}.png"
+        if not has_nw:
+            file_name = f"{replay.replayID}_{team.name}_draftonly.png"
+        else:
+            file_name = f"{replay.replayID}_{team.name}.png"
         file_path = cache_dir / file_name
         if file_path.exists():
             return Image.open(file_path)
@@ -492,7 +497,10 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     # Lane outcome line
     # Add networth line
-    lane_outcome = get_laning_image(session, fig, main_team_faction, replay)
+    if has_nw:
+        lane_outcome = get_laning_image(session, fig, main_team_faction, replay)
+    else:
+        lane_outcome = None
     fig.clf()
 
     # Opposition team name text, size concerns?
@@ -585,7 +593,10 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     if caching:
         cache_dir = Path(environment["CACHE"])
-        file_name = f"{replay.replayID}_{team.name}.png"
+        if not has_nw:
+            file_name = f"{replay.replayID}_{team.name}_draftonly.png"
+        else:
+            file_name = f"{replay.replayID}_{team.name}.png"
         file_path = cache_dir / file_name
         assert file_path.exists() is False
         out_box.save(file_path)
