@@ -8,6 +8,7 @@ from StaticAnalysis.replays.Rune import Rune
 from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.Ward import Ward
+from StaticAnalysis.replays.Player import NetWorth
 
 
 def make_meta(dataset="default"):
@@ -116,3 +117,8 @@ def is_full_replay(session, replay: Replay) -> bool:
     At the moment this just requires player picks and wards.'''
 
     return has_picks(session, replay) and has_wards(session, replay)
+
+
+def has_networth(session, replay: Replay) -> bool:
+    '''Returns true if replay in session has a NetWorth object.'''
+    return has_type(session, replay, NetWorth)
