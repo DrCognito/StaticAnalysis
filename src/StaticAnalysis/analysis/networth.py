@@ -127,7 +127,13 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
         ha = "left"
         frac_diff = fraction - 1
     else:
-        fraction = opposition['networth'] / main_team['networth']
+        try:
+            fraction = opposition['networth'] / main_team['networth']
+        except ZeroDivisionError:
+            if opposition['networth'] != 0:
+                fraction = 1.0
+            else:
+                fraction = 0.0
         if fraction < (1.0 - significance_percent):
             outcome = "W"
         else:
