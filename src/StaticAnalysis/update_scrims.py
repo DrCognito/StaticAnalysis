@@ -63,22 +63,22 @@ def is_valid_replay(replay: Replay) -> bool:
         print(f"Warning invalid number of teams in {replay.replayID}.")
         return False
     if replay.teams[0].teamID == 0:
-        print(f"teams[0].teamID is 0!")
+        print(f"{replay.replayID}: teams[0].teamID is 0!")
         return False
     if replay.teams[0].teamName == '':
-        print(f"teams[0].teamName is ''")
+        print(f"{replay.replayID}: teams[0].teamName is ''")
         return False
     if replay.teams[1].teamID == 0:
-        print(f"teams[1].teamID is 0!")
+        print(f"{replay.replayID}: teams[1].teamID is 0!")
         return False
     if replay.teams[1].teamName == '':
-        print(f"teams[1].teamName is ''")
+        print(f"{replay.replayID}: teams[1].teamName is ''")
         return False
     if replay.teams[0].teamID == replay.teams[1].teamID:
-        print(f"Found duplicate team for {replay.replayID}.")
+        print(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
         return False
     if replay.teams[0].teamName == replay.teams[1].teamName:
-        print(f"Found duplicate team for {replay.replayID}.")
+        print(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
         return False
 
     return True
@@ -163,7 +163,7 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         # Lots of trailing info in the columns.
         continue
     if len(scrim_id) != 10:
-        print(f"Skipping unusual scrim ID {scrim_id}")
+        print(f"Skipping unusual scrim ID: '{scrim_id}'")
         continue
     # Default to the string if its wrong
     name = name.strip()
@@ -193,9 +193,9 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
     if replay is None:
         missing.add(scrim_id)
         continue
-    if is_valid_replay(replay):
-        continue
     if replay.endTimeUTC < time_cut:
+        continue
+    if is_valid_replay(replay):
         continue
 
     # Not much we can do if we dont have a propper team to use
