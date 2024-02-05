@@ -1,10 +1,10 @@
 from os import environ as environment
 
 from dotenv import load_dotenv
-from herotools.important_times import ImportantTimes
-from sqlalchemy import and_, or_
+from herotools.important_times import ImportantTimes, MAIN_TIME
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import and_, or_
 
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
 from StaticAnalysis.replays.Replay import InitDB, Replay
@@ -69,7 +69,7 @@ t_filter = r_query.limit(5).subquery()
 # replays = r_query.join(t_filter, Replay.replayID == t_filter.c.replayID).filter(pick_filter)
 replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replayID).filter(full_filter)
 
-new_cut_time = ImportantTimes['Patch_7_32']
+new_cut_time = MAIN_TIME
 t_filter = (Replay.endTimeUTC >= new_cut_time)
 test = session.query(Replay).filter(t_filter).order_by(Replay.replayID)
-print(test.first().replayID)
+print(f"MAIN_TIME first replay: {test.first().replayID}")
