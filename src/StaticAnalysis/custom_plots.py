@@ -244,12 +244,13 @@ if __name__ == '__main__':
     #     player_heatmap_report(session, i, te)
     #     player_route_report(session, i, te)
 
-    ceb_time = ImportantTimes['Patch_7_34']
-    r_filter = Replay.endTimeUTC >= ceb_time
+    check_time = ImportantTimes['February']
+    r_filter = Replay.endTimeUTC >= check_time
     team_scrims = SCRIM_REPLAY_DICT.get(str(team_og.team_id))
     # r_query = team_og.get_replays(session).filter(or_(r_filter, Replay.replayID.in_(team_scrims)))
     r_query = team_og.get_replays(session).filter(r_filter)
     hero_df = hero_win_rate(r_query, team_og)
     print(hero_df.loc['npc_dota_hero_wisp'])
-    print(hero_df.loc['npc_dota_hero_keeper_of_the_light'])
+    print(hero_df.loc['npc_dota_hero_pangolier'])
+    print(hero_df.loc['npc_dota_hero_batrider'])
     # do_comparison_report(session, [7254795299, 7256414790], [team_og, team_liquid])
