@@ -251,8 +251,9 @@ def do_positioning(team: TeamInfo, r_query,
                                                                  start=start, end=end,
                                                                  recent_limit=recent_limit)
         if update_dire:
-            if pos_dire.count() == 0:
-                print("No data for {} on Dire.".format(team.players[pos].name))
+            # if pos_dire.count() == 0:
+            # if pos_dire.first() is None:
+            #     print("No data for {} on Dire.".format(team.players[pos].name))
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'dire' / (p_name + '.jpg')
@@ -262,27 +263,35 @@ def do_positioning(team: TeamInfo, r_query,
             # pos_dire_limited = pos_dire_limited.filter(dire_ancient_filter)
 
             pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
+            if pos_dire_df.empty:
+                print("No data for {} on Dire.".format(team.players[pos].name))
             vmin, vmax = get_binning_percentile_xy(pos_dire_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_dire_df,
                                         bins=64, fig_in=fig, ax_in=axes[0],
                                         vmin=vmin, vmax=vmax)
+
             pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
+            if pos_dire_limited_df.empty and not pos_dire_df.empty:
+                print(f"No data for {team.players[pos].name} on Dire for limited ({recent_limit}).")
             vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_dire_limited_df,
                                         bins=64, ax_in=axes[1],
                                         vmin=vmin, vmax=vmax)
             axis.set_title('Latest 5 games')
+
             fig.tight_layout()
             fig.savefig(output, bbox_inches='tight')
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_pos_dire'].append(relpath)
+
             fig.clf()
 
         if update_radiant:
-            if pos_radiant.count() == 0:
-                print("No data for {} on Radiant.".format(team.players[pos].name))
+            # if pos_radiant.count() == 0:
+            # if pos_radiant.first() is None:
+            #     print("No data for {} on Radiant.".format(team.players[pos].name))
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'radiant' / (p_name + '.jpg')
@@ -291,6 +300,8 @@ def do_positioning(team: TeamInfo, r_query,
             #                                  PlayerStatus)
             # pos_radiant = pos_radiant.filter(ancient_filter)
             pos_radiant_df = dataframe_xy(pos_radiant, PlayerStatus, session)
+            if pos_radiant_df.empty:
+                print("No data for {} on Radiant.".format(team.players[pos].name))
             vmin, vmax = get_binning_percentile_xy(pos_radiant_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_radiant_df,
@@ -299,6 +310,8 @@ def do_positioning(team: TeamInfo, r_query,
 
             # pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
             pos_radiant_limited_df = dataframe_xy(pos_radiant_limited, PlayerStatus, session)
+            if pos_radiant_limited_df.empty and not pos_radiant_df.empty:
+                print(f"No data for {team.players[pos].name} on Radiant for limited ({recent_limit}).")
             vmin, vmax = get_binning_percentile_xy(pos_radiant_limited_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_radiant_limited_df,
