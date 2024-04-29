@@ -55,7 +55,7 @@ def dataframe_xy_time(query, Type, session):
     return data
 
 
-def dataframe_xy(query, Type, session):
+def dataframe_xy(query, Type, session) -> DataFrame:
     sql_query = query.with_entities(Type.xCoordinate,
                                     Type.yCoordinate).statement
 
