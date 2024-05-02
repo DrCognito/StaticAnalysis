@@ -936,26 +936,29 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
 
-    rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
+    fig = plt.figure()
 
+    rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     start = 6.5 * 60
-    # Set the maximum by max overall and then filter later
-    # Maybe could be done better but not trivially so?
     end = rune_times['game_time'].max()
     table = player_position_replays(session, r_query,
                                     start=start, end=end,)
 
-    fig = plt.figure()
-    fig.set_size_inches(8.27, 11.69)
+    do_rune_pos = False
+    if do_rune_pos:
+        # Set the maximum by max overall and then filter later
+        # Maybe could be done better but not trivially so?
+        fig.set_size_inches(8.27, 11.69)
 
-    plot_player_positions(table, team, fig)
-    out_path = meta_path / "rune_pos_7m.png"
-    fig.subplots_adjust(wspace=0.01, hspace=0.01, left=0.06, right=0.94, top=0.97, bottom=0.01)
-    # fig.tight_layout()
-    fig.savefig(out_path)
-    metadata["plot_rune_pos_7m"] = str(out_path.relative_to(Path(PLOT_BASE_PATH)))
+        plot_player_positions(table, team, fig)
+        out_path = meta_path / "rune_pos_7m.png"
+        fig.subplots_adjust(wspace=0.01, hspace=0.01, left=0.06, right=0.94, top=0.97, bottom=0.01)
+        # fig.tight_layout()
+        fig.savefig(out_path)
+        metadata["plot_rune_pos_7m"] = str(out_path.relative_to(Path(PLOT_BASE_PATH)))
 
-    fig.clf()
+        fig.clf()
+
 
     metadata["rune_routes_7m_dire"] = []
     metadata["rune_routes_7m_radiant"] = []
@@ -969,7 +972,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             (table["game_time"] > t_min_rune) &
             (table["game_time"] <= t_max_rune)
             ]
-        if replay_pos.empty:
+        if replay_pos.empty: 
             continue
 
         side = None
