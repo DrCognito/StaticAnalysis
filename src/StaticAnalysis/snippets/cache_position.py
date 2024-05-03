@@ -28,21 +28,21 @@ pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
 
 fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
-vmin, vmax = get_binning_percentile_xy(pos_dire_df)
-vmin = max(1.0, vmin)
-axis = plot_object_position(pos_dire_df,
-                            bins=64, fig_in=fig, ax_in=axes[0],
-                            vmin=vmin, vmax=vmax)
+# vmin, vmax = get_binning_percentile_xy(pos_dire_df)
+# vmin = max(1.0, vmin)
+# axis = plot_object_position(pos_dire_df,
+#                             bins=64, fig_in=fig, ax_in=axes[0],
+#                             vmin=vmin, vmax=vmax)
 
-vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
-vmin = max(1.0, vmin)
-axis = plot_object_position(pos_dire_limited_df,
-                            bins=64, fig_in=fig, ax_in=axes[1],
-                            vmin=vmin, vmax=vmax)
-axis.set_title('Latest 5 games')
+# vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
+# vmin = max(1.0, vmin)
+# axis = plot_object_position(pos_dire_limited_df,
+#                             bins=64, fig_in=fig, ax_in=axes[1],
+#                             vmin=vmin, vmax=vmax)
+# axis.set_title('Latest 5 games')
 
-fig.tight_layout()
-fig.savefig("timado_pos_default.png", bbox_inches='tight')
+# fig.tight_layout()
+# fig.savefig("timado_pos_default.png", bbox_inches='tight')
 
 def bin_pos_data(df: DataFrame, bins=64, extent=EXTENT):
     binning = [float(x) / bins for x in range(bins)]
@@ -57,16 +57,18 @@ def bin_pos_data(df: DataFrame, bins=64, extent=EXTENT):
     df['xBin'] = cut(df['xCoordinate'], xBins)
     df['yBin'] = cut(df['yCoordinate'], yBins)
 
-    df = df.groupby(['xBin', 'yBin'], observed=True)[['xCoordinate']].count()
+    df = df.groupby(['xBin', 'yBin'], observed=True, as_index=False)[['xCoordinate']].count()
+    df['xBin'] = df['xBin'].apply(lambda x: x.mid)
+    df['yBin'] = df['yBin'].apply(lambda x: x.mid)
 
-    return df.reset_index()
+    return df
 
 import copy
 from os import environ as environment
 import matplotlib.image as mpimg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import ticker
-def plot_counts(query_data: DataFrame, bins=64,
+def plot_counts_hexbin(query_data: DataFrame, bins=64,
                 fig_in=None, ax_in=None, vmin=None, vmax=None):
     if fig_in is None:
         fig_in = plt.gcf()
@@ -83,7 +85,7 @@ def plot_counts(query_data: DataFrame, bins=64,
     if not query_data.empty:
         plot = ax_in.hexbin(x=query_data['xBin'],
                             y=query_data['yBin'],
-                            c=query_data['xCoordinate'],
+                            C=query_data['xCoordinate'],
                             gridsize=bins, mincnt=0,
                             extent=EXTENT,
                             cmap=colour_map,
@@ -103,5 +105,107 @@ def plot_counts(query_data: DataFrame, bins=64,
     return ax_in
 
 
+def plot_counts_hist2d(query_data: DataFrame, bins=64,
+                fig_in=None, ax_in=None, vmin=None, vmax=None):
+    if fig_in is None:
+        fig_in = plt.gcf()
+    if ax_in is None:
+        ax_in = fig_in.add_subplot(111)
+
+    #jet = plt.get_cmap('rainbow')
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
+    if not query_data.empty:
+        # plot = ax_in.hexbin(x=query_data['xBin'],
+        #                     y=query_data['yBin'],
+        #                     C=query_data['xCoordinate'],
+        #                     gridsize=bins, mincnt=0,
+        #                     extent=EXTENT,
+        #                     cmap=colour_map,
+        #                     vmin=vmin, vmax=vmax,
+        #                     zorder=2)
+        plot = ax_in.hist2d(x=query_data['xBin'],
+                            y=query_data['yBin'],
+                            weights=query_data['xCoordinate'],
+                            bins=bins,
+                            # extent=EXTENT,
+                            range=[[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]],
+                            cmap=colour_map,
+                            cmin=vmin, cmax=vmax,
+                            zorder=2)
+        # Reposition colourbar
+        # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+        divider = make_axes_locatable(ax_in)
+        side_bar = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(plot[3], cax=side_bar)
+        cbar.locator = ticker.MaxNLocator(integer=True)
+        cbar.update_ticks()
+        cbar.ax.tick_params(labelsize=14)
+
+    ax_in.axis('off')
+
+    return ax_in
+
+
+import seaborn as sns
+def plot_seaborn_kde(query_data: DataFrame, bins=64,
+                fig_in=None, ax_in=None, vmin=None, vmax=None):
+    if fig_in is None:
+        fig_in = plt.gcf()
+    if ax_in is None:
+        ax_in = fig_in.add_subplot(111)
+
+    #jet = plt.get_cmap('rainbow')
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
+    if not query_data.empty:
+        plot = sns.kdeplot(
+            data=query_data,
+            # x=query_data['xBins'], y=query_data['yBins'],
+            x=query_data['xBin'].astype(float), y=query_data['yBin'].astype(float),
+            weights=query_data['xCoordinate'].astype(int),
+            palette=colour_map,
+            # extent=EXTENT,
+            gridsize=64,
+            cbar=True,
+            ax=ax_in,
+            levels=4,
+            # thresh=1,
+            fill=True
+        )
+        # Reposition colourbar
+        # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+        # divider = make_axes_locatable(ax_in)
+        # side_bar = divider.append_axes("right", size="5%", pad=0.05)
+        # cbar = plt.colorbar(plot, cax=side_bar)
+        # cbar.locator = ticker.MaxNLocator(integer=True)
+        # cbar.update_ticks()
+        # cbar.ax.tick_params(labelsize=14)
+
+    ax_in.axis('off')
+
+    return ax_in
+
 binned_dire = bin_pos_data(pos_dire_df)
 vmin, vmax = binned_dire['xCoordinate'].quantile(0.7), binned_dire['xCoordinate'].quantile(0.999)
+axis = plot_seaborn_kde(binned_dire,
+                   bins=64, fig_in=fig, ax_in=axes[0],
+                   vmin=vmin, vmax=vmax)
+
+binned_dire_limited = bin_pos_data(pos_dire_limited_df)
+vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limited['xCoordinate'].quantile(0.999)
+axis = plot_seaborn_kde(binned_dire_limited,
+                   bins=64, fig_in=fig, ax_in=axes[1],
+                   vmin=vmin, vmax=vmax)
+axis.set_title('Latest 5 games')
+
+fig.tight_layout()
+fig.savefig("timado_pos_cached.png", bbox_inches='tight')
