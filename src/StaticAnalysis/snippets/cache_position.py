@@ -1,3 +1,4 @@
+from matplotlib.collections import PolyCollection
 from StaticAnalysis.snippets.minimal_db import session, team_session, team
 from StaticAnalysis.replays.Replay import Replay
 from herotools.important_times import MAIN_TIME
@@ -105,6 +106,9 @@ def plot_counts_hexbin(query_data: DataFrame, bins=64,
     return ax_in
 
 
+def get_hexbin_binning(pollies: PolyCollection):
+    pass
+
 def plot_counts_hist2d(query_data: DataFrame, bins=64,
                 fig_in=None, ax_in=None, vmin=None, vmax=None):
     if fig_in is None:
@@ -142,6 +146,57 @@ def plot_counts_hist2d(query_data: DataFrame, bins=64,
         divider = make_axes_locatable(ax_in)
         side_bar = divider.append_axes("right", size="5%", pad=0.05)
         cbar = plt.colorbar(plot[3], cax=side_bar)
+        cbar.locator = ticker.MaxNLocator(integer=True)
+        cbar.update_ticks()
+        cbar.ax.tick_params(labelsize=14)
+
+    ax_in.axis('off')
+
+    return ax_in
+
+
+def plot_counts_pcolormesh(
+    query_data: DataFrame, bins=64,
+    fig_in=None, ax_in=None,
+    vmin=1):
+    if fig_in is None:
+        fig_in = plt.gcf()
+    if ax_in is None:
+        ax_in = fig_in.add_subplot(111)
+
+    #jet = plt.get_cmap('rainbow')
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
+
+    import numpy as np
+    # [[xmin, xmax], [ymin, ymax]]
+    extent_numpy = [[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]]
+    vals, xedges, yedges = np.histogram2d(
+        x=query_data['xCoordinate'],
+        y=query_data['yCoordinate'],
+        bins=64,
+        range=extent_numpy
+    )
+    X, Y = np.meshgrid(xedges, yedges)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
+    if not query_data.empty:
+        plot = ax_in.pcolormesh(
+            X,
+            Y,
+            vals.T,
+            # extent=EXTENT,
+            vmin=vmin,
+            cmap=colour_map,
+            zorder=2
+            )
+        # Reposition colourbar
+        # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+        divider = make_axes_locatable(ax_in)
+        side_bar = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(plot, cax=side_bar)
         cbar.locator = ticker.MaxNLocator(integer=True)
         cbar.update_ticks()
         cbar.ax.tick_params(labelsize=14)
@@ -196,16 +251,27 @@ def plot_seaborn_kde(query_data: DataFrame, bins=64,
 
 binned_dire = bin_pos_data(pos_dire_df)
 vmin, vmax = binned_dire['xCoordinate'].quantile(0.7), binned_dire['xCoordinate'].quantile(0.999)
-axis = plot_seaborn_kde(binned_dire,
-                   bins=64, fig_in=fig, ax_in=axes[0],
-                   vmin=vmin, vmax=vmax)
+# axis = plot_counts_hist2d(binned_dire,
+#                    bins=64, fig_in=fig, ax_in=axes[0],
+#                    vmin=vmin, vmax=vmax)
+# axis = plot_counts_pcolormesh(binned_dire,
+#                    bins=64, fig_in=fig, ax_in=axes[0])
 
 binned_dire_limited = bin_pos_data(pos_dire_limited_df)
 vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limited['xCoordinate'].quantile(0.999)
-axis = plot_seaborn_kde(binned_dire_limited,
-                   bins=64, fig_in=fig, ax_in=axes[1],
-                   vmin=vmin, vmax=vmax)
-axis.set_title('Latest 5 games')
+# axis = plot_counts_hist2d(binned_dire_limited,
+#                    bins=64, fig_in=fig, ax_in=axes[1],
+#                    vmin=vmin, vmax=vmax)
+# axis = plot_counts_pcolormesh(binned_dire_limited,
+#                    bins=64, fig_in=fig, ax_in=axes[1])
+# axis.set_title('Latest 5 games')
+
+# fig.tight_layout()
+# fig.savefig("timado_pos_cached.png", bbox_inches='tight')
+
+plot_counts_pcolormesh(pos_dire_df, fig_in=fig, ax_in=axes[0], vmin=vmin)
+plot_counts_pcolormesh(pos_dire_limited_df, fig_in=fig, ax_in=axes[1], vmin=vmin)
+axes[1].set_title('Latest 5 games')
 
 fig.tight_layout()
-fig.savefig("timado_pos_cached.png", bbox_inches='tight')
+fig.savefig("timado_pos_pmesh.png", bbox_inches='tight')
