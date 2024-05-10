@@ -7,6 +7,9 @@ from StaticAnalysis.analysis.visualisation import dataframe_xy, get_binning_perc
 import matplotlib.pyplot as plt
 from pandas import DataFrame, cut
 from StaticAnalysis.lib.Common import EXTENT
+from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
+from pathlib import Path
+from StaticAnalysis.replays.Replay import Replay, Team
 
 r_filter = Replay.endTimeUTC >= MAIN_TIME
 r_query = team.get_replays(session).filter(r_filter)
@@ -14,6 +17,88 @@ position = 0 # Choses the player in team
 recent_limit = 5
 start = -2*60
 end = 10*60
+
+CACHE_ROOT = Path(environment["CACHE"])
+
+def player_position_single(
+    session, r_query,
+    team: TeamInfo, player: TeamPlayer,
+    side: Team,
+    start: int, end: int, recent_limit=None):
+
+    t_filter = ()
+    if start is not None:
+        t_filter += (PlayerStatus.game_time >= start,)
+    if end is not None:
+        t_filter += (PlayerStatus.game_time <= end,)
+
+    steam_id = player.player_id
+
+    r_filter = Replay.get_side_filter(team, side)
+    replays = r_query.filter(r_filter).subquery()
+    if recent_limit is not None:
+        replays = r_query.filter(r_filter).order_by(Replay.replayID.desc()).limit(recent_limit).subquery()
+
+    p_filter = t_filter + (PlayerStatus.steamID == steam_id,
+                            PlayerStatus.team == side)
+
+    player_q = session.query(PlayerStatus)\
+                        .filter(*p_filter)\
+                        .join(replays)
+
+    return player_q
+
+# [[xmin, xmax], [ymin, ymax]]
+extent_numpy = [[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]]
+import numpy as np
+import json
+def get_binned_positioning(
+        session,
+        r_query,
+        team: TeamInfo,
+        player: TeamPlayer,
+        side: Team,
+        start: int,
+        end: int,
+        cache_id: str,
+        limit: int =  None,
+        use_cache: bool = True
+        ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    # Only interested in one side
+    r_query = r_query.filter(Replay.get_side_filter(team, side))
+    side_name = "dire" if side == Team.DIRE else "radiant"
+    # Load cache
+    cache_path = CACHE_ROOT / "positioning" / f"{cache_id}.json"
+    cache_json = {}
+    if use_cache and cache_path.exists():
+        with open(cache_path, 'r') as cache_f:
+            cache_json = json.load(cache_f)
+    # This will always be stored as a list due to json restrictions
+    cached_replays = set(cache_json.get(f"replays_{side_name}", []))
+    # Check consistency with replay list in r_query
+    replay_set = {r.replayID for r in r_query}
+    valid_cache = cached_replays in replay_set and len(cached_replays) != 0
+    player_cache = cache_json.get(player.player_id, {})
+    position_cache = cache_json.get(player_cache, None)
+    # Reduce r_query to what is missing
+    if valid_cache and use_cache:
+        missing_replays = replay_set - cached_replays
+        r_query = r_query.filter(Replay.replayID.in_(missing_replays))
+    # Retrieve data
+    p_query = player_position_single(
+        session, r_query,
+        team, player,
+        side,
+        start, end, recent_limit=limit
+    )
+    positioning = dataframe_xy(p_query, PlayerStatus, session)
+    # Bin data
+    if not positioning.empty:
+        pass
+    # Combine
+    # Cache
+    # Return
+    pass
 
 ((pos_dire, pos_dire_limited),
 (pos_radiant, pos_radiant_limited)) = player_position(
@@ -168,7 +253,6 @@ def plot_counts_pcolormesh(
     colour_map = copy.copy(plt.get_cmap('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
-    import numpy as np
     # [[xmin, xmax], [ymin, ymax]]
     extent_numpy = [[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]]
     vals, xedges, yedges = np.histogram2d(
