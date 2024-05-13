@@ -10,6 +10,9 @@ from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
 from pathlib import Path
 from StaticAnalysis.replays.Replay import Replay, Team
+import pickle
+from os import environ as environment
+
 
 r_filter = Replay.endTimeUTC >= MAIN_TIME
 r_query = team.get_replays(session).filter(r_filter)
@@ -68,18 +71,27 @@ def get_binned_positioning(
     r_query = r_query.filter(Replay.get_side_filter(team, side))
     side_name = "dire" if side == Team.DIRE else "radiant"
     # Load cache
-    cache_path = CACHE_ROOT / "positioning" / f"{cache_id}.json"
+    cache_path = CACHE_ROOT / "positioning" / f"{cache_id}"
     cache_json = {}
     if use_cache and cache_path.exists():
         with open(cache_path, 'r') as cache_f:
             cache_json = json.load(cache_f)
     # This will always be stored as a list due to json restrictions
-    cached_replays = set(cache_json.get(f"replays_{side_name}", []))
+    cached_replays = set(cache_json.get(f"replays", []))
     # Check consistency with replay list in r_query
     replay_set = {r.replayID for r in r_query}
     valid_cache = cached_replays in replay_set and len(cached_replays) != 0
     player_cache = cache_json.get(player.player_id, {})
-    position_cache = cache_json.get(player_cache, None)
+    try:
+        position_cache = pickle.loads(player_cache.get("positions", None))
+    # Edges should remain the same but we have no way to retrieve if the cache is the latest without storing
+        xedge_cache = pickle.loads(player_cache.get("xedges", None))
+        yedge_cache = pickle.loads(player_cache.get("yedges", None))
+    except TypeError:
+        # Probably no data!
+        position_cache = None
+        xedge_cache = None
+        yedge_cache = None
     # Reduce r_query to what is missing
     if valid_cache and use_cache:
         missing_replays = replay_set - cached_replays
@@ -94,11 +106,44 @@ def get_binned_positioning(
     positioning = dataframe_xy(p_query, PlayerStatus, session)
     # Bin data
     if not positioning.empty:
-        pass
+        # New results
+        position_new, xedge_new, yedge_new = np.histogram2d(
+        x=positioning['xCoordinate'],
+        y=positioning['yCoordinate'],
+        bins=64,
+        range=extent_numpy
+        )
+    elif position_cache is None:
+        # No results at all
+        print(f"No cache or results for {player.name}/{player.player_id}")
+        return None, None, None
+    else:
+        # No new results, just cache
+        return (
+            position_cache,
+            xedge_cache,
+            yedge_cache,
+            )
+
     # Combine
+    xedges = xedge_new
+    yedges = yedge_new
+    if position_cache is None:
+        positions = position_new
+    else:
+        positions = position_new + position_cache
     # Cache
+    if use_cache:
+        cache_json["replays"] = list(replay_set)
+        player_cache["positions"] = pickle.dumps(positions)
+        player_cache["xedges"] = pickle.dumps(xedges)
+        player_cache["yedges"] = pickle.dumps(yedges)
+        cache_json[player.player_id] = player_cache
+        with open(cache_path, 'w') as cache_f:
+            json.dump(cache_json, cache_f)
     # Return
-    pass
+    return positions, xedges, yedges
+
 
 ((pos_dire, pos_dire_limited),
 (pos_radiant, pos_radiant_limited)) = player_position(
@@ -353,9 +398,15 @@ vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limit
 # fig.tight_layout()
 # fig.savefig("timado_pos_cached.png", bbox_inches='tight')
 
-plot_counts_pcolormesh(pos_dire_df, fig_in=fig, ax_in=axes[0], vmin=vmin)
-plot_counts_pcolormesh(pos_dire_limited_df, fig_in=fig, ax_in=axes[1], vmin=vmin)
+# plot_counts_pcolormesh(pos_dire_df, fig_in=fig, ax_in=axes[0], vmin=vmin)
+# plot_counts_pcolormesh(pos_dire_limited_df, fig_in=fig, ax_in=axes[1], vmin=vmin)
 axes[1].set_title('Latest 5 games')
 
-fig.tight_layout()
-fig.savefig("timado_pos_pmesh.png", bbox_inches='tight')
+# fig.tight_layout()
+# fig.savefig("timado_pos_pmesh.png", bbox_inches='tight')
+
+vals, xedge, yedge = get_binned_positioning(
+    session, r_query,
+    team, team.players[0], Team.DIRE,
+    start, end,
+    cache_id="test.json")
