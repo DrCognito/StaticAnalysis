@@ -55,6 +55,52 @@ def player_position_single(
 extent_numpy = [[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]]
 import numpy as np
 import json
+import pickle
+
+class CachePositioning():
+    # Sentinels
+    EMPTY_CACHE = object()
+    INVALID_CACHE = object()
+    def __init__(self, side: Team, team: TeamInfo) -> None:
+        self.side: Team = side
+        self.team: TeamInfo = team
+        # Dictionaries for each player
+        # Replay list can be player specific if people leave/join!
+        self.replay_list = {}
+        self.positions = {}
+        self.xedges = {}
+        self.yedges = {}
+
+    def valid_cache(self, r_query, player: TeamPlayer) -> bool:
+        '''
+        Compares the replay list in the cache with that of r_query for a TeamPlayer.
+        Returns True if all replays in cache exist in r_query for this team.
+        Returns False otherwise or if empty.
+        '''
+        cached_replays = self.replay_list.get(pid:=player.player_id, set())
+        if len(cached_replays) == 0:
+            return False
+
+        if any(
+            pid not in self.positions,
+            pid not in self.xedges,
+            pid not in self.yedges
+            ):
+            return False
+
+        replay_set = {r.replayID for r in r_query}
+        return cached_replays in replay_set
+
+    def get_reduced_query(self, r_query, player: TeamPlayer):
+        '''
+        Given the cached results for TeamPlayer, provide a query that only has the remainder.
+        '''
+        if not self.valid_cache(r_query, player):
+            return r_query
+
+        cached_replays = self.replay_list.get(pid:=player.player_id, set())
+        replay_set = {r.replayID for r in r_query}
+        return r_query.filter(Replay.replayID.in_(replay_set - cached_replays))
 def get_binned_positioning(
         session,
         r_query,
@@ -72,30 +118,12 @@ def get_binned_positioning(
     side_name = "dire" if side == Team.DIRE else "radiant"
     # Load cache
     cache_path = CACHE_ROOT / "positioning" / f"{cache_id}"
-    cache_json = {}
+    cache = CachePositioning(side, team)
     if use_cache and cache_path.exists():
         with open(cache_path, 'r') as cache_f:
-            cache_json = json.load(cache_f)
-    # This will always be stored as a list due to json restrictions
-    cached_replays = set(cache_json.get(f"replays", []))
-    # Check consistency with replay list in r_query
-    replay_set = {r.replayID for r in r_query}
-    valid_cache = cached_replays in replay_set and len(cached_replays) != 0
-    player_cache = cache_json.get(player.player_id, {})
-    try:
-        position_cache = pickle.loads(player_cache.get("positions", None))
-    # Edges should remain the same but we have no way to retrieve if the cache is the latest without storing
-        xedge_cache = pickle.loads(player_cache.get("xedges", None))
-        yedge_cache = pickle.loads(player_cache.get("yedges", None))
-    except TypeError:
-        # Probably no data!
-        position_cache = None
-        xedge_cache = None
-        yedge_cache = None
-    # Reduce r_query to what is missing
-    if valid_cache and use_cache:
-        missing_replays = replay_set - cached_replays
-        r_query = r_query.filter(Replay.replayID.in_(missing_replays))
+            cache = pickle.load(cache_path)
+    # Use the cache to get a restricted query
+    r_query = cache.get_reduced_query(r_query, player)
     # Retrieve data
     p_query = player_position_single(
         session, r_query,
