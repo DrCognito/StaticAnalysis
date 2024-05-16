@@ -54,7 +54,6 @@ def player_position_single(
 # [[xmin, xmax], [ymin, ymax]]
 extent_numpy = [[EXTENT[0], EXTENT[1]], [EXTENT[2], EXTENT[3]]]
 import numpy as np
-import json
 import pickle
 
 class CachePositioning():
@@ -81,15 +80,32 @@ class CachePositioning():
         if len(cached_replays) == 0:
             return False
 
-        if any(
+        if any([
             pid not in self.positions,
             pid not in self.xedges,
             pid not in self.yedges
-            ):
+            ]):
             return False
 
         replay_set = {r.replayID for r in r_query}
-        return cached_replays in replay_set
+        return cached_replays.issubset(replay_set)
+    
+
+    def new_data_query(self, r_query, player: TeamPlayer):
+        '''
+        Returns true if the query has new replays not in the cache for TeamPlayer.
+        '''
+
+        replay_list = {r.replayID for r in r_query}
+
+        return self.new_data(replay_list, player)
+
+    def new_data(self, replays: set, player: TeamPlayer):
+        if not self.valid_cache(r_query, player):
+            return True
+        
+        return not (replays == self.replay_list[player.player_id])
+
 
     def get_reduced_query(self, r_query, player: TeamPlayer):
         '''
@@ -101,6 +117,30 @@ class CachePositioning():
         cached_replays = self.replay_list.get(pid:=player.player_id, set())
         replay_set = {r.replayID for r in r_query}
         return r_query.filter(Replay.replayID.in_(replay_set - cached_replays))
+    
+    def get_result_set(self, player: TeamPlayer):
+        return (
+            self.positions.get(player.player_id, CachePositioning.EMPTY_CACHE),
+            self.xedges.get(player.player_id, CachePositioning.EMPTY_CACHE),
+            self.yedges.get(player.player_id, CachePositioning.EMPTY_CACHE)
+        )
+    
+    def add_cache(
+        self,
+        replay_list: set, player: TeamPlayer,
+        positions: np.ndarray,
+        xedges: np.ndarray,
+        yedges: np.ndarray,
+        ):#
+
+        self.replay_list[pid:=player.player_id] = replay_list
+        self.positions[pid] = positions
+        self.xedges[pid] = xedges
+        self.yedges[pid] = yedges
+
+        return
+
+
 def get_binned_positioning(
         session,
         r_query,
@@ -115,75 +155,74 @@ def get_binned_positioning(
         ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     # Only interested in one side
     r_query = r_query.filter(Replay.get_side_filter(team, side))
-    side_name = "dire" if side == Team.DIRE else "radiant"
+    replay_set = {r.replayID for r in r_query}
+
     # Load cache
     cache_path = CACHE_ROOT / "positioning" / f"{cache_id}"
     cache = CachePositioning(side, team)
     if use_cache and cache_path.exists():
-        with open(cache_path, 'r') as cache_f:
-            cache = pickle.load(cache_path)
+        with open(cache_path, 'rb') as cache_f:
+            cache = pickle.load(cache_f)
     # Use the cache to get a restricted query
-    r_query = cache.get_reduced_query(r_query, player)
+    if valid_cache:= cache.valid_cache(r_query, player):
+        r_query = cache.get_reduced_query(r_query, player)
     # Retrieve data
-    p_query = player_position_single(
-        session, r_query,
-        team, player,
-        side,
-        start, end, recent_limit=limit
-    )
-    positioning = dataframe_xy(p_query, PlayerStatus, session)
+    if new_data := cache.new_data(replay_set, player):
+        p_query = player_position_single(
+            session, r_query,
+            team, player,
+            side,
+            start, end, recent_limit=limit
+        )
+        positioning = dataframe_xy(p_query, PlayerStatus, session)
     # Bin data
-    if not positioning.empty:
+    if new_data:
         # New results
-        position_new, xedge_new, yedge_new = np.histogram2d(
+        position_new, xedges, yedges = np.histogram2d(
         x=positioning['xCoordinate'],
         y=positioning['yCoordinate'],
         bins=64,
         range=extent_numpy
         )
-    elif position_cache is None:
+    elif valid_cache:
+        # No new results, just cache
+        return cache.get_result_set(player)
+    else:
         # No results at all
         print(f"No cache or results for {player.name}/{player.player_id}")
         return None, None, None
-    else:
-        # No new results, just cache
-        return (
-            position_cache,
-            xedge_cache,
-            yedge_cache,
-            )
 
-    # Combine
-    xedges = xedge_new
-    yedges = yedge_new
-    if position_cache is None:
-        positions = position_new
-    else:
-        positions = position_new + position_cache
+    # Combine positions
+    positions = position_new
+    if valid_cache:
+        positions += cache.positions[player.player_id]
+
     # Cache
     if use_cache:
-        cache_json["replays"] = list(replay_set)
-        player_cache["positions"] = pickle.dumps(positions)
-        player_cache["xedges"] = pickle.dumps(xedges)
-        player_cache["yedges"] = pickle.dumps(yedges)
-        cache_json[player.player_id] = player_cache
-        with open(cache_path, 'w') as cache_f:
-            json.dump(cache_json, cache_f)
+        cache.add_cache(
+            replay_set,
+            player,
+            positions,
+            xedges,
+            yedges
+        )
+        with open(cache_path, 'wb') as cache_f:
+            pickle.dump(cache, cache_f)
     # Return
     return positions, xedges, yedges
 
 
-((pos_dire, pos_dire_limited),
-(pos_radiant, pos_radiant_limited)) = player_position(
-                                                      session,
-                                                      r_query,
-                                                      team,
-                                                      player_slot=position,
-                                                      start=start, end=end,
-                                                      recent_limit=recent_limit)
-# Normal method
-pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
-pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
+# ((pos_dire, pos_dire_limited),
+# (pos_radiant, pos_radiant_limited)) = player_position(
+#                                                       session,
+#                                                       r_query,
+#                                                       team,
+#                                                       player_slot=position,
+#                                                       start=start, end=end,
+#                                                       recent_limit=recent_limit)
+# # Normal method
+# pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
+# pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
 
 fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
@@ -406,16 +445,16 @@ def plot_seaborn_kde(query_data: DataFrame, bins=64,
 
     return ax_in
 
-binned_dire = bin_pos_data(pos_dire_df)
-vmin, vmax = binned_dire['xCoordinate'].quantile(0.7), binned_dire['xCoordinate'].quantile(0.999)
-# axis = plot_counts_hist2d(binned_dire,
-#                    bins=64, fig_in=fig, ax_in=axes[0],
-#                    vmin=vmin, vmax=vmax)
-# axis = plot_counts_pcolormesh(binned_dire,
-#                    bins=64, fig_in=fig, ax_in=axes[0])
+# binned_dire = bin_pos_data(pos_dire_df)
+# vmin, vmax = binned_dire['xCoordinate'].quantile(0.7), binned_dire['xCoordinate'].quantile(0.999)
+# # axis = plot_counts_hist2d(binned_dire,
+# #                    bins=64, fig_in=fig, ax_in=axes[0],
+# #                    vmin=vmin, vmax=vmax)
+# # axis = plot_counts_pcolormesh(binned_dire,
+# #                    bins=64, fig_in=fig, ax_in=axes[0])
 
-binned_dire_limited = bin_pos_data(pos_dire_limited_df)
-vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limited['xCoordinate'].quantile(0.999)
+# binned_dire_limited = bin_pos_data(pos_dire_limited_df)
+# vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limited['xCoordinate'].quantile(0.999)
 # axis = plot_counts_hist2d(binned_dire_limited,
 #                    bins=64, fig_in=fig, ax_in=axes[1],
 #                    vmin=vmin, vmax=vmax)
@@ -428,7 +467,7 @@ vmin, vmax = binned_dire_limited['xCoordinate'].quantile(0.7), binned_dire_limit
 
 # plot_counts_pcolormesh(pos_dire_df, fig_in=fig, ax_in=axes[0], vmin=vmin)
 # plot_counts_pcolormesh(pos_dire_limited_df, fig_in=fig, ax_in=axes[1], vmin=vmin)
-axes[1].set_title('Latest 5 games')
+# axes[1].set_title('Latest 5 games')
 
 # fig.tight_layout()
 # fig.savefig("timado_pos_pmesh.png", bbox_inches='tight')
@@ -437,4 +476,5 @@ vals, xedge, yedge = get_binned_positioning(
     session, r_query,
     team, team.players[0], Team.DIRE,
     start, end,
-    cache_id="test.json")
+    cache_id="test.pkl",
+    use_cache=False)
