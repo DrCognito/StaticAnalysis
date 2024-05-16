@@ -147,3 +147,6 @@ test.env
 setup.env
 
 *.pdf
+
+# Our chosen pickle extension
+*.pkl
