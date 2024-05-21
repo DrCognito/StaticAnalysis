@@ -1,5 +1,5 @@
 from sqlalchemy import (BigInteger, Boolean, Column, Float, ForeignKey, String,
-                        create_engine)
+                        create_engine, Index)
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, column_property
@@ -158,45 +158,6 @@ class PlayerStatus(Base):
             .scalar_subquery()
             .label("team")
         )
-    # team = column_property(
-    #     select([Player.team])
-    #     .where(Player.replayID == replayID)
-    #     .where(Player.steamID == steamID)
-    #     .scalar_subquery()
-    #     .label("team")
-    # )
-
-    # @hybrid_property
-    # def team_id(self) -> int:
-    #     from StaticAnalysis.replays.TeamSelections import TeamSelections
-    #     return (
-    #         select([TeamSelections.teamID])
-    #         .where(TeamSelections.replay_ID == self.replayID)
-    #         .where(TeamSelections.team == self.team)
-    #         .as_scalar()
-    #     )
-
-    # @team_id.expression
-    # def team_id(cls) -> int:
-    #     from StaticAnalysis.replays.TeamSelections import TeamSelections
-    #     return (
-    #         select([TeamSelections.teamID])
-    #         .where(TeamSelections.replay_ID == cls.replayID)
-    #         .where(TeamSelections.team == cls.team)
-    #         .label("team_id")
-    #     )
-
-    # @team_id.expression
-    # def team_id(cls) -> int:
-    #     from StaticAnalysis.replays.TeamSelections import TeamSelections
-    #     return (
-    #         select([TeamSelections.teamID])
-    #         .where(TeamSelections.replay_ID == cls.replayID)
-    #         # .where(TeamSelections.team == cls.team)
-    #         .label("team_id")
-    #     )
-    # Relationships
-    # player = relationship(Player, back_populates="status", lazy="select")
 
     def __init__(self, player_in):
         # self.player = player_in
