@@ -163,7 +163,7 @@ class PlayerStatus(Base):
         # self.player = player_in
         self.replayID = player_in.replayID
 
-
+player_status_index = Index("idx_playerstatus_primaries", PlayerStatus.replayID, PlayerStatus.steamID, PlayerStatus.time)
 
 class NetWorth(Base):
     __tablename__ = "networth"
@@ -396,3 +396,4 @@ def InitDB(path):
     )
     engine = create_engine(path, echo=False)
     Base.metadata.create_all(engine)
+    # player_status_index.create(bind=engine)
