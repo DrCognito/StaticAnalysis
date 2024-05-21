@@ -141,6 +141,7 @@ class CachePositioning():
         return
 
 
+cache_store = {}
 def get_binned_positioning(
         session,
         r_query,
@@ -151,20 +152,24 @@ def get_binned_positioning(
         end: int,
         cache_id: str,
         limit: int =  None,
-        use_cache: bool = True
+        use_cache: bool = True,
+        save_cache: bool = True
         ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     # Only interested in one side
     r_query = r_query.filter(Replay.get_side_filter(team, side))
-    replay_set = {r.replayID for r in r_query}
+    replay_set = {r.replayID for r in r_query.limit(limit)}
 
     # Load cache
     cache_path = CACHE_ROOT / "positioning" / f"{cache_id}"
     cache = CachePositioning(side, team)
-    if use_cache and cache_path.exists():
-        with open(cache_path, 'rb') as cache_f:
-            cache = pickle.load(cache_f)
+    if use_cache:
+        if cache_id in cache_store:
+            cache = cache_store[cache_id]
+        elif cache_path.exists():
+            with open(cache_path, 'rb') as cache_f:
+                cache = pickle.load(cache_f)
     # Use the cache to get a restricted query
-    if valid_cache:= cache.valid_cache(r_query, player):
+    if valid_cache:= cache.valid_cache(r_query.limit(limit), player):
         r_query = cache.get_reduced_query(r_query, player)
     # Retrieve data
     if new_data := cache.new_data(replay_set, player):
@@ -198,7 +203,7 @@ def get_binned_positioning(
         positions += cache.positions[player.player_id]
 
     # Cache
-    if use_cache:
+    if save_cache:
         cache.add_cache(
             replay_set,
             player,
@@ -206,8 +211,9 @@ def get_binned_positioning(
             xedges,
             yedges
         )
-        with open(cache_path, 'wb') as cache_f:
-            pickle.dump(cache, cache_f)
+        cache_store[cache_id] = cache
+        # with open(cache_path, 'wb') as cache_f:
+        #     pickle.dump(cache, cache_f)
     # Return
     return positions, xedges, yedges
 
@@ -472,9 +478,148 @@ def plot_seaborn_kde(query_data: DataFrame, bins=64,
 # fig.tight_layout()
 # fig.savefig("timado_pos_pmesh.png", bbox_inches='tight')
 
-vals, xedge, yedge = get_binned_positioning(
-    session, r_query,
-    team, team.players[0], Team.DIRE,
-    start, end,
-    cache_id="test.pkl",
-    use_cache=False)
+
+def plot_np_hexbin(
+    xedges, yedges, vals,
+    ax_in):
+
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
+
+    X, Y = np.meshgrid(xedges, yedges)
+
+    plot = ax_in.hexbin(
+        x=X.flatten(),
+        y=Y.flatten(),
+        C=vals.T.flatten(),
+        gridsize=64,
+        extent=EXTENT,
+        cmap=colour_map,
+        zorder=2
+    )
+
+    divider = make_axes_locatable(ax_in)
+    side_bar = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar.locator = ticker.MaxNLocator(integer=True)
+    cbar.update_ticks()
+    cbar.ax.tick_params(labelsize=14)
+
+    ax_in.axis('off')
+
+    return ax_in
+
+
+def plot_np_pcolormesh(
+        xedges: np.ndarray, yedges: np.ndarray, vals: np.ndarray,
+        ax_in, vmin: int = 1
+    ):
+    X, Y = np.meshgrid(xedges, yedges)
+
+    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map.set_under('black', alpha=0.0)
+
+    # Add map
+    img = mpimg.imread(environment['MAP_PATH'])
+    ax_in.imshow(img, extent=EXTENT, zorder=0)
+
+    vals_test = np.zeros((65,65))
+    vals_test[:64, :64] = vals
+
+    plot = ax_in.pcolormesh(
+            X,
+            Y,
+            vals_test.T,
+            vmin=vmin,
+            cmap=colour_map,
+            zorder=2,
+            shading='gouraud',
+            rasterized=True
+            )
+    # Reposition colourbar
+    # https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
+    divider = make_axes_locatable(ax_in)
+    side_bar = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = plt.colorbar(plot, cax=side_bar)
+    cbar.locator = ticker.MaxNLocator(integer=True)
+    cbar.update_ticks()
+    cbar.ax.tick_params(labelsize=14)
+
+    ax_in.axis('off')
+
+    return ax_in
+
+
+def get_percentile_np(
+        vals: np.ndarray,
+        percentile = (0.7, 0.999),
+        exclude_zero = True
+    ) -> tuple[int, int]:
+    '''
+    Get the percentile count for an ndarray of data, designed to be used with histogram2d.
+    This data structure differs from the DataFrame in that it is not sparse (has lots of zeros).
+    Set exclude_zero (default True) to exclude zero which is inline with DataFrame method:
+    get_binning_percentile_xy()
+    '''
+    if exclude_zero:
+        vals[vals == 0] = np.nan
+    
+    return np.nanquantile(vals, percentile[0]), np.nanquantile(vals, percentile[1])
+
+# 40 replays total for DIRE, create a cache for 38
+# vals, xedge, yedge = get_binned_positioning(
+#     session, r_query,
+#     team, team.players[0], Team.DIRE,
+#     start, end,
+#     cache_id="test_limit38.pkl",
+#     use_cache=False,
+#     save_cache=False)
+# vmin, _ = get_percentile_np(vals)
+
+# plot_np_pcolormesh(
+#     xedge, yedge, vals,
+#     ax_in=axes[0], vmin=vmin
+# )
+# axes[0].set_title('UnCached')
+
+# vals, xedge, yedge = get_binned_positioning(
+#     session, r_query,
+#     team, team.players[0], Team.DIRE,
+#     start, end,
+#     cache_id="test_limit38.pkl",
+#     use_cache=True,
+#     save_cache=False)
+# vmin, _ = get_percentile_np(vals)
+
+# plot_np_pcolormesh(
+#     xedge, yedge, vals,
+#     ax_in=axes[1], vmin=vmin
+# )
+# axes[1].set_title('Cached')
+
+# fig.tight_layout()
+# fig.savefig("cache_compare.png", bbox_inches='tight')
+
+# for player in team.players:
+#     vals, xedge, yedge = get_binned_positioning(
+#         session, r_query,
+#         team, player, Team.DIRE,
+#         start, end,
+#         cache_id="test_limit38.pkl",
+#         use_cache=True,
+#         save_cache=False
+#     )
+
+for player in team.players:
+    vals, xedge, yedge = get_binned_positioning(
+        session, r_query,
+        team, player, Team.DIRE,
+        start, end,
+        cache_id="test_limit38.pkl",
+        use_cache=False,
+        save_cache=False
+    )
