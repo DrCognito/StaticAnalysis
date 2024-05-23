@@ -18,7 +18,7 @@ from herotools.important_times import ImportantTimes, nice_time_names
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pandas import DataFrame, IntervalIndex, cut, read_sql
+from pandas import DataFrame, IntervalIndex, cut, read_sql, concat
 from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
@@ -28,7 +28,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
-from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id
 from StaticAnalysis.analysis.priority_picks import (priority_picks,
                                                     priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -938,11 +938,23 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     fig = plt.figure()
 
+    # This MUST be cast to into or sqlalchemy can not filter with it and effectively imposes no limit!
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     start = 6.5 * 60
-    end = rune_times['game_time'].max()
-    table = player_position_replays(session, r_query,
-                                    start=start, end=end,)
+    # end = int(rune_times['game_time'].max())
+    # table = player_position_replays(session, r_query,
+    #                                 start=start, end=end)
+
+    table_replays = []
+    r: Replay
+    for r in r_query:
+        rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
+        rune_max = int(rune_max)
+        table_replays.append(player_position_replay_id(
+            session, r.replayID,
+            start=start, end=rune_max
+            ))
+    table = concat(table_replays)
 
     do_rune_pos = False
     if do_rune_pos:
