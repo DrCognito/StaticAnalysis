@@ -189,7 +189,31 @@ def player_position_replays(session, r_query, start: int, end: int, extra_filter
     query = (
         session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
                       PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
+               .filter(*filter)
                .join(r_query.subquery())
+    )
+
+    pos_table = read_sql(query.statement, session.bind)
+
+    return pos_table
+
+
+
+def player_position_replay_id(session, replay_id: int, start: int, end: int) -> DataFrame:
+    '''
+    More general player position table.
+    start: int in seconds
+    end: int in seconds
+    '''
+    filter = (
+        PlayerStatus.replayID == replay_id,
+        PlayerStatus.game_time > start,
+        PlayerStatus.game_time <= end
+        )
+
+    query = (
+        session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
+                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
                .filter(*filter)
     )
 
