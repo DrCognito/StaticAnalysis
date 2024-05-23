@@ -101,6 +101,15 @@ class Replay(Base):
 
         return first_pick_side == team_side
 
+    PLAYER_NOTFOUND = object()
+    def get_team_id_player(self, player: 'Player'):
+        ts: TeamSelections
+        for ts in self.teams:
+            if player.team == ts.team:
+                return ts.teamID
+
+        return Replay.PLAYER_NOTFOUND
+
     def get_side(self, team: 'TeamInfo') -> Team:
         """Get side that a team is on or None if not found."""
         if self.teams[0].teamID == team.team_id:
