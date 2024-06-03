@@ -83,7 +83,7 @@ def simple_side_filter(r_query, session, team: TeamInfo,
         typeFilter = and_(typeFilter, extra_filter)
     # else:
     #     w_query = session.query(Type).join(replays)
-    w_query = session.query(Type).join(replays).filter(typeFilter)
+    w_query = session.query(Type).join(replays.subquery()).filter(typeFilter)
     return w_query
 
 

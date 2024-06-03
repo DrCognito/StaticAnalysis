@@ -56,10 +56,10 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
         if limit is not None:
             replays = replays.order_by(Replay.replayID.desc()).limit(limit)
         p_picks = session.query(Player.hero).filter(p_f)\
-                                            .join(replays)
+                                            .join(replays.subquery())
 
         p_picks = session.query(Player).filter(p_f)\
-                                       .join(replays)
+                                       .join(replays.subquery())
 
         p_res = Series(name=player.name, dtype='UInt16')
         pick: Player
