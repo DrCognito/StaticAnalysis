@@ -954,6 +954,10 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             session, r.replayID,
             start=start, end=rune_max
             ))
+    
+    if not table_replays:
+        # No data here!
+        return metadata
     table = concat(table_replays)
 
     do_rune_pos = False
