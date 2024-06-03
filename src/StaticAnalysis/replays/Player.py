@@ -136,14 +136,14 @@ class PlayerStatus(Base):
     @hybrid_property
     def game_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.time - creepSpawn
 
     @hybrid_property
     def hero(self) -> str:
         return (
-            select([Player.hero])
+            select(Player.hero)
             .where(Player.replayID == self.replayID)
             .where(Player.steamID == self.steamID)
             .label("hero")
@@ -152,7 +152,7 @@ class PlayerStatus(Base):
     @hybrid_property
     def team(self) -> Team:
         return (
-            select([Player.team])
+            select(Player.team)
             .where(Player.replayID == self.replayID)
             .where(Player.steamID == self.steamID)
             .scalar_subquery()
@@ -177,7 +177,7 @@ class NetWorth(Base):
     @hybrid_property
     def game_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.time - creepSpawn
 
@@ -188,7 +188,7 @@ class NetWorth(Base):
     @hero.expression
     def hero(cls) -> str:
         return (
-            select([Player.hero])
+            select(Player.hero)
             .where(Player.replayID == cls.replayID)
             .where(Player.steamID == cls.steamID)
             .label("hero")
@@ -201,7 +201,7 @@ class NetWorth(Base):
     @team.expression
     def team(cls) -> Team:
         return (
-            select([Player.team])
+            select(Player.team)
             .where(Player.replayID == cls.replayID)
             .where(Player.steamID == cls.steamID)
             .label("team")
@@ -234,7 +234,7 @@ class CumulativePlayerStatus():
     @hybrid_property
     def game_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.time - creepSpawn
 
@@ -385,7 +385,7 @@ def InitDB(path):
     inspect(PlayerStatus).add_property(
         "team_id",
         column_property(
-            select([TeamSelections.teamID])
+            select(TeamSelections.teamID)
             .where(p_status.replayID == PlayerStatus.replayID)
             .where(p_status.steamID == PlayerStatus.steamID)
             .where(TeamSelections.replay_ID == p_status.replayID)

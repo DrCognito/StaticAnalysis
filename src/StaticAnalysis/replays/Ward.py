@@ -27,7 +27,7 @@ class Ward(PositionTimeBase, Base):
 
     @from_smoke.expression
     def from_smoke(self):
-        is_smoked = select([PlayerStatus.is_smoked])\
+        is_smoked = select(PlayerStatus.is_smoked)\
                         .where(PlayerStatus.replayID == self.replayID)\
                         .where(PlayerStatus.steamID == self.steamID)\
                         .where(PlayerStatus.time == self.time)\

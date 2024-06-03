@@ -35,7 +35,7 @@ class PositionTimeBase():
     @game_time.expression
     def game_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.time - creepSpawn
 
@@ -46,6 +46,6 @@ class PositionTimeBase():
     @winner.expression
     def winner(self):
         from .Replay import Replay
-        winner = select([Replay.winner]).\
+        winner = select(Replay.winner).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.team == winner

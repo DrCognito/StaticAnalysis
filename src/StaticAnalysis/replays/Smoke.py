@@ -28,7 +28,7 @@ class Smoke(Base):
     @game_start_time.expression
     def game_start_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.startTime - creepSpawn
 
@@ -41,7 +41,7 @@ class Smoke(Base):
     @game_end_time.expression
     def game_end_time(self):
         from .Replay import Replay
-        creepSpawn = select([Replay.creepSpawn]).\
+        creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).as_scalar()
         return self.endTime - creepSpawn
 
