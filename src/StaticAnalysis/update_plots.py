@@ -503,7 +503,7 @@ def do_wards_separate(team: TeamInfo, r_query,
                                            Type=Ward,
                                            side=side,
                                            start=-2*60, end=20*60)
-        except LookupError:
+        except LookupError as e:
             print(f"Failed to process slice! wards for. Error:\n{e}")
         wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
 
