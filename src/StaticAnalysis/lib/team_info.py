@@ -2,8 +2,7 @@ from os import environ as environment
 
 from sqlalchemy import (BigInteger, Column, DateTime, ForeignKey, Integer,
                         String, and_, create_engine, or_)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import reconstructor, relationship
+from sqlalchemy.orm import reconstructor, relationship, declarative_base
 
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections
