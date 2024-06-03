@@ -31,7 +31,7 @@ class Ward(PositionTimeBase, Base):
                         .where(PlayerStatus.replayID == self.replayID)\
                         .where(PlayerStatus.steamID == self.steamID)\
                         .where(PlayerStatus.time == self.time)\
-                        .as_scalar()
+                        .scalar_subquery()
 
         return is_smoked
 

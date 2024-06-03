@@ -64,7 +64,7 @@ class Rune(Base):
     def game_time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
-            where(self.replayID == Replay.replayID).as_scalar()
+            where(self.replayID == Replay.replayID).scalar_subquery()
         return self.time - creepSpawn
 
 
