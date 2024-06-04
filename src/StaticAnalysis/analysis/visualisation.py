@@ -734,15 +734,15 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
     _process_runes(power, axes[0], [team.name, "Opposition"])
     axes[0].set_ylabel("Power", fontsize=14)
 
-    bounty = bounty.resample('5T').sum()[:10]
+    bounty = bounty.resample('5min').sum()[:10]
     _process_runes(bounty, axes[1], [team.name, "Opposition"])
     axes[1].set_ylabel("Bounty", fontsize=14)
 
-    water = water.resample('2T').sum()[1:3]
+    water = water.resample('2min').sum()[1:3]
     _process_runes(water, axes[2], [team.name, "Opposition"])
     axes[2].set_ylabel("Water", fontsize=14)
 
-    wisdom = wisdom.resample('7T').sum()[1:9]
+    wisdom = wisdom.resample('7min').sum()[1:9]
     _process_runes(wisdom, axes[3], [team.name, "Opposition"])
     axes[3].set_ylabel("Wisdom", fontsize=14)
 
