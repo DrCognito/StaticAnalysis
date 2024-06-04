@@ -730,7 +730,7 @@ def plot_runes(rune_data: DataFrame, team: TeamInfo, fig: Figure):
         xmin, xmax = axis.get_xlim()
         axis.plot((xmin, xmax), (0.5, 0.5), linewidth=3, color='r')
 
-    power = power.resample('2T').sum()[3:13]
+    power = power.resample('2min').sum()[3:13]
     _process_runes(power, axes[0], [team.name, "Opposition"])
     axes[0].set_ylabel("Power", fontsize=14)
 
