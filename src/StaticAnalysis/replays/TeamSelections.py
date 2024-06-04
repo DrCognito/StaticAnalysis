@@ -63,6 +63,7 @@ def populate_from_JSON(json, replay_in, session):
     def _process_team(json, replay_in, team):
         assert(team in Team)
         new_team = TeamSelections(replay_in)
+        session.add(new_team)
         new_team.team = team
 
         pick_ban = get_pick_ban(json)
@@ -76,6 +77,7 @@ def populate_from_JSON(json, replay_in, session):
             if t != team.value:
                 continue
             new_pb = PickBans()
+            session.add(new_pb)
             new_pb.replayID = replay_in.replayID
             new_pb.order = order
             if hero == "unknown_hero":
@@ -128,5 +130,5 @@ def get_stack_id(replay, team):
 
 
 def InitDB(path):
-    engine = create_engine(path, echo=False)
+    engine = create_engine(path)
     Base.metadata.create_all(engine)

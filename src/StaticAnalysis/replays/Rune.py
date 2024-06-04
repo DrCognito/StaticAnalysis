@@ -75,6 +75,7 @@ def populate_from_JSON(json, replay_in, session):
     id = 0
     for r in rune_list:
         new_rune = Rune(replay_in)
+        session.add(new_rune)
         new_rune.id = id
         id += 1
 

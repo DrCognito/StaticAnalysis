@@ -200,6 +200,7 @@ def populate_from_JSON_file(path, session, skip_existing=True):
                 session.flush()
 
         working_replay = Replay()
+        session.add(working_replay)
         working_replay.replayID = JSONProcess.get_replay_id(jsonFile, path)
         working_replay.endTimeUTC = datetime.fromtimestamp(
                                         JSONProcess.get_end_time_UTC(jsonFile))

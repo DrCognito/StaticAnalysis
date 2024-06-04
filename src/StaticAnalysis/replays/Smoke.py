@@ -103,6 +103,7 @@ def populate_from_JSON(json, replay_in, session):
         id = 0
         for start, end in smoke_startend:
             new_smoke = Smoke(replay_in)
+            session.add(new_smoke)
             new_smoke.team = team
             new_smoke.startTime = start
             new_smoke.endTime = end

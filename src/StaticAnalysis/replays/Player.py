@@ -269,13 +269,13 @@ def populate_from_JSON(json, replay_in, session):
         for t, (x, y, smoked, alive) in enumerate(get_player_status(
                                                   player.hero, json)):
             new_status = PlayerStatus(player)
+            session.add(new_status)
             new_status.time = t + player.created_at
             new_status.xCoordinate = x
             new_status.yCoordinate = y
             new_status.is_smoked = smoked
             new_status.is_alive = alive
 
-            # session.add(new_position)
             status_out.append(new_status)
 
         return status_out
@@ -284,6 +284,7 @@ def populate_from_JSON(json, replay_in, session):
         net_worth = list()
         for t, gp in enumerate(get_net_worth(player.hero, json)):
             new_class = NetWorth(player)
+            session.add(new_class)
             new_class.steamID = player.steamID
             new_class.time = t + player.created_at
             new_class.networth = gp
@@ -302,6 +303,7 @@ def populate_from_JSON(json, replay_in, session):
 
         for v in list_in["assists"]:
             new_class = Assists()
+            session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
@@ -312,6 +314,7 @@ def populate_from_JSON(json, replay_in, session):
         
         for v in list_in["deaths"]:
             new_class = Deaths()
+            session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
@@ -322,6 +325,7 @@ def populate_from_JSON(json, replay_in, session):
 
         for v in list_in["denies"]:
             new_class = Denies()
+            session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
@@ -332,6 +336,7 @@ def populate_from_JSON(json, replay_in, session):
 
         for v in list_in["kills"]:
             new_class = Kills()
+            session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
@@ -342,6 +347,7 @@ def populate_from_JSON(json, replay_in, session):
 
         for v in list_in["last_hits"]:
             new_class = LastHits()
+            session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
             new_class.time = int(v)
@@ -355,6 +361,7 @@ def populate_from_JSON(json, replay_in, session):
 
     for hero, steam_ID in zip(pick_ban['playerHero'], pick_ban['steamID']):
         new_player = Player(replay_in)
+        session.add(new_player)
         new_player.hero = hero
         new_player.steamID = steam_ID
         new_player.created_at = get_player_created(hero, json)

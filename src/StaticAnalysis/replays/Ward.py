@@ -45,6 +45,7 @@ def populate_from_JSON(json, replay_in, session):
     id = 0
     for w in get_wards(json):
         new_ward = Ward(replay_in)
+        session.add(new_ward)
         new_ward.id = id
         id += 1
 

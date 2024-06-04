@@ -36,6 +36,7 @@ def populate_from_JSON(json, replay_in, session):
                       scan_object['timeList'])
     for x, y, hero, team, time in scan_object:
         new_scan = Scan(replay_in)
+        session.add(new_scan)
         new_scan.id = id
         id += 1
 
@@ -59,5 +60,5 @@ def populate_from_JSON(json, replay_in, session):
 
 
 def InitDB(path):
-    engine = create_engine(path, echo=False)
+    engine = create_engine(path)
     Base.metadata.create_all(engine)
