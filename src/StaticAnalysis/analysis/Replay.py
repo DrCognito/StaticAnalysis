@@ -401,7 +401,8 @@ def counter_picks(session, r_query, team) -> DataFrame:
         DataFrame -- [opp_picks vs team picks] includes 0s.
     """
     counters = DataFrame(columns=short_alphabetical_names,
-                         index=short_alphabetical_names)
+                         index=short_alphabetical_names,
+                         dtype='Int64')
     counters = counters.fillna(0)
 
     def _process(side):
@@ -427,7 +428,11 @@ def counter_picks(session, r_query, team) -> DataFrame:
                 name = heroShortName[pick_ban['hero']]
                 if pick_ban['side'] == side:
                     for o in opp_picks:
-                        counters[name][o] += 1
+                        # Old deprecated:
+                        # counters[name][o] += 1
+                        # NOTE: The order is swapped!
+                        # df[column][row] == df.loc[row, column]
+                        counters.loc[o, name] += 1
                 else:
                     opp_picks.append(name)
         return
