@@ -102,6 +102,7 @@ def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
         pick_filter = and_(pick_filter, extra_p_filt)
     replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replayID).filter(pick_filter)
 
+    output = {}
     for r in replays:
         found_hero = False
         for t in r.teams:
@@ -127,19 +128,23 @@ def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
                         update = 'Opponent Pick'
                     else:
                         update = 'Opponent Ban'
+                if h_in not in output:
+                    output[h_in] = {
+                        'Pick':0,
+                        'Ban':0,
+                        'Opponent Pick':0,
+                        'Opponent Ban':0
+                    }
 
-                if h_in in output[update]:
-                    output.loc[h_in, update] += 1
-                else:
-                    output.loc[h_in, update] = 1
+                output[h_in][update] += 1
         if not found_hero:
             print(f"Failed to find {hero} in {r.replayID}")
             #raise AssertionError
         #assert(found_hero)
 
-    output.fillna(0, inplace=True)
+    out_df = DataFrame(output)
 
-    return output
+    return out_df.T
 
 
 def player_position(session, r_query, team: TeamInfo, player_slot: int,
