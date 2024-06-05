@@ -5,6 +5,7 @@ from herotools.important_times import MAIN_TIME
 from StaticAnalysis.analysis.Player import player_position, PlayerStatus
 from StaticAnalysis.analysis.visualisation import dataframe_xy, get_binning_percentile_xy, plot_object_position
 import matplotlib.pyplot as plt
+from matplotlib import colormaps as mpl_colormaps
 from pandas import DataFrame, cut
 from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
@@ -279,8 +280,8 @@ def plot_counts_hexbin(query_data: DataFrame, bins=64,
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    #jet = plt.get_cmap('rainbow')
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    #jet = mpl_colormaps.get('rainbow')
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
@@ -319,8 +320,8 @@ def plot_counts_hist2d(query_data: DataFrame, bins=64,
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    #jet = plt.get_cmap('rainbow')
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    #jet = mpl_colormaps.get('rainbow')
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
@@ -367,8 +368,8 @@ def plot_counts_pcolormesh(
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    #jet = plt.get_cmap('rainbow')
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    #jet = mpl_colormaps.get('rainbow')
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # [[xmin, xmax], [ymin, ymax]]
@@ -416,8 +417,8 @@ def plot_seaborn_kde(query_data: DataFrame, bins=64,
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    #jet = plt.get_cmap('rainbow')
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    #jet = mpl_colormaps.get('rainbow')
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
@@ -483,7 +484,7 @@ def plot_np_hexbin(
     xedges, yedges, vals,
     ax_in):
 
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
@@ -520,7 +521,7 @@ def plot_np_pcolormesh(
     ):
     X, Y = np.meshgrid(xedges, yedges)
 
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
 
     # Add map

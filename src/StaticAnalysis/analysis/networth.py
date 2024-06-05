@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  heroShortName)
 from matplotlib.axes import Axes
-from matplotlib.cm import get_cmap
+from matplotlib import colormaps as mpl_colormaps
 from pandas import DataFrame, read_sql
 from PIL import Image
 
@@ -112,8 +112,8 @@ def plot_networth(axis: Axes, main_team, opposition, plot_fraction=True):
     result = main_team['networth'] - opposition['networth']
 
     significance_percent = 0.1
-    pos_map = get_cmap("Greens")
-    neg_map = get_cmap("Reds")
+    pos_map = mpl_colormaps.get("Greens")
+    neg_map = mpl_colormaps.get("Reds")
     if result < 0:
         fraction = main_team['networth'] / opposition['networth']
         if fraction < (1.0 - significance_percent):

@@ -217,7 +217,7 @@ def pos_vector(l: float, angle: float)->(float, float):
 #     # Pre game to 20mins
 #     vmin = -120
 #     vmax = 20*60
-#     jet = plt.get_cmap('afmhot')
+#     jet = mpl_colormaps.get('afmhot')
 
 #     img = mpimg.imread(environment['MAP_PATH'])
 #     ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)

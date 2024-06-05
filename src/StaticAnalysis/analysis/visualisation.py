@@ -8,6 +8,7 @@ import numpy as np
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  heroShortName)
 from matplotlib import ticker
+from matplotlib import colormaps as mpl_colormaps
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
@@ -563,8 +564,7 @@ def plot_player_positioning(query_data: DataFrame, ax_in):
     # else:
     #     ax_in = fig_in.subplots()
 
-    # jet = plt.get_cmap('afmhot')
-    colour_map = copy.copy(plt.get_cmap('afmhot'))
+    colour_map = copy.copy(mpl_colormaps.get('afmhot'))
     colour_map.set_under('black', alpha=0.0)
 
     vmin, vmax = get_binning_percentile_xy(query_data)
@@ -600,8 +600,7 @@ def plot_object_position(query_data: DataFrame, bins=64,
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    #jet = plt.get_cmap('rainbow')
-    colour_map = copy.copy(plt.get_cmap('rainbow'))
+    colour_map = copy.copy(mpl_colormaps.get('rainbow'))
     colour_map.set_under('black', alpha=0.0)
     if vmax is None:
         vmax = get_binning_max_xy(query_data, bins)
@@ -683,7 +682,7 @@ def plot_object_position_scatter(query_data: DataFrame, size=700,
     if ax_in is None:
         ax_in = fig_in.add_subplot(111)
 
-    colour_map = copy.copy(plt.get_cmap('afmhot'))
+    colour_map = copy.copy(mpl_colormaps.get('afmhot'))
     colour_map.set_under('black', alpha=0.0)
 
     plot = ax_in.scatter(x=query_data['xCoordinate'],
