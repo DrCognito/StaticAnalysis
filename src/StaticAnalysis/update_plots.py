@@ -63,6 +63,12 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis import session, team_session, pub_session
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 
+import warnings
+warnings.filterwarnings(
+    "error",
+    category=FutureWarning
+)
+
 DB_PATH = environment['PARSED_DB_PATH']
 PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 
@@ -1279,7 +1285,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     reprocess = args.reprocess
     extra_stackid = args.extra_stackid
-    stat_time = ti if (ti := ImportantTimes[args.statistic_time]) is not None else time
+    stat_time = ti if (ti := ImportantTimes.get(args.statistic_time)) is not None else time
 
     if extra_stackid is not None:
         team.extra_stackid = extra_stackid
