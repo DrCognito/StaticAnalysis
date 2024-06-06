@@ -443,8 +443,8 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
                 print("Unable to find hero icon for 4: " + hero)
                 continue
 
-            y_pos1 = -0.1
-            y_pos2 = -0.25
+            y_pos1 = -0.12
+            y_pos2 = -0.32
             size = 1.0
 
             x_rel = (float(x_loc) - x_min)/x_range

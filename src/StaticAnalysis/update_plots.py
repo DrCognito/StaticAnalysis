@@ -874,7 +874,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     if pick_pair_df:
         fig, extra = plot_pick_pairs(pick_pair_df, fig)
         output = team_path / f'pick_pairs{postfix}.png'
-        fig.tight_layout(h_pad=7.0)
+        fig.tight_layout(h_pad=1.5)
         fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
         fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
@@ -883,7 +883,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     if not draft_summary_df[0].empty:
         fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
         output = team_path / f'pick_context{postfix}.png'
-        fig.tight_layout(h_pad=3.0)
+        # fig.tight_layout(h_pad=3.0)
         fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
         fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
