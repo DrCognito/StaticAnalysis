@@ -62,6 +62,7 @@ from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis import session, team_session, pub_session
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
+from math import isnan
 
 import warnings
 warnings.filterwarnings(
@@ -955,6 +956,9 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     r: Replay
     for r in r_query:
         rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
+        if isnan(rune_max):
+            print(f"No wisdom rune results for {r.replayID}")
+            continue
         rune_max = int(rune_max)
         table_replays.append(player_position_replay_id(
             session, r.replayID,
@@ -1471,9 +1475,10 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             plt.close('all')
 
             print("Making PDF report.")
-            report_path = Path(PLOT_BASE_PATH) / team.name
-            report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
+            report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
+            mini_report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
             make_report(team, metadata, report_path)
+            make_mini_report(team, metadata, mini_report_path)
 
             path = store_metadata(team, metadata)
             print("Metadata file updated at {}".format(str(path)))
@@ -1581,8 +1586,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     print("Making PDF report.")
     report_path = Path(PLOT_BASE_PATH) / team.name
-    report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
-    mini_report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
+    report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
+    mini_report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
     make_report(team, metadata, report_path)
     make_mini_report(team, metadata, mini_report_path)
 
