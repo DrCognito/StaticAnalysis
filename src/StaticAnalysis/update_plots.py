@@ -1276,6 +1276,129 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     metadata['pdf_report'] = str(output)
 
 
+def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", "B", 24)
+    dataset = metadata['name']
+    time_string = metadata.get('time_string', "(No replay data)")
+    pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font('helvetica', size=12)
+    # Stats
+    pdf.cell(0, 5, f"Win rates:", new_x="LMARGIN", new_y="NEXT")
+    stats = metadata['stat_win_rate']
+    if stats:
+        pdf.write_html(stats)
+    general_stats = get_generalstats(team)
+    if general_stats:
+        pdf.write_html(general_stats)
+
+    # Replays
+    pdf.cell(0, 5, f"Replays:", new_y="NEXT")
+    pdf.set_font("helvetica", size=9)
+    # Basic table:
+    # replays_dire = {str(x) for x in metadata['replays_dire']}
+    replays_dire = metadata['replays_dire']
+    if replays_dire:
+        replays_dire.sort(reverse=True)
+    else:
+        replays_dire = []
+    replays_radiant = metadata['replays_radiant']
+    if replays_radiant:
+        replays_radiant.sort(reverse=True)
+    else:
+        replays_radiant = []
+
+    with pdf.table() as table:
+        row = table.row()
+        row.cell("Dire")
+        row.cell("Radiant")
+        for dire, radiant in zip_longest(replays_dire, replays_radiant, fillvalue=''):
+            row = table.row()
+            row.cell(str(dire))
+            row.cell(str(radiant))
+
+    # Draft onlys
+    drafts_only_dire = metadata['drafts_only_dire']
+    if drafts_only_dire:
+        drafts_dire = [x for x in drafts_only_dire if x not in replays_dire]
+        drafts_dire.sort(reverse=True)
+    else:
+        drafts_dire = []
+
+    drafts_only_radiant = metadata['drafts_only_radiant']
+    if drafts_only_radiant:
+        drafts_radiant = [x for x in drafts_only_radiant if x not in replays_radiant]
+        drafts_radiant.sort(reverse=True)
+    else:
+        drafts_radiant = []
+
+    if drafts_dire or drafts_radiant:
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(40, 10, f"Drafts only:", new_y="NEXT")
+        pdf.set_font("helvetica", size=9)
+        with pdf.table() as table:
+            row = table.row()
+            row.cell("Dire")
+            row.cell("Radiant")
+            for dire, radiant in zip_longest(drafts_dire, drafts_radiant, fillvalue=''):
+                row = table.row()
+                row.cell(str(dire))
+                row.cell(str(radiant))
+
+    # Pick priority
+    # pick_priority = metadata.get('pick_priority')
+    # if pick_priority:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
+    # # Draft summary + pick tables
+    plot_draft_summary = metadata.get('plot_draft_summary')
+    plot_picktables = metadata.get('plot_picktables')
+    if plot_draft_summary or plot_picktables:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
+    # Hero Picks
+    plot_hero_picks = metadata.get('plot_hero_picks')
+    if plot_hero_picks:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+    # Hero Flex
+    # plot_hero_flex = metadata.get('plot_hero_flex')
+    # if plot_hero_flex:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
+    # Win Rate
+    # plot_win_rate = metadata.get('plot_win_rate')
+    # if plot_win_rate:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
+    # First Pick Drafts
+    plot_drafts_first = metadata.get('plot_drafts_first')
+    if plot_drafts_first:
+        pdf.add_page()
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_first[1:]:
+            pdf.add_page()
+            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    # Second Pick Drafts
+    plot_drafts_second = metadata.get('plot_drafts_second')
+    if plot_drafts_second:
+        pdf.add_page()
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_second[1:]:
+            pdf.add_page()
+            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+
+    # Write pdf
+    pdf.output(output)
+    metadata['pdf_mini_report'] = str(output)
+
+
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, end_time: datetime = None, replay_list=None):
 
@@ -1459,7 +1582,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     print("Making PDF report.")
     report_path = Path(PLOT_BASE_PATH) / team.name
     report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
+    mini_report_path = report_path / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
     make_report(team, metadata, report_path)
+    make_mini_report(team, metadata, mini_report_path)
 
     path = store_metadata(team, metadata)
 
