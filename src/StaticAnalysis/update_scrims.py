@@ -84,6 +84,31 @@ def is_valid_replay(replay: Replay) -> bool:
     return True
 
 
+def fix_replay_mainonly(replay: Replay) -> Replay:
+    player_min = 2
+    main_side = replay.get_side(main_team)
+    team_dict = replay.get_team_dict()
+    if main_side is not None:
+        print(f"Main team already asigned for {replay.replayID}!")
+        team_dict[main_side].teamID = main_team.team_id
+        team_dict[main_side].teamName = main_team.name
+        return Replay
+    main_players = {p.player_id for p in main_team.players}
+    n_dire = replay.matching_players(main_players, Team.DIRE)
+    n_radiant = replay.matching_players(main_players, Team.RADIANT)
+
+    if n_dire > n_radiant and n_dire >= player_min:
+        team_dict[Team.DIRE].teamID = main_team.team_id
+        team_dict[Team.DIRE].teamName = main_team.name
+    elif n_radiant > n_dire and n_radiant >= player_min:
+        team_dict[Team.RADIANT].teamID = main_team.team_id
+        team_dict[Team.RADIANT].teamName = main_team.name
+
+    assert(team_dict[Team.DIRE].teamID != team_dict[Team.RADIANT].teamID)
+
+    return replay
+
+
 def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
     """"Attempt to correct the team info for a replay."""
 
@@ -219,6 +244,41 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
         print(is_valid_replay(replay))
         unfixed_replays.add(scrim_id)
 
+# Get scrims that are downloaded but not in the sheet
+from pathlib import Path
+scrim_path = Path('E:\\Dota2\\dbScrim\\')
+scrim_files = list(scrim_path.glob("*.dem"))
+file_ids = {s.stem for s in scrim_files}
+# Check the ones we have that are new as above
+for scrim_id in file_ids.difference(scrim_ids[2:]):
+    print(f"Checking id {scrim_id} not present in sheet!")
+    name = "unknown"
+    # Do OG also
+    if main_team_id in scrim_dict:
+        scrim_dict[main_team_id][int(scrim_id)] = name
+    else:
+        scrim_dict[main_team_id] = {int(scrim_id): name}
+
+    replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
+    if replay is None:
+        print(f"Missing {scrim_id} in processed db.")
+        continue
+    if is_valid_replay(replay):
+        continue
+
+    replay = fix_replay_mainonly(replay)
+    session.commit()
+
+    # replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
+    # # Check replay is new enough
+    # # No replay found
+    # if replay is None:
+    #     missing.add(scrim_id)
+    #     continue
+    # if replay.endTimeUTC < time_cut:
+    #     continue
+    # if is_valid_replay(replay):
+    #     continue
 
 with open(SCRIMS_JSON_PATH, 'w') as f:
     json.dump(scrim_dict, f)
