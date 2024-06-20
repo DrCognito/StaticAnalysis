@@ -1250,10 +1250,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
-    plot_win_rate = metadata.get('plot_win_rate')
-    if plot_win_rate:
-        pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
+    # plot_win_rate = metadata.get('plot_win_rate')
+    # if plot_win_rate:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
     # First Pick Drafts
     plot_drafts_first = metadata.get('plot_drafts_first')
     if plot_drafts_first:
