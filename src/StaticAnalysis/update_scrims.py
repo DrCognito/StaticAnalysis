@@ -251,6 +251,9 @@ scrim_files = list(scrim_path.glob("*.dem"))
 file_ids = {s.stem for s in scrim_files}
 # Check the ones we have that are new as above
 for scrim_id in file_ids.difference(scrim_ids[2:]):
+    if not scrim_id.isnumeric():
+        print(f"Invalid scrim id from file {scrim_id}")
+        continue
     print(f"Checking id {scrim_id} not present in sheet!")
     name = "unknown"
     # Do OG also
