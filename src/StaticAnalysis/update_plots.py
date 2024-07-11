@@ -1430,7 +1430,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
 
-    r_filter = and_(Replay.replayID != 7797067177, r_filter)
+    r_filter = and_(Replay.replayID.not_in([7797067177, 7831998757, 7829996783]),
+                    r_filter)
 
     # start = t.process_time()
     new_dire, dire_list = is_updated(session, r_query, team, Team.DIRE,
