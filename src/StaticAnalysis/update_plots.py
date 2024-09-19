@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF
 from herotools.important_times import ImportantTimes, nice_time_names
+from herotools.lib.position import strict_pos, loose_pos, mixed_pos
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -25,7 +26,6 @@ from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
                                      get_team_last_result)
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
 from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id
@@ -812,7 +812,10 @@ def do_player_picks(team: TeamInfo, metadata: dict,
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
         pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > mintime else mintime
-        plot_team_pubs_timesplit(team, axes_second, pub_session, mintime=pro_pub_time, maxtime=maxtime)
+        plot_team_pubs_timesplit(
+            team, axes_second, pub_session,
+            mintime=pro_pub_time, maxtime=maxtime,
+            pos_requirements=strict_pos)
     else:
         axes_first = fig.subplots(5)
 
