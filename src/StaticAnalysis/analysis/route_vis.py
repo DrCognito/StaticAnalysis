@@ -7,15 +7,26 @@ from PIL.Image import open as Image_open
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
+from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scatter, plot_circle_scatter
 from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward, WardType
+from StaticAnalysis.replays.Smoke import Smoke
+from pandas import read_sql
+from matplotlib.colors import to_rgba
 
-
-def plot_player_paths(paths, colours, names, axis):
+def plot_player_paths(paths, colours, names, axis, smoke_alpha=1.0):
     assert(len(paths) <= len(colours))
+    quiveropts = dict(
+        # edgecolor=(1,1,1,1),
+        #headlength=0,
+        #pivot='middle',
+        linewidth=1,
+        # width=.05,
+        # headwidth=1
+        )
     # add_map(axis)
     plots = []
     for colour, path, name in zip(colours, paths, names):
@@ -23,10 +34,18 @@ def plot_player_paths(paths, colours, names, axis):
             continue
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
+        alpha_color = to_rgba(colour, smoke_alpha)
+        path['face'] = path['is_smoked'].apply(
+            lambda x: alpha_color if x else colour
+        )
+        path['edge'] = [colour]*path.shape[0]
 
         plot = axis.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1],
                            scale_units='xy', angles='xy', scale=1,
-                           zorder=2, color=colour, label=name)
+                           zorder=2, color=path['face'], label=name,
+                        #    alpha=path['alpha'],
+                            edgecolor=path['edge'],
+                           **quiveropts)
         plots.append(plot)
         axis.axis('off')
     xMin, xMax, yMin, yMax = EXTENT
@@ -38,7 +57,7 @@ def plot_player_paths(paths, colours, names, axis):
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
                          session, team_session,
-                         fig, ward_size: Tuple[int, int] = (8, 7)):
+                         fig, ward_size: Tuple[int, int] = (8, 7), smoke_alpha=0.5):
 
     axis = fig.subplots()
     # Add the map
@@ -62,8 +81,18 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             name = player.steamID
             print(f"Player {player.steamID} not found in {replay.replayID}")
             order.append(-1*player.steamID)
-        p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
-                            PlayerStatus, session)
+        query = player.status.filter(PlayerStatus.game_time <= 0)
+        # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
+        #                     PlayerStatus, session)
+        sql_query = query.with_entities(
+            PlayerStatus.xCoordinate,
+            PlayerStatus.yCoordinate,
+            PlayerStatus.is_smoked).statement
+
+        p_df = read_sql(sql_query, session.bind)
+        p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
+        # p_df['face'] = p_df['is_smoked'].replace({True:alpha_color, False:1})
+        
         positions.append(p_df)
         names.append(name)
         colour_cache[player.steamID] = colour_list[iColour]
@@ -75,10 +104,12 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
 
     plot_player_paths(positions, colours, names, axis)
     if side == Team.DIRE:
-        axis.legend(loc='lower left', frameon=True)
+        leg = axis.legend(loc='lower left', frameon=True)
     else:
-        axis.legend(loc='upper right', frameon=True)
+        leg = axis.legend(loc='upper right', frameon=True)
 
+    # for lh in leg.legend_handles:
+    #     lh.set_alpha(1)
     # Wards
     wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.team == side)
 
@@ -123,6 +154,12 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         w_icon = w_icons[w_type]
         w_icon.thumbnail(ward_size)
         plot_image_scatter(data, axis, w_icon)
+
+    # Smoke Icon
+    smokes = replay.smoke_summary.filter(Smoke.game_start_time < 0).filter(Smoke.team == side)
+    smoke_table = build_smoke_table(smokes, session)
+    # plot_smoke_scatter(smoke_table, axis)
+    plot_circle_scatter(smoke_table, axis)
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
@@ -176,9 +213,12 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
 
     plot_player_paths(positions, colours, names, axis)
     if side == Team.DIRE:
-        axis.legend(loc='lower left', frameon=True)
+        leg = axis.legend(loc='lower left', frameon=True)
     else:
-        axis.legend(loc='upper right', frameon=True)
+        leg = axis.legend(loc='upper right', frameon=True)
+
+    for lh in leg.legendHandles: 
+        lh._legmarker.set_alpha(1)
 
     # Wards
     wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.steamID == steam_id)
