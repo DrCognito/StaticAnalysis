@@ -17,7 +17,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from pandas import read_sql
 from matplotlib.colors import to_rgba
 
-def plot_player_paths(paths, colours, names, axis, smoke_alpha=1.0):
+def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3):
     assert(len(paths) <= len(colours))
     quiveropts = dict(
         # edgecolor=(1,1,1,1),
@@ -90,7 +90,10 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             PlayerStatus.is_smoked).statement
 
         p_df = read_sql(sql_query, session.bind)
-        p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
+        # p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
+        p_df['alpha'] = p_df['is_smoked'].apply(
+            lambda x: smoke_alpha if x else 1.0
+            )
         # p_df['face'] = p_df['is_smoked'].replace({True:alpha_color, False:1})
         
         positions.append(p_df)
