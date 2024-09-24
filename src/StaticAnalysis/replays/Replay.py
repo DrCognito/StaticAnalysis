@@ -29,7 +29,7 @@ class Replay(Base):
                            cascade="all, delete, delete-orphan",
                            )
     smoke_summary = relationship(Smoke.Smoke, back_populates="replay",
-                                 lazy="select",
+                                 lazy="dynamic",
                                  cascade="all, delete-orphan",
                                  #single_parent=True, passive_deletes='all'
                                  )
