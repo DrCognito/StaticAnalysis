@@ -6,7 +6,9 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
+from StaticAnalysis.replays.Replay import populate_from_JSON_file
+
+from StaticAnalysis import session
 
 DB_PATH = environment['PARSED_DB_PATH']
 PROCESSING_PATH = environment['JSON_PATH']
@@ -14,10 +16,6 @@ ARCHIVE_PATH = environment['JSON_ARCHIVE']
 
 DRAFT_PROCESSING_PATH = environment['DRAFT_JSON_PATH']
 DRAFT_ARCHIVE_PATH = environment['DRAFT_JSON_ARCHIVE']
-
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
 
 
 def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
