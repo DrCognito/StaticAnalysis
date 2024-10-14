@@ -12,7 +12,7 @@ try:
 except FileNotFoundError:
     print("Failed to load toml config file.")
     print(f"Expected path is {config_path.resolve()}")
-    exit
+    raise
 
 DB_PATH = CONFIG['database']['PARSED_DB_PATH']
 PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
