@@ -1,9 +1,8 @@
-from os import environ as environment
-
 from sqlalchemy import (BigInteger, Column, DateTime, ForeignKey, Integer,
                         String, and_, create_engine, or_)
 from sqlalchemy.orm import reconstructor, relationship, declarative_base
 
+import StaticAnalysis
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 
@@ -30,7 +29,7 @@ class TeamPlayer(Base_TI):
 
 def InitTeamDB(path=None):
     if path is None:
-        path = environment["TEAM_DB_PATH"]
+        path = StaticAnalysis.CONFIG['database']["TEAM_DB_PATH"]
     engine = create_engine(path, echo=False)
     Base_TI.metadata.create_all(engine)
 

@@ -1,7 +1,6 @@
 import Setup
 import os
 import sys
-from os import environ as environment
 from typing import List
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.Common import get_team

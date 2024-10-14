@@ -10,9 +10,9 @@ from pandas import DataFrame, cut
 from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
 from pathlib import Path
+import StaticAnalysis
 from StaticAnalysis.replays.Replay import Replay, Team
 import pickle
-from os import environ as environment
 
 
 r_filter = Replay.endTimeUTC >= MAIN_TIME
@@ -22,7 +22,7 @@ recent_limit = 5
 start = -2*60
 end = 10*60
 
-CACHE_ROOT = Path(environment["CACHE"])
+CACHE_ROOT = StaticAnalysis.CONFIG['cache']["CACHE"]
 
 def player_position_single(
     session, r_query,
@@ -269,7 +269,6 @@ def bin_pos_data(df: DataFrame, bins=64, extent=EXTENT):
     return df
 
 import copy
-from os import environ as environment
 import matplotlib.image as mpimg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import ticker
@@ -285,7 +284,7 @@ def plot_counts_hexbin(query_data: DataFrame, bins=64,
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         plot = ax_in.hexbin(x=query_data['xBin'],
@@ -325,7 +324,7 @@ def plot_counts_hist2d(query_data: DataFrame, bins=64,
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         # plot = ax_in.hexbin(x=query_data['xBin'],
@@ -383,7 +382,7 @@ def plot_counts_pcolormesh(
     X, Y = np.meshgrid(xedges, yedges)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         plot = ax_in.pcolormesh(
@@ -422,7 +421,7 @@ def plot_seaborn_kde(query_data: DataFrame, bins=64,
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         plot = sns.kdeplot(
@@ -488,7 +487,7 @@ def plot_np_hexbin(
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
 
     X, Y = np.meshgrid(xedges, yedges)
@@ -525,7 +524,7 @@ def plot_np_pcolormesh(
     colour_map.set_under('black', alpha=0.0)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
 
     vals_test = np.zeros((65,65))

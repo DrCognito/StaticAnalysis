@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from fpdf import FPDF
 from sqlalchemy import and_, or_
 
-from StaticAnalysis import session, team_session, CONFIG
+import StaticAnalysis
+from StaticAnalysis import session, team_session
 from StaticAnalysis.analysis.Player import player_positioning_single
 from StaticAnalysis.analysis.route_vis import plot_pregame_sing
 from StaticAnalysis.analysis.visualisation import (dataframe_xy,
@@ -25,7 +26,7 @@ from herotools.important_times import ImportantTimes
 import json
 from sqlalchemy import and_, or_
 
-PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
+PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 
 
 def plot_positioning(session, replay_id, team: TeamInfo,
@@ -217,7 +218,7 @@ def get_team(name):
 
 
 # def custom_stats(time: datetime, extra_filter):
-scrims_json = CONFIG['json']['SCRIMS_JSON']
+scrims_json = StaticAnalysis.CONFIG['json']['SCRIMS_JSON']
 try:
     with open(scrims_json) as file:
         SCRIM_REPLAY_DICT = json.load(file)

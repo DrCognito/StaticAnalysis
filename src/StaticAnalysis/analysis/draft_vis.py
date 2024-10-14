@@ -1,7 +1,7 @@
 import json
 import math
 from datetime import datetime
-from os import environ as environment
+
 from pathlib import Path
 from typing import List
 
@@ -12,6 +12,7 @@ from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
 
+import StaticAnalysis
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.lib.metadata import has_networth
 from StaticAnalysis.replays.Replay import Replay, Team
@@ -20,7 +21,7 @@ from StaticAnalysis.analysis.networth import get_laning_image
 from StaticAnalysis import session
 import matplotlib.pyplot as plt
 
-scims_json = environment['SCRIMS_JSON']
+scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
 try:
     with open(scims_json) as file:
         SCRIM_REPLAY_DICT = json.load(file)
@@ -453,7 +454,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        fig=plt.gcf()):
     has_nw = has_networth(session, replay)
     if caching:
-        cache_dir = Path(environment["CACHE"])
+        cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
         if not has_nw:
             file_name = f"{replay.replayID}_{team.name}_draftonly.png"
         else:
@@ -592,7 +593,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         out_box.paste(ld_image, (out_box.size[0] - ld_image.size[0], 2))
 
     if caching:
-        cache_dir = Path(environment["CACHE"])
+        cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
         if not has_nw:
             file_name = f"{replay.replayID}_{team.name}_draftonly.png"
         else:

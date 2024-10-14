@@ -59,7 +59,8 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
-from StaticAnalysis import session, team_session, pub_session, CONFIG
+import StaticAnalysis
+from StaticAnalysis import session, team_session, pub_session
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 from math import isnan
 
@@ -70,7 +71,7 @@ warnings.filterwarnings(
 )
 
 
-PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
+PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
@@ -1091,7 +1092,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure(figsize=(7, 7))
-    cache_dire = Path(CONFIG['cache']["CACHE"])
+    cache_dire = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
 
     def _process_side(replays, side: Team):
         s_string = "dire" if side == Team.DIRE else "radiant"
@@ -1672,7 +1673,7 @@ def do_datasummary(r_filter=None):
         ax_in.set_xlim([0,1])
         ax_in.set_ylim([0,1])
         # Add map
-        img = mpimg.imread(CONFIG['images']['MAP_PATH'])
+        img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
         ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
         ax_in.axis('off')
 
@@ -1708,7 +1709,7 @@ def do_datasummary(r_filter=None):
 
         return fig, axList
 
-    data_plot_dir = Path(CONFIG['output']['DATA_SUMMARY_OUTPUT'])
+    data_plot_dir = Path(StaticAnalysis.CONFIG['output']['DATA_SUMMARY_OUTPUT'])
     fig, ax = _ward_summary(dire_summary)
     fig.tight_layout()
     fig.savefig(data_plot_dir / 'wards_dire.png')
@@ -1787,7 +1788,7 @@ if __name__ == "__main__":
     if args.runes is None:
         args.runes = default_process
 
-    scims_json = CONFIG['json']['SCRIMS_JSON']
+    scims_json = StaticAnalysis.CONFIG['json']['SCRIMS_JSON']
     try:
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)

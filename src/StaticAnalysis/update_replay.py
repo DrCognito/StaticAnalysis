@@ -6,14 +6,15 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from StaticAnalysis import session, CONFIG
+import StaticAnalysis
+from StaticAnalysis import session
 from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
 
 
-PROCESSING_PATH = CONFIG['json']['JSON_PATH']
-ARCHIVE_PATH = CONFIG['json']['JSON_ARCHIVE']
-DRAFT_PROCESSING_PATH = CONFIG['json']['DRAFT_JSON_PATH']
-DRAFT_ARCHIVE_PATH = CONFIG['json']['DRAFT_JSON_ARCHIVE']
+PROCESSING_PATH = StaticAnalysis.CONFIG['json']['JSON_PATH']
+ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['JSON_ARCHIVE']
+DRAFT_PROCESSING_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_PATH']
+DRAFT_ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_ARCHIVE']
 
 
 def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):

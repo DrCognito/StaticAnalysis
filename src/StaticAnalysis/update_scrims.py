@@ -1,18 +1,19 @@
 import json
 import pathlib
-from os import environ as environment
 
 import pygsheets
 from herotools.important_times import ImportantTimes, MAIN_TIME
 from sqlalchemy.orm import sessionmaker
 
+import StaticAnalysis
+from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
 from StaticAnalysis.replays.Replay import InitDB, Replay, Team
 
-SCRIMS_JSON_PATH = environment['SCRIMS_JSON']
-TEAMS_JSON_PATH = environment['SCRIMS_TEAMS']
-SCRIMS_METAJSON_PATH = environment['SCRIMS_META']
-DB_PATH = environment['PARSED_DB_PATH']
+SCRIMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
+TEAMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_TEAMS']
+SCRIMS_METAJSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_META']
+
 main_team_id = 2586976
 main_team_name = "OG"
 time_cut = MAIN_TIME
@@ -28,13 +29,6 @@ fixed_replays = set()
 replays = set()
 missing = set()
 
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
-
-team_engine = InitTeamDB()
-team_maker = sessionmaker(bind=team_engine)
-team_session = team_maker()
 unknown_teams = set()
 
 
