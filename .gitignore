@@ -152,4 +152,4 @@ setup.env
 *.pkl
 
 # Config files not for publishing
-*.toml
+setup.toml
