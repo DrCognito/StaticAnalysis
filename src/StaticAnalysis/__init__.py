@@ -2,10 +2,17 @@ from sqlalchemy.orm import sessionmaker
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from StaticAnalysis.lib.team_info import InitTeamDB
 from StaticAnalysis.replays.Replay import InitDB
+from pathlib import Path
 import tomllib
 
-with open('../../setup.toml', 'rb') as f:
-    CONFIG = tomllib.load(f)
+config_path = Path('setup.toml')
+try:
+    with open(config_path, 'rb') as f:
+        CONFIG = tomllib.load(f)
+except FileNotFoundError:
+    print("Failed to load toml config file.")
+    print(f"Expected path is {config_path.resolve()}")
+    exit
 
 DB_PATH = CONFIG['database']['PARSED_DB_PATH']
 PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
