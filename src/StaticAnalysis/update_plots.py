@@ -5,7 +5,6 @@ import time as t
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from itertools import zip_longest
-from os import environ as environment
 from os import mkdir
 from pathlib import Path
 
@@ -60,7 +59,7 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
-from StaticAnalysis import session, team_session, pub_session
+from StaticAnalysis import session, team_session, pub_session, CONFIG
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 from math import isnan
 
@@ -70,20 +69,8 @@ warnings.filterwarnings(
     category=FutureWarning
 )
 
-DB_PATH = environment['PARSED_DB_PATH']
-PLOT_BASE_PATH = environment['PLOT_OUTPUT']
 
-# engine = InitDB(DB_PATH)
-# Session = sessionmaker(bind=engine)
-# session = Session()
-
-# team_engine = InitTeamDB()
-# team_maker = sessionmaker(bind=team_engine)
-# team_session = team_maker()
-
-# pub_engine = InitPubDB()
-# pub_maker = sessionmaker(bind=pub_engine)
-# pub_session = pub_maker()
+PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
 
 # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
 TIME_CUT = {}
@@ -550,7 +537,7 @@ def do_wards_separate(team: TeamInfo, r_query,
         else:
             out_key = "wards_radiant"
         metadata[out_key] = {}
-        r: Replay.replayID
+        r: Replay
         for r, in r_ids:
             # try:
             new_plot = _process_ward_replay(side, r_query, r,
@@ -1104,7 +1091,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure(figsize=(7, 7))
-    cache_dire = Path(environment["CACHE"])
+    cache_dire = Path(CONFIG['cache']["CACHE"])
 
     def _process_side(replays, side: Team):
         s_string = "dire" if side == Team.DIRE else "radiant"
@@ -1685,7 +1672,7 @@ def do_datasummary(r_filter=None):
         ax_in.set_xlim([0,1])
         ax_in.set_ylim([0,1])
         # Add map
-        img = mpimg.imread(environment['MAP_PATH'])
+        img = mpimg.imread(CONFIG['images']['MAP_PATH'])
         ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
         ax_in.axis('off')
 
@@ -1721,7 +1708,7 @@ def do_datasummary(r_filter=None):
 
         return fig, axList
 
-    data_plot_dir = Path(environment['DATA_SUMMARY_OUTPUT'])
+    data_plot_dir = Path(CONFIG['output']['DATA_SUMMARY_OUTPUT'])
     fig, ax = _ward_summary(dire_summary)
     fig.tight_layout()
     fig.savefig(data_plot_dir / 'wards_dire.png')
@@ -1800,7 +1787,7 @@ if __name__ == "__main__":
     if args.runes is None:
         args.runes = default_process
 
-    scims_json = environment['SCRIMS_JSON']
+    scims_json = CONFIG['json']['SCRIMS_JSON']
     try:
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)
