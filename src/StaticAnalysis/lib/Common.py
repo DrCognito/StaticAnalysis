@@ -1,11 +1,11 @@
 import io
 from math import sqrt
-from os import environ as environment
 from typing import List, Callable
 
 import matplotlib.image as mpimg
 import pandas as pd
 from PIL import Image
+import StaticAnalysis
 from sqlalchemy import and_, not_
 from sqlalchemy.orm import Session
 import pickle
@@ -145,7 +145,7 @@ def get_player_simple(steam_id: int, team_session: Session) -> "TeamPlayer":
     return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == steam_id).one_or_none()
 
 
-def get_player_map(team_session: Session, steam_ids: set, team)-> dict():
+def get_player_map(team_session: Session, steam_ids: set, team)-> dict:
     """Takes a set of steam_ids and returns a dictionary map to their name.
     Unknown players are labeled as "Un" + an incrementing number.
     
@@ -234,7 +234,7 @@ y_scale = 1.005702141386541
 
 # Compared as of 13/09/2022, Patch 7.32
 def add_map(axis, extent=[0, 1, 0, 1], zorder=0):
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     axis.imshow(img, extent=extent, zorder=zorder)
 
     return axis

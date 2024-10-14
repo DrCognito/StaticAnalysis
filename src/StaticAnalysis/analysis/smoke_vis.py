@@ -1,5 +1,4 @@
 from math import ceil
-from os import environ as environment
 from typing import List
 
 import matplotlib.image as mpimg
@@ -16,6 +15,7 @@ from PIL.Image import open as Image_open
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
+import StaticAnalysis
 from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
                                                process_team_portrait)
 from StaticAnalysis.analysis.visualisation import make_image_annotation2
@@ -49,7 +49,7 @@ def build_smoke_table(query: Query, session: Session) -> DataFrame:
 
     return data
 
-smoke_icon = Image_open(environment['SMOKE_ICON'])
+smoke_icon = Image_open(StaticAnalysis.CONFIG['images']['icons']['SMOKE_ICON'])
 smoke_icon.thumbnail((24,24))
 def plot_smoke_scatter(data: DataFrame, ax_in: Axes) -> list:
     """Creates a scatter plot using the images instead of points on ax_in.

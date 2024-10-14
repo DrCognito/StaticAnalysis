@@ -1,5 +1,4 @@
 import copy
-from os import environ as environment
 from typing import Dict
 
 import matplotlib.image as mpimg
@@ -17,6 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, Series, cut, read_sql
 from PIL import Image
 
+import StaticAnalysis
 from StaticAnalysis.analysis.Player import pick_context
 from StaticAnalysis.lib.Common import EXTENT
 from StaticAnalysis.lib.team_info import TeamInfo
@@ -434,13 +434,13 @@ def plot_pick_pairs(data: Dict[int, DataFrame], fig: Figure, num_heroes=10):
                 i1 = HeroIconPrefix / convertName(h_pair[0], HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
             except ValueError:
-                print("Unable to find hero icon for 3: " + hero)
+                print("Unable to find hero icon for 3: " + h_pair[0])
                 continue
             try:
                 i2 = HeroIconPrefix / convertName(h_pair[1], HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
             except ValueError:
-                print("Unable to find hero icon for 4: " + hero)
+                print("Unable to find hero icon for 4: " + h_pair[1])
                 continue
 
             y_pos1 = -0.12
@@ -578,7 +578,7 @@ def plot_player_positioning(query_data: DataFrame, ax_in):
                         zorder=2)
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=[0, 1, 0, 1], zorder=0)
     ax_in.axis('off')
     # Reposition colourbar
@@ -611,7 +611,7 @@ def plot_object_position(query_data: DataFrame, bins=64,
         vmin = 1
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     if not query_data.empty:
         plot = ax_in.hexbin(x=query_data['xCoordinate'],
@@ -696,7 +696,7 @@ def plot_object_position_scatter(query_data: DataFrame, size=700,
     ax_in.set_ylim(EXTENT[2], EXTENT[3])
 
     # Add map
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=EXTENT, zorder=0)
     ax_in.axis('off')
 

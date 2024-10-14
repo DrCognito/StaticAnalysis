@@ -1,0 +1,36 @@
+[json]
+JSON_PATH = None
+JSON_ARCHIVE = None
+DRAFT_JSON_PATH = None
+DRAFT_JSON_ARCHIVE = None
+
+[database]
+PARSED_DB_PATH = None
+TEAM_DB_PATH = None
+REPLAY_LEAGUE_DB_PATH = None
+
+[database.test]
+PARSED_DB_PATH = None
+
+[images]
+PORTRAIT_PATH = None
+ICON_PATH = None
+MAP_PATH = None
+
+[images.icons]
+WARD_ICON = None
+SENTRY_ICON = None
+SMOKE_ICON = None
+
+[output]
+PLOT_OUTPUT = None
+DATA_SUMMARY_OUTPUT = None
+
+[scrims]
+SCRIMS_DIR = None
+SCRIMS_JSON = None
+SCRIMS_TEAMS = None
+SCRIMS_META = None
+
+[cache]
+CACHE = None

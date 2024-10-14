@@ -1,9 +1,9 @@
-from os import environ as environment
 from typing import Tuple
 
 import matplotlib.patheffects as PathEffects
 from PIL.Image import open as Image_open
 
+import StaticAnalysis
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
@@ -145,8 +145,8 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     data = build_ward_table(wards, session, team_session, team)
 
     w_icons = {
-        WardType.OBSERVER: Image_open(environment['WARD_ICON']),
-        WardType.SENTRY: Image_open(environment['SENTRY_ICON'])
+        WardType.OBSERVER: Image_open(StaticAnalysis.CONFIG['images']['icons']['WARD_ICON']),
+        WardType.SENTRY: Image_open(StaticAnalysis.CONFIG['images']['icons']['SENTRY_ICON'])
     }
     for w_type in (WardType):
         w = wards.filter(Ward.ward_type == w_type)
@@ -255,8 +255,8 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
     data = build_ward_table(wards, session, team_session, team)
 
     w_icons = {
-        WardType.OBSERVER: Image_open(environment['WARD_ICON']),
-        WardType.SENTRY: Image_open(environment['SENTRY_ICON'])
+        WardType.OBSERVER: Image_open(StaticAnalysis.CONFIG['images']['icons']['WARD_ICON']),
+        WardType.SENTRY: Image_open(StaticAnalysis.CONFIG['images']['icons']['SENTRY_ICON'])
     }
     for w_type in (WardType):
         w = wards.filter(Ward.ward_type == w_type)

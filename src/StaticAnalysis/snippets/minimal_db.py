@@ -1,26 +1,14 @@
-from os import environ as environment
-
-from dotenv import load_dotenv
 from herotools.important_times import ImportantTimes, MAIN_TIME
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import and_, or_
 
+import StaticAnalysis
+from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
 from StaticAnalysis.replays.Replay import InitDB, Replay
 from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
 
-load_dotenv(dotenv_path="../setup.env")
-DB_PATH = environment['PARSED_DB_PATH']
-PLOT_BASE_PATH = environment['PLOT_OUTPUT']
-
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
-
-team_engine = InitTeamDB()
-team_maker = sessionmaker(bind=team_engine)
-team_session = team_maker()
+PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 
 time = ImportantTimes['PostTI2021']
 replay_list = None

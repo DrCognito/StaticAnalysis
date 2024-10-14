@@ -2,7 +2,6 @@ import time as t
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 from itertools import zip_longest
-from os import environ as environment
 from os import mkdir
 from pathlib import Path
 from typing import List
@@ -10,8 +9,9 @@ from typing import List
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import sessionmaker
 
+import StaticAnalysis
+from StaticAnalysis import session, team_session
 from StaticAnalysis.analysis.Player import player_positioning_single
 from StaticAnalysis.analysis.route_vis import plot_pregame_sing
 from StaticAnalysis.analysis.visualisation import (dataframe_xy,
@@ -26,16 +26,7 @@ from herotools.important_times import ImportantTimes
 import json
 from sqlalchemy import and_, or_
 
-DB_PATH = environment['PARSED_DB_PATH']
-PLOT_BASE_PATH = environment['PLOT_OUTPUT']
-
-engine = InitDB(DB_PATH)
-Session = sessionmaker(bind=engine)
-session = Session()
-
-team_engine = InitTeamDB()
-team_maker = sessionmaker(bind=team_engine)
-team_session = team_maker()
+PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 
 
 def plot_positioning(session, replay_id, team: TeamInfo,
@@ -227,12 +218,12 @@ def get_team(name):
 
 
 # def custom_stats(time: datetime, extra_filter):
-scims_json = environment['SCRIMS_JSON']
+scrims_json = StaticAnalysis.CONFIG['json']['SCRIMS_JSON']
 try:
-    with open(scims_json) as file:
+    with open(scrims_json) as file:
         SCRIM_REPLAY_DICT = json.load(file)
 except IOError:
-    print(f"Failed to read scrim_list {scims_json}")
+    print(f"Failed to read scrim_list {scrims_json}")
 if __name__ == '__main__':
     team_og = get_team(2586976)
     team_liquid = get_team(2163)

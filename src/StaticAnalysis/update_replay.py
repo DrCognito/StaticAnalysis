@@ -1,21 +1,20 @@
 from argparse import ArgumentParser, BooleanOptionalAction
-from os import environ as environment
+#
 from os import rename
 from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
-from StaticAnalysis.replays.Replay import populate_from_JSON_file
-
+import StaticAnalysis
 from StaticAnalysis import session
+from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
 
-DB_PATH = environment['PARSED_DB_PATH']
-PROCESSING_PATH = environment['JSON_PATH']
-ARCHIVE_PATH = environment['JSON_ARCHIVE']
 
-DRAFT_PROCESSING_PATH = environment['DRAFT_JSON_PATH']
-DRAFT_ARCHIVE_PATH = environment['DRAFT_JSON_ARCHIVE']
+PROCESSING_PATH = StaticAnalysis.CONFIG['json']['JSON_PATH']
+ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['JSON_ARCHIVE']
+DRAFT_PROCESSING_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_PATH']
+DRAFT_ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_ARCHIVE']
 
 
 def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
@@ -79,12 +78,12 @@ def reprocess_replay(replays):
                 populate_from_JSON_file(process_file, session, skip_existing=False)
             except SQLAlchemyError as e:
                 print(e)
-                print("Failed to process {}".format(j))
+                print("Failed to process {}".format(r))
                 session.rollback()
                 exit(2)
             except IOError as e:
                 print(e)
-                print("IOError reading {}".format(j))
+                print("IOError reading {}".format(r))
                 session.rollback()
                 exit(3)
         session.commit()

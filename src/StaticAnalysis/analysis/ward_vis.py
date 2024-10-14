@@ -1,5 +1,4 @@
 from math import ceil
-from os import environ as environment
 from typing import List
 
 import matplotlib.image as mpimg
@@ -15,6 +14,7 @@ from PIL.Image import open as Image_open
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
+import StaticAnalysis
 from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
                                                process_team_portrait)
 from StaticAnalysis.analysis.visualisation import make_image_annotation2
@@ -113,7 +113,7 @@ def plot_map(ax_in: Axes, extent=EXTENT):
     Arguments:
         ax_in {Axes} -- Axes for the map!
     """
-    img = mpimg.imread(environment['MAP_PATH'])
+    img = mpimg.imread(StaticAnalysis.CONFIG['images']['MAP_PATH'])
     ax_in.imshow(img, extent=extent, zorder=0)
     ax_in.axis('off')
 
@@ -257,7 +257,7 @@ def plot_num_table(data: DataFrame, ax_in: Axes) -> list:
 
 
 def plot_eye_scatter(data: DataFrame, ax_in: Axes,
-                     size: (int, int) = (35, 27)) -> list:
+                     size: tuple[int, int] = (35, 27)) -> list:
     """Standard formatted plot with eye ward symbol scatter.
 
     Arguments:
@@ -292,7 +292,7 @@ def plot_eye_scatter(data: DataFrame, ax_in: Axes,
 
     # text_ents = plot_labels(data, ax_in, text_style)
 
-    ward = Image_open(environment['WARD_ICON'])
+    ward = Image_open(StaticAnalysis.CONFIG['images']['icons']['WARD_ICON'])
     ward.thumbnail(size)
     extra_ents = plot_image_scatter(data, ax_in, ward)
 
