@@ -150,3 +150,6 @@ setup.env
 
 # Our chosen pickle extension
 *.pkl
+
+# Config files not for publishing
+*.toml
