@@ -10,11 +10,19 @@ import StaticAnalysis
 from StaticAnalysis import session
 from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
 
+import time
+from datetime import timedelta
+from statistics import fmean
 
-PROCESSING_PATH = StaticAnalysis.CONFIG['json']['JSON_PATH']
-ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['JSON_ARCHIVE']
-DRAFT_PROCESSING_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_PATH']
-DRAFT_ARCHIVE_PATH = StaticAnalysis.CONFIG['json']['DRAFT_JSON_ARCHIVE']
+# Main
+json_set = StaticAnalysis.CONFIG['json']
+# Testing
+# json_set = StaticAnalysis.CONFIG['json']['test']
+
+PROCESSING_PATH = json_set['JSON_PATH']
+ARCHIVE_PATH = json_set['JSON_ARCHIVE']
+DRAFT_PROCESSING_PATH = json_set['DRAFT_JSON_PATH']
+DRAFT_ARCHIVE_PATH = json_set['DRAFT_JSON_ARCHIVE']
 
 
 def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
@@ -43,8 +51,12 @@ def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
 
 
 def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
+    replays_start = time.perf_counter()
+    replay_times = []
     json_files = list(Path(base_path).glob('*.json'))
     for j in json_files[:limit]:
+        j_start = time.perf_counter()
+
         print(j)
         archive = Path(ARCHIVE_PATH) / j.name
         if archive.exists():
@@ -64,6 +76,15 @@ def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
             exit(3)
         if base_path != Path(ARCHIVE_PATH):
             rename(j, Path(ARCHIVE_PATH) / j.name)
+
+        replay_times.append(time.perf_counter() - j_start)
+
+    if replay_times:
+        print(
+            f"Average time per replay: {fmean(replay_times)}. Maximum: {max(replay_times)}"
+            )
+    total_seconds = time.perf_counter() - replays_start
+    print(f"Total time taken: {timedelta(seconds = total_seconds)}")
     session.commit()
 
 
