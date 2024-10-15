@@ -15,9 +15,9 @@ from datetime import timedelta
 from statistics import fmean
 
 # Main
-json_set = StaticAnalysis.CONFIG['json']
+#json_set = StaticAnalysis.CONFIG['json']
 # Testing
-# json_set = StaticAnalysis.CONFIG['json']['test']
+json_set = StaticAnalysis.CONFIG['json']['test']
 
 PROCESSING_PATH = json_set['JSON_PATH']
 ARCHIVE_PATH = json_set['JSON_ARCHIVE']
