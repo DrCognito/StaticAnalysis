@@ -15,9 +15,9 @@ from datetime import timedelta
 from statistics import fmean
 
 # Main
-#json_set = StaticAnalysis.CONFIG['json']
+json_set = StaticAnalysis.CONFIG['json']
 # Testing
-json_set = StaticAnalysis.CONFIG['json']['test']
+# json_set = StaticAnalysis.CONFIG['json']['test']
 
 PROCESSING_PATH = json_set['JSON_PATH']
 ARCHIVE_PATH = json_set['JSON_ARCHIVE']
@@ -57,7 +57,6 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
     for j in json_files[:limit]:
         j_start = time.perf_counter()
 
-        print(j)
         archive = Path(ARCHIVE_PATH) / j.name
         if archive.exists():
             print(f"File already processed and exists in archive! {archive}")
@@ -77,6 +76,7 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
         if not archive.exists():
             rename(j, archive)
 
+        print(f"{j} ({time.perf_counter() - j_start})")
         replay_times.append(time.perf_counter() - j_start)
 
     if replay_times:
