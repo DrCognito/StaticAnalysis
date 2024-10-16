@@ -25,8 +25,8 @@ DRAFT_PROCESSING_PATH = json_set['DRAFT_JSON_PATH']
 DRAFT_ARCHIVE_PATH = json_set['DRAFT_JSON_ARCHIVE']
 
 
-def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
-    json_files = list(Path(base_path).glob('*.json'))
+def drafts_to_db(skip_existing=True, json_files:list[Path]=[]):
+    # json_files = list(Path(base_path).glob('*.json'))
     for j in json_files:
         print(j)
         archive = Path(DRAFT_ARCHIVE_PATH) / j.name
@@ -45,15 +45,15 @@ def drafts_to_db(skip_existing=True, base_path=DRAFT_PROCESSING_PATH):
             print("IOError reading {}".format(j))
             session.rollback()
             exit(3)
-        if base_path != Path(DRAFT_ARCHIVE_PATH):
-            rename(j, Path(DRAFT_ARCHIVE_PATH) / j.name)
+        if not archive.exists():
+            rename(j, archive)
     session.commit()
 
 
-def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
+def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
     replays_start = time.perf_counter()
     replay_times = []
-    json_files = list(Path(base_path).glob('*.json'))
+    # json_files = list(Path(base_path).glob('*.json'))
     for j in json_files[:limit]:
         j_start = time.perf_counter()
 
@@ -74,8 +74,8 @@ def processing_to_db(skip_existing=True, base_path=PROCESSING_PATH, limit=None):
             print("IOError reading {}".format(j))
             session.rollback()
             exit(3)
-        if base_path != Path(ARCHIVE_PATH):
-            rename(j, Path(ARCHIVE_PATH) / j.name)
+        if not archive.exists():
+            rename(j, archive)
 
         replay_times.append(time.perf_counter() - j_start)
 
@@ -123,21 +123,50 @@ arguments.add_argument('--limit',
                        type=int)
 arguments.add_argument("--process_drafts", action=BooleanOptionalAction,
                        default=True)
+arguments.add_argument("--skip_existing", action=BooleanOptionalAction,
+                       default=True)
 
 
 if __name__ == '__main__':
     args = arguments.parse_args()
 
-    if args.process_drafts:
-        drafts_to_db(skip_existing=False, base_path=DRAFT_PROCESSING_PATH)
 
     if args.reprocess_replay is not None:
         reprocess_replay(args.reprocess_replay)
 
-    if args.full_reprocess:
-        processing_to_db(skip_existing=False,
-                         base_path=ARCHIVE_PATH,
-                         limit=args.limit)
-        exit()
+    skip_existing = args.skip_existing
+    json_files = list(Path(PROCESSING_PATH).glob('*.json'))
 
-    processing_to_db(limit=args.limit, skip_existing=False)
+    if args.full_reprocess:
+        skip_existing = False
+        json_files += list(Path(ARCHIVE_PATH).glob('*.json'))
+
+    processing_to_db(limit=args.limit, json_files=json_files, skip_existing=skip_existing)
+
+    if args.process_drafts:
+        # Get a list of drafts and see if we have the full process already
+        # drafts_to_db(skip_existing=False, base_path=DRAFT_PROCESSING_PATH)
+        file_names = {f.name for f in json_files}
+        json_draft = []
+        for j in list(Path(DRAFT_PROCESSING_PATH).glob('*.json')):
+            if j.name in file_names:
+                print(f"Skipping draft for {j.name} as it has a full replay.")
+                archive = Path(DRAFT_ARCHIVE_PATH) / j.name
+                rename(j, archive)
+                continue
+
+            json_draft.append(j)
+
+        # And cover reprocessing (same but with no rename)
+        if args.full_reprocess:
+            for j in list(Path(DRAFT_ARCHIVE_PATH).glob('*.json')):
+                if j.name in file_names:
+                    print(f"Skipping draft for {j.name} as it has a full replay.")
+                    continue
+
+                json_draft.append(j)
+
+        drafts_to_db(skip_existing=skip_existing, json_files=json_draft)
+
+
+
