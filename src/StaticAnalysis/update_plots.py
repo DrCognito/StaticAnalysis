@@ -800,10 +800,13 @@ def do_player_picks(team: TeamInfo, metadata: dict,
         axes_second = [a[1] for a in axes_all]
         axes_second[0].set_title("Pubs")
         pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > mintime else mintime
+        # plot_team_pubs_timesplit(
+        #     team, axes_second, pub_session,
+        #     mintime=pro_pub_time, maxtime=maxtime,
+        #     pos_requirements=strict_pos)
         plot_team_pubs_timesplit(
             team, axes_second, pub_session,
-            mintime=pro_pub_time, maxtime=maxtime,
-            pos_requirements=strict_pos)
+            mintime=pro_pub_time, maxtime=maxtime,)
     else:
         axes_first = fig.subplots(5)
 
@@ -1788,7 +1791,7 @@ if __name__ == "__main__":
     if args.runes is None:
         args.runes = default_process
 
-    scims_json = StaticAnalysis.CONFIG['json']['SCRIMS_JSON']
+    scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
     try:
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)
