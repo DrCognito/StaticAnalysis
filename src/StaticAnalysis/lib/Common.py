@@ -10,6 +10,8 @@ from sqlalchemy import and_, not_
 from sqlalchemy.orm import Session
 import pickle
 
+from herotools.util import convert_to_32_bit
+
 
 def relativeCellCord(cell):
     return (cell - 64)/128
@@ -129,7 +131,7 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
                          .one_or_none()
 
     if player is None:
-        print(f"Steam id {steam_id} not found for {team.name}.")
+        print(f"Steam id {steam_id} ({convert_to_32_bit(steam_id)}) not found for {team.name}.")
         player = team_session.query(TeamPlayer.name)\
                              .filter(TeamPlayer.player_id == steam_id)\
                              .first()

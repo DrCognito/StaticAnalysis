@@ -16,6 +16,7 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Smoke import Smoke
 from pandas import read_sql
 from matplotlib.colors import to_rgba
+from herotools.util import convert_to_32_bit
 
 def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3):
     assert(len(paths) <= len(colours))
@@ -79,7 +80,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             order.append(player_list.index(name))
         except ValueError:
             name = player.steamID
-            print(f"Player {player.steamID} not found in {replay.replayID}")
+            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
             order.append(-1*player.steamID)
         query = player.status.filter(PlayerStatus.game_time <= 0)
         # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
