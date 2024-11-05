@@ -1807,11 +1807,12 @@ if __name__ == "__main__":
             if team is None:
                 print("Unable to find team {} in database!"
                       .format(proc_team))
+                continue
 
             if args.statistic_time:
                 # Add scrims if we have them
                 scrim_list = []
-                if args.scrim_time:
+                if args.scrim_time and team is not None:
                     team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
                     if team_scrims:
                         scrim_list = list(team_scrims.keys())
