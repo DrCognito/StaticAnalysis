@@ -1,7 +1,11 @@
-from StaticAnalysis.snippets.minimal_db import session, team_session, TeamInfo
+from StaticAnalysis import session, team_session
+from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
 import matplotlib.pyplot as plt
+from StaticAnalysis.replays.Player import Player, PlayerStatus
+from pandas import read_sql
+from herotools.location import get_player_location
 
 replay = session.query(Replay).filter(Replay.replayID == 7957516700).one()
 nigma = team_session.query(TeamInfo).filter(TeamInfo.team_id == 7554697).one()
@@ -18,3 +22,22 @@ plot_pregame_players(replay, avulus, Team.RADIANT, session, team_session, fig)
 fig.tight_layout()
 fig.savefig("wardroute_radiant.png")
 fig.clf()
+
+side = Team.DIRE
+dire_player_loc = []
+for player in replay.players:
+    if player.team != side:
+        continue
+    query = player.status.filter(PlayerStatus.game_time <= 0)
+
+    sql_query = query.with_entities(
+        PlayerStatus.xCoordinate,
+        PlayerStatus.yCoordinate,
+        PlayerStatus.is_smoked).statement
+
+    p_df = read_sql(sql_query, session.bind)
+    p_df['location'] = p_df.apply(
+        lambda x: get_player_location(x['xCoordinate'], x['yCoordinate']),
+        axis=1
+        )
+    dire_player_loc.append(p_df)
