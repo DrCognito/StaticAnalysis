@@ -24,6 +24,8 @@ from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward
 from StaticAnalysis.replays.Smoke import Smoke
+from herotools.location import get_modal_position
+from typing import List
 
 def build_smoke_table(query: Query, session: Session) -> DataFrame:
     """Build a table of smokes with coordinates and times.
@@ -85,3 +87,20 @@ def plot_circle_scatter(data: DataFrame, ax_in: Axes):
         data['averageXCoordinateStart'], data['averageYCoordinateStart'],
         s=1500, facecolors=to_rgba('purple', 0.5), edgecolors='purple'
         )
+
+
+def smoke_start_locale(data: List[DataFrame], range=5) -> str:
+     # Get the game_time for the first smoke
+    smoke_start = min(
+         df['game_time'][df['is_smoked']].min() for df in data
+    )
+    # Filtered data frame for locale determiner
+    filtered_data = [
+        df[
+            df['is_smoked'] & df['is_alive'] & 
+            df['game_time'].between(smoke_start, smoke_start+range)
+        ]
+        for df in data
+    ]
+
+    return get_modal_position(filtered_data)
