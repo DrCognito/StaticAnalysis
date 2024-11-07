@@ -104,3 +104,37 @@ def smoke_start_locale(data: List[DataFrame], range=5) -> str:
     ]
 
     return get_modal_position(filtered_data)
+
+
+def smoke_end_locale_first(data: List[DataFrame], prebreak=3, postbreak=3):
+    first_smoke_end = min(
+        df['game_time'][df['is_smoked'] & df['is_alive']].max() + 1
+        for df in data
+    )
+
+    filtered_data = [
+        df[
+            df['is_smoked'] & df['is_alive'] & 
+            df['game_time'].between(first_smoke_end - prebreak,
+                                    first_smoke_end + postbreak)
+        ]
+        for df in data
+    ]
+    
+    return get_modal_position(filtered_data)
+
+
+def smoke_end_locale_individual(data:List[DataFrame], prebreak=3, postbreak=3):
+    filtered_data = []
+    for p_df in data:
+        # Smoke break time
+        break_time = p_df['game_time'][p_df['is_smoked'] & p_df['is_alive']].max() + 1
+        filtered_data.append(
+            p_df[
+                p_df['is_smoked'] & p_df['is_alive'] & 
+                p_df['game_time'].between(break_time - prebreak,
+                                          break_time + postbreak)
+            ]
+        )
+        
+    return get_modal_position(filtered_data)
