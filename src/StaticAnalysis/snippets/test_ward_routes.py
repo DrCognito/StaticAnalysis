@@ -2,6 +2,7 @@ from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
+from StaticAnalysis.analysis.smoke_vis import smoke_start_locale, smoke_end_locale_first, smoke_end_locale_individual
 import matplotlib.pyplot as plt
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from pandas import read_sql
@@ -33,7 +34,9 @@ for player in replay.players:
     sql_query = query.with_entities(
         PlayerStatus.xCoordinate,
         PlayerStatus.yCoordinate,
-        PlayerStatus.is_smoked).statement
+        PlayerStatus.is_smoked,
+        PlayerStatus.game_time,
+        PlayerStatus.is_alive).statement
 
     p_df = read_sql(sql_query, session.bind)
     p_df['location'] = p_df.apply(
@@ -41,3 +44,7 @@ for player in replay.players:
         axis=1
         )
     dire_player_loc.append(p_df)
+
+print(f"Smoke start: {smoke_start_locale(dire_player_loc)}")
+print(f"Smoke end (by first break): {smoke_end_locale_first(dire_player_loc)}")
+print(f"Smoke end (by everyones break): {smoke_end_locale_individual(dire_player_loc)}")
