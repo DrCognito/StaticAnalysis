@@ -31,3 +31,4 @@ scipy = "1.*"
 sqlalchemy = "2.*"
 propubs = {path = "E:/Python/ProPubs", develop = true}
 herotools = {path = "E:/Python/HeroTools", develop = true}
+pylluvial = "^1.1.1"
