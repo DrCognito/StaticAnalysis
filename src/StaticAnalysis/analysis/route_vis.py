@@ -17,6 +17,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from pandas import read_sql
 from matplotlib.colors import to_rgba
 from herotools.util import convert_to_32_bit
+from herotools.location import get_player_location
 
 def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3):
     assert(len(paths) <= len(colours))
@@ -56,6 +57,42 @@ def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3):
     return plots
 
 
+def get_player_dataframes(
+    replay: Replay, side: Team, session, smoke_alpha=0.5
+    ):
+    # Pregame player positions
+    positions = []
+    player: Player
+    for player in replay.players:
+        if player.team != side:
+            continue
+        # Note to future self: You can not filter the players list like this as it is not lazy.
+        query = player.status.filter(PlayerStatus.game_time <= 0)
+        # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
+        #                     PlayerStatus, session)
+        sql_query = query.with_entities(
+            PlayerStatus.xCoordinate,
+            PlayerStatus.yCoordinate,
+            PlayerStatus.is_smoked,
+            PlayerStatus.game_time,
+            PlayerStatus.is_alive).statement
+
+        p_df = read_sql(sql_query, session.bind)
+        # p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
+        p_df['alpha'] = p_df['is_smoked'].apply(
+            lambda x: smoke_alpha if x else 1.0
+            )
+        # p_df['face'] = p_df['is_smoked'].replace({True:alpha_color, False:1})
+
+        p_df['location'] = p_df.apply(
+        lambda x: get_player_location(x['xCoordinate'], x['yCoordinate']),
+        axis=1
+        )
+
+        positions.append(p_df)
+
+    return positions
+
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
                          session, team_session,
                          fig, ward_size: Tuple[int, int] = (8, 7), smoke_alpha=0.5):
@@ -64,8 +101,6 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     # Add the map
     add_map(axis, extent=EXTENT)
     player_list = [p.name for p in team.players]
-    # Pregame player positions
-    positions = []
     names = []
     colour_cache = {}
     iColour = 0
@@ -82,25 +117,13 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             name = player.steamID
             print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
             order.append(-1*player.steamID)
-        query = player.status.filter(PlayerStatus.game_time <= 0)
-        # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
-        #                     PlayerStatus, session)
-        sql_query = query.with_entities(
-            PlayerStatus.xCoordinate,
-            PlayerStatus.yCoordinate,
-            PlayerStatus.is_smoked).statement
 
-        p_df = read_sql(sql_query, session.bind)
-        # p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
-        p_df['alpha'] = p_df['is_smoked'].apply(
-            lambda x: smoke_alpha if x else 1.0
-            )
-        # p_df['face'] = p_df['is_smoked'].replace({True:alpha_color, False:1})
-        
-        positions.append(p_df)
         names.append(name)
         colour_cache[player.steamID] = colour_list[iColour]
         iColour += 1
+    positions = get_player_dataframes(
+        replay, side, session, smoke_alpha
+    )
     # Change the order to make it consistent
     positions = [p for _, p in sorted(zip(order, positions))]
     names = [n for _, n in sorted(zip(order, names))]
@@ -112,8 +135,10 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     else:
         leg = axis.legend(loc='upper right', frameon=True)
 
-    # for lh in leg.legend_handles:
-    #     lh.set_alpha(1)
+    for lh in leg.legend_handles:
+        # Just using set_alpha throws an exception, may be fixed later.
+        r, g, b, _ = lh.get_facecolor()
+        lh.set_facecolor((r, g, b, 1.0))
     # Wards
     wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.team == side)
 
