@@ -24,8 +24,10 @@ from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward
 from StaticAnalysis.replays.Smoke import Smoke
+from herotools.lib.common import SMOKE_DURATION
 from herotools.location import get_modal_position
-from typing import List
+from typing import List, Tuple
+from numpy import nan, isnan
 
 def build_smoke_table(query: Query, session: Session) -> DataFrame:
     """Build a table of smokes with coordinates and times.
@@ -138,3 +140,92 @@ def smoke_end_locale_individual(data:List[DataFrame], prebreak=3, postbreak=3):
         )
         
     return get_modal_position(filtered_data)
+
+
+SMOKE_OUT_OF_RANGE = object()
+def get_first_smoke_start_end(
+    data: List[DataFrame], min_time:int=None
+    ) -> Tuple[int, int, int]:
+    """
+    Returns the first smoke event found by checking player smoke status in data.
+    If there is no smoke then SMOKE_OUT_OF_RANGE is returned for all three.
+    If the end is out of range then it is returned for the end time.
+    """
+    # If we have no smoke we might as well leave!
+    # Without a min_time get the minimum time from the DF
+    if min_time is not None:
+        # min_time = min(
+        # [df['game_time'].min() for df in data]
+        # )
+        data = [
+            df[df['game_time'] >= min_time] for df in data
+        ]
+
+    no_smoke = all(
+        [df[df['is_smoked']].empty for df in data]
+    )
+    if no_smoke:
+        return (SMOKE_OUT_OF_RANGE, SMOKE_OUT_OF_RANGE, SMOKE_OUT_OF_RANGE)
+
+    # Find first smoke
+    # first_smoke = min(
+    #     df[df['is_smoked']]['game_time'].min() for df in data
+    # )
+    first_smoke = min(
+        x for df in data if not isnan(x:= df[df['is_smoked']]['game_time'].min())
+    )
+
+    # Limit the max time to the max smoke duration
+    break_times = [
+        df[df['is_smoked'] & (df['game_time'] <= first_smoke + SMOKE_DURATION)]['game_time'].max() + 1
+        for df in data
+        ]
+    # Remove nan (not in smoke)
+    break_times = [
+        t for t in break_times if not isnan(t)
+    ]
+    # Find first break
+    first_break = min(break_times)
+    
+    # Find last break
+    last_break = max(break_times)
+
+    max_time = max(
+        [df['game_time'].max() for df in data]
+        )
+    
+    if first_break > max_time:
+        first_break = SMOKE_OUT_OF_RANGE
+
+    if last_break > max_time:
+        last_break = SMOKE_OUT_OF_RANGE
+        
+    return first_smoke, first_break, last_break
+
+
+def get_smoke_time_info(data: List[DataFrame]) -> DataFrame:
+    game_time = -9000
+    
+    out_dict = {
+        "Start": [],
+        "First break": [],
+        "Last break": []
+    }
+
+    game_time, first_break, last_break = get_first_smoke_start_end(data, game_time)
+    while game_time is not SMOKE_OUT_OF_RANGE:
+        # Have to manually control things like nan as they can not be tested for equality
+        if first_break is SMOKE_OUT_OF_RANGE:
+            print("Smoke duration undefined as it is beyond DF range (first)")
+            break
+        if last_break is SMOKE_OUT_OF_RANGE:
+            print("Longest duration could not be fully found as it is beyond DF range (last)")
+            break
+        # Fill last values
+        out_dict['Start'].append(game_time)
+        out_dict['First break'].append(first_break)
+        out_dict['Last break'].append(last_break)
+
+        game_time, first_break, last_break = get_first_smoke_start_end(data, last_break)
+
+    return DataFrame(out_dict)
