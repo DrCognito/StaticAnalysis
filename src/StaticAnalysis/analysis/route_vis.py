@@ -8,7 +8,7 @@ from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
 from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scatter, plot_circle_scatter
-from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT
+from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
@@ -18,8 +18,13 @@ from pandas import read_sql
 from matplotlib.colors import to_rgba
 from herotools.util import convert_to_32_bit
 from herotools.location import get_player_location
+from StaticAnalysis.analysis.smoke_vis import get_smoke_time_info
 
-def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3):
+def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None):
+    if max_time is not None:
+        paths = [
+            df[df['game_time'] <= max_time] for df in paths
+        ]
     assert(len(paths) <= len(colours))
     quiveropts = dict(
         # edgecolor=(1,1,1,1),
@@ -67,7 +72,7 @@ def get_player_dataframes(
         if player.team != side:
             continue
         # Note to future self: You can not filter the players list like this as it is not lazy.
-        query = player.status.filter(PlayerStatus.game_time <= 0)
+        query = player.status.filter(PlayerStatus.game_time <= 45)
         # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
         #                     PlayerStatus, session)
         sql_query = query.with_entities(
@@ -121,6 +126,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         names.append(name)
         colour_cache[player.steamID] = colour_list[iColour]
         iColour += 1
+
     positions = get_player_dataframes(
         replay, side, session, smoke_alpha
     )
@@ -186,9 +192,19 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
 
     # Smoke Icon
     smokes = replay.smoke_summary.filter(Smoke.game_start_time < 0).filter(Smoke.team == side)
-    smoke_table = build_smoke_table(smokes, session)
+    smoke_circle = build_smoke_table(smokes, session)
     # plot_smoke_scatter(smoke_table, axis)
-    plot_circle_scatter(smoke_table, axis)
+    plot_circle_scatter(smoke_circle, axis)
+    # Smoke table
+    smoke_table = get_smoke_time_info(positions)
+    print(smoke_table)
+    smoke_table['Start time'] = smoke_table['Start time'].apply(lambda x: seconds_to_nice(x))
+    axis.table(
+        cellText = smoke_table[['Start time', 'Start location', 'End location']].to_numpy(),
+        loc='bottom',
+        colWidths=[0.1, 0.2, 0.2,],
+        colLabels=["Time", "Start Location", "End Location",]
+    )
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
