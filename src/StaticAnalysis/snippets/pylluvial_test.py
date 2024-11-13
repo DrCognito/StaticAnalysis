@@ -83,3 +83,4 @@ fig, ax = pa.alluvial(
 fig.set_figwidth(10)
 fig.set_figheight(5)
 fig.tight_layout()
+fig.savefig("pylluvial_test.png")
