@@ -19,6 +19,9 @@ from matplotlib.colors import to_rgba
 from herotools.util import convert_to_32_bit
 from herotools.location import get_player_location
 from StaticAnalysis.analysis.smoke_vis import get_smoke_time_info
+from typing import List
+from pandas import DataFrame
+from matplotlib.axes import Axes
 
 def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None):
     if max_time is not None:
@@ -98,9 +101,48 @@ def get_player_dataframes(
 
     return positions
 
+
+def plot_highlighted_path(
+    positions: List[DataFrame], ax_in: Axes,
+    xcoord_name = 'xCoordinate', ycoord_name = 'yCoordinate',
+    alpha=0.5):
+    for p in positions:
+        ax_in.plot(
+            p[xcoord_name], p[ycoord_name],
+            alpha=alpha, zorder=2, c='white', linewidth=6)
+
+    return
+
+
+def plot_highlighted_smoke_path(
+    positions: List[DataFrame], time_cut: int, ax_in: Axes, alpha=0.5
+    ):
+    positions = [
+        df[df['is_smoked'] & (df['game_time'] <= time_cut)] for df in positions
+    ]
+
+    return plot_highlighted_path(positions, ax_in, alpha=alpha)
+
+
+def add_smoke_start_highlight(
+    data: DataFrame, ax_in: Axes, font_size=12,
+    ):
+    plot_circle_scatter(data, ax_in)
+
+    time = seconds_to_nice(data['game_start_time'][0])
+    ax_in.text(
+        s=time,
+        x=data['averageXCoordinateStart'][0], y=data['averageYCoordinateStart'][0],
+        ha='center', va='center', zorder=5,
+        path_effects=[PathEffects.withStroke(linewidth=3,foreground="w")],
+        color='black')
+    
+    return
+
+
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
                          session, team_session,
-                         fig, ward_size: Tuple[int, int] = (8, 7), smoke_alpha=0.5):
+                         fig, ward_size: Tuple[int, int] = (8, 7), smoke_alpha=1.0):
 
     axis = fig.subplots()
     # Add the map
@@ -135,7 +177,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     names = [n for _, n in sorted(zip(order, names))]
     colours = [c for _, c in sorted(zip(order, colours))]
 
-    plot_player_paths(positions, colours, names, axis)
+    plot_player_paths(positions, colours, names, axis, smoke_alpha=smoke_alpha)
     if side == Team.DIRE:
         leg = axis.legend(loc='lower left', frameon=True)
     else:
@@ -145,6 +187,8 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         # Just using set_alpha throws an exception, may be fixed later.
         r, g, b, _ = lh.get_facecolor()
         lh.set_facecolor((r, g, b, 1.0))
+    # Add smoke highlights
+    plot_highlighted_smoke_path(positions, time_cut=0, ax_in=axis)
     # Wards
     wards = replay.wards.filter(Ward.game_time < 0).filter(Ward.team == side)
 
@@ -194,17 +238,17 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     smokes = replay.smoke_summary.filter(Smoke.game_start_time < 0).filter(Smoke.team == side)
     smoke_circle = build_smoke_table(smokes, session)
     # plot_smoke_scatter(smoke_table, axis)
-    plot_circle_scatter(smoke_circle, axis)
-    # Smoke table
-    smoke_table = get_smoke_time_info(positions)
-    print(smoke_table)
-    smoke_table['Start time'] = smoke_table['Start time'].apply(lambda x: seconds_to_nice(x))
-    axis.table(
-        cellText = smoke_table[['Start time', 'Start location', 'End location']].to_numpy(),
-        loc='bottom',
-        colWidths=[0.1, 0.2, 0.2,],
-        colLabels=["Time", "Start Location", "End Location",]
-    )
+    add_smoke_start_highlight(smoke_circle, axis)
+    # Smoke table if wanted!
+    # smoke_table = get_smoke_time_info(positions)
+    # print(smoke_table)
+    # smoke_table['Start time'] = smoke_table['Start time'].apply(lambda x: seconds_to_nice(x))
+    # axis.table(
+    #     cellText = smoke_table[['Start time', 'Start location', 'End location']].to_numpy(),
+    #     loc='bottom',
+    #     colWidths=[0.1, 0.2, 0.2,],
+    #     colLabels=["Time", "Start Location", "End Location",]
+    # )
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
