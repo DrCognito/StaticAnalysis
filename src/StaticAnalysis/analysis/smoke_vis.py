@@ -203,13 +203,15 @@ def get_first_smoke_start_end(
     return first_smoke, first_break, last_break
 
 
-def get_smoke_time_info(data: List[DataFrame]) -> DataFrame:
+def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_locale_first) -> DataFrame:
     game_time = -9000
     
     out_dict = {
-        "Start": [],
+        "Start time": [],
         "First break": [],
-        "Last break": []
+        "Last break": [],
+        "Start location": [],
+        "End location": [],
     }
 
     game_time, first_break, last_break = get_first_smoke_start_end(data, game_time)
@@ -222,9 +224,14 @@ def get_smoke_time_info(data: List[DataFrame]) -> DataFrame:
             print("Longest duration could not be fully found as it is beyond DF range (last)")
             break
         # Fill last values
-        out_dict['Start'].append(game_time)
+        out_dict['Start time'].append(game_time)
         out_dict['First break'].append(first_break)
         out_dict['Last break'].append(last_break)
+        # Add the locales
+        # cut_data = [df[df['game_time'].between(game_time, last_break + 3)] for df in data]
+        cut_data = [df[df['game_time'].between(game_time, last_break + 30)] for df in data]
+        out_dict['Start location'].append(smoke_start_locale(cut_data))
+        out_dict['End location'].append(end_location_provider(cut_data))
 
         game_time, first_break, last_break = get_first_smoke_start_end(data, last_break)
 
