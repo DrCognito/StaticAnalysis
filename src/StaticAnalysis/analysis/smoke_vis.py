@@ -94,7 +94,7 @@ def plot_circle_scatter(data: DataFrame, ax_in: Axes):
 def smoke_start_locale(data: List[DataFrame], range=5) -> str:
      # Get the game_time for the first smoke
     smoke_start = min(
-         df['game_time'][df['is_smoked']].min() for df in data
+         df.min() for x in data if not (df:=x['game_time'][x['is_smoked']]).empty
     )
     # Filtered data frame for locale determiner
     filtered_data = [
@@ -108,10 +108,28 @@ def smoke_start_locale(data: List[DataFrame], range=5) -> str:
     return get_modal_position(filtered_data)
 
 
+def smoke_start_location(data: List[DataFrame], range=5) -> Tuple[float, float]:
+     # Get the game_time for the first smoke
+    xCoords = []
+    yCoords = []
+    for df in data:
+        cut = df[df['is_smoked']]
+        if cut.empty:
+            continue
+        xCoords.append(cut['xCoordinate'].iloc[0])
+        yCoords.append(cut['yCoordinate'].iloc[0])
+    
+    meanX = sum(xCoords)/len(xCoords)
+    meanY = sum(yCoords)/len(yCoords)
+
+    return (meanX, meanY)
+
+
 def smoke_end_locale_first(data: List[DataFrame], prebreak=3, postbreak=3):
     first_smoke_end = min(
-        df['game_time'][df['is_smoked'] & df['is_alive']].max() + 1
-        for df in data
+        df.max() + 1
+        for x in data
+        if not (df:=x['game_time'][x['is_smoked'] & x['is_alive']]).empty
     )
 
     filtered_data = [
@@ -129,8 +147,12 @@ def smoke_end_locale_first(data: List[DataFrame], prebreak=3, postbreak=3):
 def smoke_end_locale_individual(data:List[DataFrame], prebreak=3, postbreak=3):
     filtered_data = []
     for p_df in data:
+        # Data range
+        cut = p_df['game_time'][p_df['is_smoked'] & p_df['is_alive']]
+        if cut.empty:
+            continue
         # Smoke break time
-        break_time = p_df['game_time'][p_df['is_smoked'] & p_df['is_alive']].max() + 1
+        break_time = cut.max() + 1
         filtered_data.append(
             p_df[
                 p_df['is_smoked'] & p_df['is_alive'] & 
@@ -212,6 +234,8 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
         "Last break": [],
         "Start location": [],
         "End location": [],
+        "averageXCoordinateStart": [],
+        "averageYCoordinateStart": [],
     }
 
     game_time, first_break, last_break = get_first_smoke_start_end(data, game_time)
@@ -229,9 +253,12 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
         out_dict['Last break'].append(last_break)
         # Add the locales
         # cut_data = [df[df['game_time'].between(game_time, last_break + 3)] for df in data]
-        cut_data = [df[df['game_time'].between(game_time, last_break + 30)] for df in data]
+        cut_data = [df[df['game_time'].between(game_time, last_break + 3)] for df in data]
         out_dict['Start location'].append(smoke_start_locale(cut_data))
         out_dict['End location'].append(end_location_provider(cut_data))
+        startX, startY = smoke_start_location(cut_data)
+        out_dict['averageXCoordinateStart'].append(startX)
+        out_dict['averageYCoordinateStart'].append(startY)
 
         game_time, first_break, last_break = get_first_smoke_start_end(data, last_break)
 
