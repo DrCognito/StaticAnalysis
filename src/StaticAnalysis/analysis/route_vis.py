@@ -127,6 +127,10 @@ def plot_highlighted_smoke_path(
 def add_smoke_start_highlight(
     data: DataFrame, ax_in: Axes, font_size=12, time_col = 'Start time'
     ):
+    if data.empty:
+        # No smokes!
+        return
+
     plot_circle_scatter(data, ax_in)
 
     time = seconds_to_nice(data[time_col][0])
