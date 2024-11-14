@@ -125,11 +125,11 @@ def plot_highlighted_smoke_path(
 
 
 def add_smoke_start_highlight(
-    data: DataFrame, ax_in: Axes, font_size=12,
+    data: DataFrame, ax_in: Axes, font_size=12, time_col = 'Start time'
     ):
     plot_circle_scatter(data, ax_in)
 
-    time = seconds_to_nice(data['game_start_time'][0])
+    time = seconds_to_nice(data[time_col][0])
     ax_in.text(
         s=time,
         x=data['averageXCoordinateStart'][0], y=data['averageYCoordinateStart'][0],
@@ -142,7 +142,7 @@ def add_smoke_start_highlight(
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
                          session, team_session,
-                         fig, ward_size: Tuple[int, int] = (8, 7), smoke_alpha=1.0):
+                         fig, ward_size: Tuple[int, int] = (24, 21), smoke_alpha=1.0):
 
     axis = fig.subplots()
     # Add the map
@@ -234,13 +234,13 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         w_icon.thumbnail(ward_size)
         plot_image_scatter(data, axis, w_icon)
 
-    # Smoke Icon
+    # Smoke Icon and time
     smokes = replay.smoke_summary.filter(Smoke.game_start_time < 0).filter(Smoke.team == side)
     smoke_circle = build_smoke_table(smokes, session)
     # plot_smoke_scatter(smoke_table, axis)
-    add_smoke_start_highlight(smoke_circle, axis)
     # Smoke table if wanted!
-    # smoke_table = get_smoke_time_info(positions)
+    smoke_table = get_smoke_time_info(positions)
+    add_smoke_start_highlight(smoke_table, axis)
     # print(smoke_table)
     # smoke_table['Start time'] = smoke_table['Start time'].apply(lambda x: seconds_to_nice(x))
     # axis.table(
