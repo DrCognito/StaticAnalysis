@@ -4,6 +4,7 @@ import matplotlib.patheffects as PathEffects
 from PIL.Image import open as Image_open
 
 import StaticAnalysis
+from StaticAnalysis.analysis.draft_vis import process_team_portrait
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
@@ -140,7 +141,29 @@ def add_smoke_start_highlight(
         ha='center', va='center', zorder=5,
         path_effects=[PathEffects.withStroke(linewidth=3,foreground="w")],
         color='black')
-    
+
+    return
+
+
+def add_drafts(replay: Replay, ax_in: Axes):
+    for t in replay.teams:
+        if t.team == Team.RADIANT:
+            radiant_line = process_team_portrait(replay, t, spacing=2)
+        else:
+            dire_line = process_team_portrait(replay, t, spacing=2)
+
+    rad_axis = ax_in.inset_axes(
+        bounds=[0, -0.1, 1.0, 0.1]
+    )
+    rad_axis.imshow(radiant_line)
+    rad_axis.axis('off')
+ 
+    dire_axis = ax_in.inset_axes(
+        bounds=[0.0, 1.0, 1.0, 0.1]
+    )
+    dire_axis.imshow(dire_line)
+    dire_axis.axis('off')
+
     return
 
 
@@ -253,6 +276,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     #     colWidths=[0.1, 0.2, 0.2,],
     #     colLabels=["Time", "Start Location", "End Location",]
     # )
+    add_drafts(replay, axis)
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
@@ -264,6 +288,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
 
     axis.patch.set_edgecolor('black')
     axis.patch.set_linewidth('1')
+    
 
     return axis
 
