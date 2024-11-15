@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from pandas import read_sql
 from herotools.location import get_player_location
+from StaticAnalysis.analysis.draft_vis import process_team_portrait
+from StaticAnalysis.replays.TeamSelections import TeamSelections
 
 replay = session.query(Replay).filter(Replay.replayID == 7957516700).one()
 nigma = team_session.query(TeamInfo).filter(TeamInfo.team_id == 7554697).one()
@@ -15,7 +17,10 @@ avulus = team_session.query(TeamInfo).filter(TeamInfo.team_id == 9498970).one()
 glad_test1 = session.query(Replay).filter(Replay.replayID == 8011119646).one()
 glad_test2 = session.query(Replay).filter(Replay.replayID == 8009585260).one()
 gladiators = team_session.query(TeamInfo).filter(TeamInfo.team_id == 8599101).one()
-
+glad_select1 = session.query(TeamSelections).filter(
+    TeamSelections.replay_ID == 8011119646 and TeamSelections.teamID == gladiators.team_id)
+glad_select2 = session.query(TeamSelections).filter(
+    TeamSelections.replay_ID == 8009585260 and TeamSelections.teamID == gladiators.team_id)
 fig = plt.figure(figsize=(7, 7))
 
 plot_pregame_players(glad_test1, gladiators, Team.RADIANT, session, team_session, fig)
