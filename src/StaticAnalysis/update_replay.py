@@ -124,7 +124,7 @@ arguments.add_argument('--limit',
 arguments.add_argument("--process_drafts", action=BooleanOptionalAction,
                        default=True)
 arguments.add_argument("--skip_existing", action=BooleanOptionalAction,
-                       default=True)
+                       default=False)
 
 
 if __name__ == '__main__':
