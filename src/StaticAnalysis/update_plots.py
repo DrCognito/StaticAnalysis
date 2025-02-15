@@ -561,7 +561,7 @@ def do_wards_separate(team: TeamInfo, r_query,
 def do_wards(team: TeamInfo, r_query,
              metadata: dict,
              update_dire=True, update_radiant=True,
-             replay_limit=20):
+             replay_limit=None):
 
     if not update_dire and not update_radiant:
         return metadata
@@ -572,12 +572,13 @@ def do_wards(team: TeamInfo, r_query,
 
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                                   Type=Ward,
-                                                  start=-2*60, end=12*60,
+                                                  start=-2*60,
+                                                  end=12*60,
                                                   replay_limit=replay_limit)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
-    metadata['plot_ward_names'] = ["Pregame", "0 to 4 mins", "4 to 8 mins",
-                                   "8 to 12 mins"]
+    metadata['plot_ward_names'] = ["Pregame", "0 to 7 mins", "7 to 15 mins",
+                                   ">15 mins"]
     fig, _ = plt.subplots(figsize=(10, 10))
     fig.clf()
 
@@ -598,23 +599,22 @@ def do_wards(team: TeamInfo, r_query,
         relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        p_out = output / 'wards_0to4.jpg'
+        p_out = output / 'wards_0to7.jpg'
         _plot_wards(ward_df.loc[(ward_df['game_time'] > 0) &
-                                (ward_df['game_time'] <= 4*60)],
+                                (ward_df['game_time'] <= 7*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        p_out = output / 'wards_4to8.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                (ward_df['game_time'] <= 8*60)],
+        p_out = output / 'wards_7to15.jpg'
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 7*60) &
+                                (ward_df['game_time'] <= 15*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
 
-        p_out = output / 'wards_8to12.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 8*60) &
-                                (ward_df['game_time'] <= 12*60)],
+        p_out = output / 'wards_gt15.jpg'
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
@@ -629,23 +629,22 @@ def do_wards(team: TeamInfo, r_query,
         relpath = p_out.relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        p_out = output / 'wards_0to4.jpg'
+        p_out = output / 'wards_0to7.jpg'
         _plot_wards(ward_df.loc[(ward_df['game_time'] > 0) &
-                                (ward_df['game_time'] <= 4*60)],
+                                (ward_df['game_time'] <= 7*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        p_out = output / 'wards_4to8.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 4*60) &
-                                (ward_df['game_time'] <= 8*60)],
+        p_out = output / 'wards_7to15.jpg'
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 7*60) &
+                                (ward_df['game_time'] <= 15*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
 
-        p_out = output / 'wards_8to12.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 8*60) &
-                                (ward_df['game_time'] <= 12*60)],
+        p_out = output / 'wards_gt15.jpg'
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
@@ -1082,7 +1081,7 @@ def do_statistics(team: TeamInfo, r_query, table=True):
 
 
 def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
-                      update_dire: bool, update_radiant: bool, limit=5,
+                      update_dire: bool, update_radiant: bool, limit=None,
                       cache=True):
     d_replays, r_replays = get_side_replays(r_query, session, team)
     d_replays = d_replays.order_by(Replay.replayID.desc())
@@ -1105,13 +1104,15 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         for r in replays:
             if not is_full_replay(session, r):
                 continue
-            if i >= limit:
+            if limit is not None and i >= limit:
                 break
             r_file = f"{r.replayID}_route_{s_string}.png"
             cache_path = cache_dire / r_file
-            destination = team_path / s_string / f"pregame_route_{i}.png"
+            destination = team_path / s_string / f"pregame_{r.replayID}.png"
 
-            if cache and cache_path.exists():
+            if cache and destination.exists():
+                continue
+            elif cache and cache_path.exists():
                 shutil.copyfile(cache_path, destination)
                 saved_paths.append(str(destination.relative_to(plot_base)))
             else:
