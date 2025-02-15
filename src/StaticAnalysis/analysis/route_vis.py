@@ -25,10 +25,10 @@ from pandas import DataFrame
 from matplotlib.axes import Axes
 
 def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None):
-    if max_time is not None:
-        paths = [
-            df[df['game_time'] <= max_time] for df in paths
-        ]
+    # if max_time is not None:
+    #     paths = [
+    #         df.loc[df['game_time'] <= max_time] for df in paths
+    #     ]
     assert(len(paths) <= len(colours))
     quiveropts = dict(
         # edgecolor=(1,1,1,1),
@@ -41,15 +41,18 @@ def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=Non
     # add_map(axis)
     plots = []
     for colour, path, name in zip(colours, paths, names):
+        row_filter = None
+        if max_time is not None:
+            path = path.loc[path['game_time'] <= max_time].copy()
         if path.empty:
             continue
         x = path['xCoordinate'].to_numpy()
         y = path['yCoordinate'].to_numpy()
         alpha_color = to_rgba(colour, smoke_alpha)
-        path['face'] = path['is_smoked'].apply(
+        path.loc[:,'face'] = path.loc[:,'is_smoked'].apply(
             lambda x: alpha_color if x else colour
         )
-        path['edge'] = [colour]*path.shape[0]
+        path.loc[:,'edge'] = [colour]*path.shape[0]
 
         plot = axis.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1],
                            scale_units='xy', angles='xy', scale=1,
@@ -204,7 +207,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     names = [n for _, n in sorted(zip(order, names))]
     colours = [c for _, c in sorted(zip(order, colours))]
 
-    plot_player_paths(positions, colours, names, axis, smoke_alpha=smoke_alpha)
+    plot_player_paths(positions, colours, names, axis, smoke_alpha=smoke_alpha, max_time=0)
     if side == Team.DIRE:
         leg = axis.legend(loc='lower left', frameon=True)
     else:
