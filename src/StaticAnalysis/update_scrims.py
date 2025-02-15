@@ -14,8 +14,8 @@ SCRIMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
 TEAMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_TEAMS']
 SCRIMS_METAJSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_META']
 
-main_team_id = 2586976
-main_team_name = "OG"
+main_team_id = StaticAnalysis.CONFIG['team']['TEAM_ID']
+main_team_name = StaticAnalysis.CONFIG['team']['TEAM_NAME']
 time_cut = MAIN_TIME
 
 with open(TEAMS_JSON_PATH, 'r') as f:
@@ -164,11 +164,12 @@ def get_matching_main(replay: Replay, opposition: TeamInfo):
             'opp_dire': opp_dire, 'opp_radiant': opp_radiant}
 
 
-main_team = get_team("OG")
+main_team = get_team(main_team_name)
 gc = pygsheets.authorize(outh_file="apps.googleusercontent.com.json")
-sheet = gc.open_by_key('1HbH7GShRz7-kuVVlMaehmSm_AXBSCvGwmYuDYvLfhpA')
+SCRIMS_SHEETKEY = StaticAnalysis.CONFIG['scrims']['SCRIMS_GOOGLE_SHEET']
+sheet = gc.open_by_key(SCRIMS_SHEETKEY)
 
-scrim_sheet = sheet.worksheet_by_title(r"Past Scrim ID's")
+scrim_sheet = sheet.worksheet_by_title(r"Sheet1")
 # Column uses numbers, starting at 1! returns list[string]
 team_names = scrim_sheet.get_col(2)
 scrim_ids = scrim_sheet.get_col(3)
@@ -177,7 +178,7 @@ if len(team_names) != len(scrim_ids):
     print("Warning: team names do not match scrim ids in length!")
 scrim_dict = {}
 
-for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
+for scrim_id, name in zip(scrim_ids[1:], team_names[1:]):
     if scrim_id == '':
         # Lots of trailing info in the columns.
         continue
