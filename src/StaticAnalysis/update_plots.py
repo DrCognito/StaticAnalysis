@@ -1111,6 +1111,7 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
             destination = team_path / s_string / f"pregame_{r.replayID}.png"
 
             if cache and destination.exists():
+                saved_paths.append(str(destination.relative_to(plot_base)))
                 continue
             elif cache and cache_path.exists():
                 shutil.copyfile(cache_path, destination)
