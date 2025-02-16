@@ -1,138 +1,129 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from StaticAnalysis.analysis.Player import player_heroes
+from StaticAnalysis.analysis.visualisation import plot_flex_picks
+from StaticAnalysis.lib.Common import ChainedAssignment
+from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.replays.Replay import Replay
+from sqlalchemy import and_, or_
+from StaticAnalysis import session, team_session, pub_session
 
-import tests.minimal_db as db
-from replays.Replay import Replay
-from herotools.important_times import ImportantTimes
-from analysis.Player import player_heroes
-from analysis.visualisation import make_image_annotation, make_image_annotation_flex, colour_list
 import matplotlib.pyplot as plt
-from pandas import DataFrame
-from matplotlib.figure import Figure
-from herotools.HeroTools import HeroIconPrefix, HeroIDType, convertName, heroShortName
+from herotools.important_times import MAIN_TIME
+from propubs.libs.vis import get_player_dataframe, process_dataframe, get_team_df, plot_propub, colour_list, plot_team_pubs, plot_team_pubs_timesplit, process_dataframe_timeplit
+from pandas import DataFrame, concat, Series
+from collections import Counter
+from propubs.libs import TIME_LABELS
 
-# team = db.get_team(2586976)
-# team = db.get_team(15)
-team = db.get_team(7554697)
+xtreme_gaming = 8261500
+heroic = 9303484
+r_filter = Replay.endTimeUTC >= MAIN_TIME
 
-r_filter = Replay.endTimeUTC >= ImportantTimes['DPC2022_T3']
-hero_picks_df = player_heroes(db.session, team, r_filt=r_filter, summarise=200)
+def get_team(name):
+    t_filter = or_(TeamInfo.team_id == name, TeamInfo.name == name)
+    team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
-def is_flex(*args):
-    pass_count = 0
-    for p in args:
-        if p >= 1:
-            pass_count += 1
-    
-    #return pass_count > 1
-    return pass_count
+    return team
+team = get_team(xtreme_gaming)
 
-# pass_filter = hero_picks_df.apply(lambda x: is_flex(*x), axis=1)
-hero_picks_df['Counts'] = hero_picks_df.apply(lambda x: is_flex(*x), axis=1)
-flex_df = hero_picks_df.query('Counts > 1')
-flex_df['std'] = flex_df.iloc[:, 0:-1].std(axis=1)
-flex_df = flex_df.sort_values(['Counts', 'std'], ascending=True)
+def _is_flex(*args):
+        pass_count = 0
+        for p in args:
+            if p >= 1:
+                pass_count += 1
+        return pass_count
 
+limit = None # Replay limit
 
-def plot_flex_picks(data: DataFrame, fig: Figure):
-    # print(data)
-    player_bars_x = {p: list() for p in data.columns}
-    player_bars_y = {p: list() for p in data.columns}
-    x_ticks = []
-    x_labels = []
-    hero_final_pos = []
+flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
+flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
+flex_picks = flex_picks.query('Counts > 1')
+with ChainedAssignment():
+    flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
+flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
 
-    hero_icons = {}
-    b_width = 0.5
-    set_gap = 2*b_width
-    position = 0.0
-
-    # iterrows tuple, [0] is index, [1] series for row
-    for row in data.iterrows():
-        entries = 0
-        row_pos = 0
-
-        # for player, count in row[1].iteritems():
-        for player, count in row[1].items():
-            if count == 0:
-                continue
-            # print(f"{player}: {position}", end=" ")
-            player_bars_x[player].append(position)
-            player_bars_y[player].append(count)
-            row_pos += position
-
-            x_ticks.append(position)
-            x_labels.append(player)
-
-            position += b_width
-            entries += 1
-        # In a long set add a little padding to the icon
-        # if entries > 2:
-        #     hero_icons[row[0]] += b_width
-        # Add gap between heroes
-        hero_icons[row[0]] = row_pos / entries
-        # print(f"Icon: {row[0]}{hero_icons[row[0]]}")
-        hero_final_pos.append(position)
-        position += set_gap
-
-    position -= set_gap
-
-    # fig.set_dpi(50)
-    # print(f"Pos: {position}, 20/position {20/position}")
-    # fig.set_size_inches(6, max(0.36*position, 6))
-    fig.set_size_inches(6, max(0.5*position, 6))
-    axe = fig.subplots()
-    colours = ['c', 'g', 'b', 'm', 'k']
-    for player, c in zip(player_bars_x, colours):
-        axe.barh(player_bars_x[player], player_bars_y[player],
-                 height=0.7*b_width, label=player, color=c)
-        # axe.plot(kind='barh', y=player_bars_y[player], left=player_bars_x[player],
-        #          height=0.7*b_width, label=player)
-        # axe.set_yticks(x_ticks, x_labels, rotation=45, fontsize=7)
-        axe.set_yticks(x_ticks, x_labels)
-    # axe.yaxis.labelpad = 20
-    # axe.xticks(rotation=45)
-    axe.yaxis.set_tick_params(pad=33)
-    # Add heroes
-    y_min, y_max = axe.get_ylim()
-    y_range = y_max - y_min
-    size = 0.9
-    x_pos = 0.0
-    for hero in hero_icons:
-        try:
-            # Get and resize the hero icon.
-            icon = HeroIconPrefix / convertName(hero, HeroIDType.NPC_NAME,
-                                                HeroIDType.ICON_FILENAME)
-        except (ValueError, KeyError):
-            print("Unable to find hero icon for: " + hero)
-            continue
-        make_image_annotation_flex(icon, axe, x_pos, hero_icons[hero], size)
-        # artist = make_image_annotation3(icon, axe, x_pos, y_rel, size)
-        # extra_artists.append(artist)
-
-    axe.set_ylim([-1*set_gap, None])
-    axe.legend()
-    axe2 = axe.twiny()
-    axe2.set_xticks(axe.get_xticks())
-    axe2.set_xbound(axe.get_xbound())
-    # axe2.axis["top"].major_ticklabels.set_visible(True)
-    plt.subplots_adjust(left=0.2)
-
-    return fig, axe
-
-
+postfix = ""
 fig = plt.figure()
-f, a = plot_flex_picks(flex_df.iloc[:, 0:-2], fig)
-# plt.show()
-fig.savefig("test.png", bbox_inches='tight', dpi=150)
-# sns.catplot(x = "x",       # x variable name
-#             y = "y",       # y variable name
-#             hue = "type",  # group variable name
-#             data = flex_df,     # dataframe to plot
-#             kind = "bar")
+fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
+output = f'hero_flex{postfix}.png'
+fig.savefig(output, bbox_extra_artists=extra,
+            bbox_inches='tight', dpi=150)
 
-# test = flex_df.reset_index().melt(id_vars='index')
-# sns.catplot(x='value', y='index', hue='variable', data = test, kind='bar', orient='h')
+pubs_df = get_team_df(team, pub_session, MAIN_TIME)
+pubs_df_time_splot = get_team_df(team, pub_session, MAIN_TIME, post_process=process_dataframe_timeplit)
 
-#hero_picks_df.iloc[:, 0:-1]
+
+full_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
+def combine_pub_comp(pub_dfs: dict, comp_df: DataFrame):
+    output = {}
+    for player in comp_df.columns:
+        if pub_dfs[player].empty:
+            continue
+        output[player] = pub_dfs[player].copy()
+        output[player].index = [i[1] for i in output[player].index.to_flat_index()]
+        output[player]['comp'] = comp_df[player]
+        output[player] = output[player].fillna(0)
+        
+    return output
+# polson_pubs = pubs_df_time_splot['poloson']
+# # Fix the index to be more convenient
+# polson_pubs.index = [i[1] for i in polson_pubs.index.to_flat_index()]
+
+processed = combine_pub_comp(pubs_df_time_splot, full_picks)
+
+
+def get_flex_heroes(team_df: dict):
+    seen = set()
+    flexes = set()
+
+    df: DataFrame
+    for _, df in team_df.items():
+        for hero in df.index:
+            if hero not in seen:
+                seen.add(hero)
+            else:
+                flexes.add(hero)
+                
+    return flexes
+
+
+def counter_flex_heroes(team_df: dict) -> Counter:
+    df: DataFrame
+    counts = Counter()
+    for _, df in team_df.items():
+        df = df.loc[~(df==0).all(axis=1)] # Ensure not everything is zero!
+        counts.update(df.index)
+
+    return counts
+
+flexes = get_flex_heroes(processed)
+counts = counter_flex_heroes(processed)
+
+def get_flex_totals(team_df: dict) -> Series:
+    # Combine our seperate player dfs
+    totals = concat(processed).reset_index()
+    # Group by level 1 which should be the hero name (npc_...) and count players
+    counts = totals[['level_0', 'level_1']].groupby('level_1').count()
+    # Check we have more than one for a flex pick
+    counts = counts[counts['level_0'] > 1]
+    # Using the remaining hero names that are flex picks, filter hero name
+    totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
+    # Time lables + comp to sum over
+    labels = [*TIME_LABELS, 'comp']
+    # Do the sum and sort
+    totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
+    totals = totals.sort_values("sum", ascending=False)
+    
+    # Return just the one column
+    return totals['sum']
+
+# Total messing around
+# del(processed['Undyne'])
+# totals = concat(processed).reset_index()
+# counts = totals[['level_0', 'level_1']].groupby('level_1').count()
+# counts = counts[counts['level_0'] > 1]
+# totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
+# labels = [*TIME_LABELS, 'comp']
+# totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
+# totals.sort_values("sum", ascending=False)
+
+flex_count = get_flex_totals(processed)
+
