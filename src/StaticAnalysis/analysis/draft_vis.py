@@ -8,6 +8,7 @@ from typing import List
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
                                  hero_portrait, hero_portrait_prefix)
 from herotools.lib.league import league_id_map
+from herotools.important_times import tournament_list, ImportantTimes, nice_time_names
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from PIL import Image, ImageDraw, ImageFont
@@ -605,12 +606,68 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     return out_box
 
 
+def relevant_tournament_times(replay: Replay, tournaments: List[str] = tournament_list):
+    '''
+    Get a list of tournaments from tournaments that occur after the replay, ordered by time.
+    '''
+    tournaments = sorted(tournaments, key=lambda x: ImportantTimes[x])
+    output = []
+    for tournament in tournaments:
+        if ImportantTimes[tournament] > replay.endTimeUTC:
+            output.append(tournament)
+
+    return output
+
+
 # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
 def chunks(lst: list, n: int):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+
+def draw_tournament_linebreak(text: str, width: int, height: int = 30, font_size: int = 17):
+    side_spacing = 2
+    # Canvas for drawing
+    spacer = Image.new('RGB', (width, height), (255,255,255,0))
+    spacerDraw = ImageDraw.Draw(spacer)
+
+    # Text
+    font = ImageFont.truetype('arialbd.ttf', font_size)
+    text_w = spacerDraw.textlength(text, font=font)
+    text_start = (width - text_w)//2
+    text_end = text_start + text_w
+    spacerDraw.text(
+        xy=(text_start, (height - font_size)//2),
+        text=text,
+        font=font,
+        fill='black'
+        )
+    #[(x0, y0), (x1, y1)] or [x0, y0, x1, y1]
+    top_line_height = height//2 + side_spacing
+    bottom_line_height = height//2 - side_spacing
+    spacerDraw.line(
+        [(side_spacing, top_line_height), (text_start - 2*side_spacing, top_line_height)],
+        fill='black',
+        width=2
+        )
+    spacerDraw.line(
+        [(side_spacing, bottom_line_height), (text_start - 2*side_spacing, bottom_line_height)],
+        fill='black',
+        width=2
+        )
+    spacerDraw.line(
+        [(text_end + 2*side_spacing, top_line_height), (width - side_spacing, top_line_height)],
+        fill='black',
+        width=2
+        )
+    spacerDraw.line(
+        [(text_end + 2*side_spacing, bottom_line_height), (width - side_spacing, bottom_line_height)],
+        fill='black',
+        width=2
+        )
+    
+    return spacer
 
 def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
                        first_pick=True, second_pick=True, line_limit=9):
@@ -622,6 +679,9 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
     # fig for networths
     fig = plt.gcf()
 
+    # Tournaments that need to be considered for breaks
+    # Assumes last replay is the oldest!
+    tournaments = relevant_tournament_times(replays[-1])
     # Get the lines for each replay and store so we can build our sheet
     lines = []
     tot_height = 0
@@ -645,8 +705,23 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         line = pickban_line_image(replay, team, add_team_name=True, caching=True, fig=fig)
         if line is None:
             continue
-
         max_width = max(max_width, line.size[0])
+        # Check our time now so we have a width reference to work with!
+        try:
+            t_time = ImportantTimes[tournaments[-1]]
+            if replay.endTimeUTC < t_time:
+                # Replay was after the tournament start
+                t_name = tournaments.pop()
+                try:
+                    t_text = nice_time_names[t_name]
+                except KeyError:
+                    t_text = t_name
+                    print(f"No nice name for tournament {t_name}.")
+                t_break = draw_tournament_linebreak(text=t_text, width=max_width)
+                lines.append(t_break)
+                tot_height += t_break.size[1]
+        except IndexError:
+            pass
         lines.append(line)
         tot_height += line.size[1]
         tot_height += vert_spacing
