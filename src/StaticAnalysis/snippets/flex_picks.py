@@ -12,9 +12,12 @@ from propubs.libs.vis import get_player_dataframe, process_dataframe, get_team_d
 from pandas import DataFrame, concat, Series
 from collections import Counter
 from propubs.libs import TIME_LABELS
+from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp
+from herotools.lib.position import strict_pos, loose_pos, mixed_pos
 
 xtreme_gaming = 8261500
 heroic = 9303484
+moodeng = 9678064
 r_filter = Replay.endTimeUTC >= MAIN_TIME
 
 def get_team(name):
@@ -22,7 +25,7 @@ def get_team(name):
     team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
     return team
-team = get_team(xtreme_gaming)
+team = get_team(moodeng)
 
 def _is_flex(*args):
         pass_count = 0
@@ -48,26 +51,25 @@ fig.savefig(output, bbox_extra_artists=extra,
             bbox_inches='tight', dpi=150)
 
 pubs_df = get_team_df(team, pub_session, MAIN_TIME)
-pubs_df_time_splot = get_team_df(team, pub_session, MAIN_TIME, post_process=process_dataframe_timeplit)
+pubs_df_time_none = get_team_df(team, pub_session, MAIN_TIME, post_process=process_dataframe_timeplit)
+pubs_df_time_loose = get_team_df(
+    team, pub_session, MAIN_TIME, post_process=process_dataframe_timeplit,
+    pos_requirements=loose_pos
+    )
+pubs_df_time_strict = get_team_df(
+    team, pub_session, MAIN_TIME, post_process=process_dataframe_timeplit,
+    pos_requirements=strict_pos
+    )
 
 
 full_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
-def combine_pub_comp(pub_dfs: dict, comp_df: DataFrame):
-    output = {}
-    for player in comp_df.columns:
-        if pub_dfs[player].empty:
-            continue
-        output[player] = pub_dfs[player].copy()
-        output[player].index = [i[1] for i in output[player].index.to_flat_index()]
-        output[player]['comp'] = comp_df[player]
-        output[player] = output[player].fillna(0)
-        
-    return output
 # polson_pubs = pubs_df_time_splot['poloson']
 # # Fix the index to be more convenient
 # polson_pubs.index = [i[1] for i in polson_pubs.index.to_flat_index()]
 
-processed = combine_pub_comp(pubs_df_time_splot, full_picks)
+processed_none = combine_pub_comp(pubs_df_time_none, full_picks, default_cols=[TIME_LABELS])
+processed_loose = combine_pub_comp(pubs_df_time_loose, full_picks, default_cols=[TIME_LABELS])
+processed_strict = combine_pub_comp(pubs_df_time_strict, full_picks, default_cols=[TIME_LABELS])
 
 
 def get_flex_heroes(team_df: dict):
@@ -94,12 +96,12 @@ def counter_flex_heroes(team_df: dict) -> Counter:
 
     return counts
 
-flexes = get_flex_heroes(processed)
-counts = counter_flex_heroes(processed)
+flexes = get_flex_heroes(processed_none)
+counts = counter_flex_heroes(processed_none)
 
 def get_flex_totals(team_df: dict) -> Series:
     # Combine our seperate player dfs
-    totals = concat(processed).reset_index()
+    totals = concat(processed_none).reset_index()
     # Group by level 1 which should be the hero name (npc_...) and count players
     counts = totals[['level_0', 'level_1']].groupby('level_1').count()
     # Check we have more than one for a flex pick
@@ -115,15 +117,20 @@ def get_flex_totals(team_df: dict) -> Series:
     # Return just the one column
     return totals['sum']
 
-# Total messing around
-# del(processed['Undyne'])
-# totals = concat(processed).reset_index()
-# counts = totals[['level_0', 'level_1']].groupby('level_1').count()
-# counts = counts[counts['level_0'] > 1]
-# totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
-# labels = [*TIME_LABELS, 'comp']
-# totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
-# totals.sort_values("sum", ascending=False)
+flex_count = get_flex_totals(processed_none)
 
-flex_count = get_flex_totals(processed)
+fig = plt.figure()
+labels = [*TIME_LABELS, 'comp']
+fig = plot_flexstack(processed_none, labels, fig)
+output = f'hero_flex_pub.png'
+fig.savefig(output, bbox_inches='tight', dpi=150)
 
+fig.clf()
+fig = plot_flexstack(processed_loose, labels, fig)
+output = f'hero_flex_pub_loose.png'
+fig.savefig(output, bbox_inches='tight', dpi=150)
+
+fig.clf()
+fig = plot_flexstack(processed_strict, labels, fig)
+output = f'hero_flex_pub_strict.png'
+fig.savefig(output, bbox_inches='tight', dpi=150)
