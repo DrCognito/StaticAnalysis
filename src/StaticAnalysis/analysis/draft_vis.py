@@ -457,7 +457,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     has_nw = has_networth(session, replay)
     if caching:
         cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
-        if not has_nw:
+        if not has_nw or not add_lane_outcome:
             file_name = f"{replay.replayID}_{team.name}_draftonly.png"
         else:
             file_name = f"{replay.replayID}_{team.name}.png"
@@ -596,7 +596,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     if caching:
         cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
-        if not lane_outcome is not None:
+        if lane_outcome is None:
             file_name = f"{replay.replayID}_{team.name}_draftonly.png"
         else:
             file_name = f"{replay.replayID}_{team.name}.png"
@@ -726,7 +726,9 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         lines.append(line)
         tot_height += line.size[1]
         tot_height += vert_spacing
-        if len(lines) >= line_limit:
+        # if len(lines) >= line_limit:
+        # Estimated
+        if tot_height >= 1700:
             line_sets.append(lines)
             lines = []
 
@@ -754,7 +756,7 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         if tot_height <= 0:
             continue
         if first_sheet:
-            sheet = Image.new('RGB', (max_width, tot_height + font_size + 5),
+            sheet = Image.new('RGB', (max_width, tot_height + font_size + 10),
                               (255, 255, 255, 255))
             canvas = ImageDraw.Draw(sheet)
 
