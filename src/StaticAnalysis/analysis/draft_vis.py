@@ -452,6 +452,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, add_league_date=True, caching=True,
+                       add_lane_outcome=False,
                        fig=plt.gcf()):
     has_nw = has_networth(session, replay)
     if caching:
@@ -499,7 +500,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     # Lane outcome line
     # Add networth line
-    if has_nw:
+    if has_nw and add_lane_outcome:
         lane_outcome = get_laning_image(session, fig, main_team_faction, replay)
     else:
         lane_outcome = None
@@ -595,7 +596,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     if caching:
         cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
-        if not has_nw:
+        if not lane_outcome is not None:
             file_name = f"{replay.replayID}_{team.name}_draftonly.png"
         else:
             file_name = f"{replay.replayID}_{team.name}.png"
