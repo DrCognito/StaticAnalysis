@@ -568,7 +568,7 @@ def do_wards(team: TeamInfo, r_query,
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
-    vmin, vmax = (1, None)
+    vmin, vmax = (1, 5)
 
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                                   Type=Ward,
