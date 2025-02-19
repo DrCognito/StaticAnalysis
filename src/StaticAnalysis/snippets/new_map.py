@@ -1,4 +1,4 @@
-from StaticAnalysis.lib.Common import add_map
+from StaticAnalysis.lib.Common import add_map, EXTENT
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -28,9 +28,76 @@ tower_coordinates = [
     ('21', 0.878824, 0.361327),  # DT1 Bot
 ]
 
+
+# Extent calibration
+# Bottom Right Twin gate 738
+object_1_coords = (8896.000000, 23296.000000)
+object_1_pixel = (58, 155) # From top left
+# Top Left Twin Gate 738
+object_2_coords = (23744.000000, 9856.000000)
+object_2_pixel = (894, 910) # From top left
+image_pixel_size = (1000, 1034)
+
+def scale_axis(pmin, pmax, cmin, cmax, axis_length):
+    p_diff = abs(pmax - pmin)
+    c_diff = abs(cmax - cmin)
+    
+    # Coords per pixel
+    c_per_p = c_diff / p_diff
+    # Scaled full length
+    scaled_axis = axis_length * c_per_p
+    # Min axis
+    axis_min = cmin - pmin*c_per_p
+    axis_max = axis_min + scaled_axis
+    
+    return axis_min, axis_max
+
+x0, x1 = scale_axis(
+    object_1_pixel[0], object_2_pixel[0],
+    object_1_coords[0], object_2_coords[0],
+    image_pixel_size[0]
+)
+y0, y1 = scale_axis(
+    object_2_pixel[1], object_1_pixel[1],
+    object_1_coords[1], object_2_coords[1],
+    image_pixel_size[1]
+)
+y_tweak_off = 550
+x_tweak_off = 0
+new_extent = [x0 + x_tweak_off, x1 + x_tweak_off, y0 + y_tweak_off, y1 + y_tweak_off]
+print(f"Extents {new_extent}")
+
+# 7.38 Map
+tower_7_38 = [
+    (9792.000000, 12976.000000), 
+    (11744.000000, 12240.000000),
+    (12432.000000, 10272.000000),
+    (16024.000000, 10128.000000),
+    (21308.000000, 10304.000000),
+    (13047.750000, 13592.250000),
+    (10096.000000, 15512.000000),
+    (10048.000000, 18240.000000),
+    (10672.000000, 11520.000000),
+    (21328.000000, 21160.000000),
+    (16256.000000, 22400.000000),
+    (11712.000000, 22400.000000),
+    (18880.000000, 18496.000000),
+    (16908.000000, 17036.000000),
+    (22784.000000, 16768.000000),
+    (22720.000000, 19416.000000),
+    (19936.000000, 22160.000000),
+    (20656.000000, 20143.000000),
+    (21664.000000, 20816.000000),
+    (10992.000000, 11192.000000),
+    (14840.000000, 14976.000000),
+    (22653.343750, 14144.000000),
+]
+
+
+
 fig = plt.figure(figsize=(7, 7))
 axis = fig.subplots()
-add_map(axis)
+add_map(axis, extent=EXTENT)
 
 unzipped = list(zip(*tower_coordinates))
 name = unzipped[0]
@@ -50,10 +117,11 @@ m2, c2 = np.polyfit(y2, y1, 1)
 xscale = list(map(lambda l: m1*l + c1, x))
 yscale = list(map(lambda l: m2*l + c2, y))
 
-
+x = [i[0] for i in tower_7_38]
+y = [i[1] for i in tower_7_38]
 axis.scatter(x, y)
 
-for i, txt in enumerate(name):
-    axis.annotate(txt, (x[i], y[i]))
+# for i, txt in enumerate(name):
+#     axis.annotate(txt, (x[i], y[i]))
 
 plt.show()
