@@ -1792,7 +1792,7 @@ if __name__ == "__main__":
     if args.prioritypicks is None:
         args.prioritypicks = default_process
     if args.runes is None:
-        args.runes = default_process
+        args.runes = False
 
     scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
     try:
