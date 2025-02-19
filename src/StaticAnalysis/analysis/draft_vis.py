@@ -682,7 +682,10 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
 
     # Tournaments that need to be considered for breaks
     # Assumes last replay is the oldest!
-    tournaments = relevant_tournament_times(replays[-1])
+    try:
+        tournaments = relevant_tournament_times(replays[-1])
+    except IndexError:
+        tournaments = []
     # Get the lines for each replay and store so we can build our sheet
     lines = []
     tot_height = 0
