@@ -103,9 +103,13 @@ def plot_hero_flexstack(
     return offset, xticks, xnames
 
 
-def get_flex_totals(team_df: dict, labels: list) -> Series:
+def get_flex_totals(team_df: dict, labels: list, use_cols: list = None) -> Series:
     # Combine our seperate player dfs
     totals = concat(team_df).reset_index()
+    if use_cols is not None:
+        totals = totals.loc[:, ['level_0', 'level_1'] + use_cols]
+        # Check if some are now zero with filtering.
+        totals = totals.loc[~(totals[use_cols]==0).all(axis=1)]
     # Group by level 1 which should be the hero name (npc_...) and count players
     counts = totals[['level_0', 'level_1']].groupby('level_1').count()
     # Check we have more than one for a flex pick

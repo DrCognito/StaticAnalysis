@@ -12,7 +12,7 @@ from propubs.libs.vis import get_player_dataframe, process_dataframe, get_team_d
 from pandas import DataFrame, concat, Series
 from collections import Counter
 from propubs.libs import TIME_LABELS
-from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp
+from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_flex_totals
 from herotools.lib.position import strict_pos, loose_pos, mixed_pos
 
 xtreme_gaming = 8261500
@@ -99,25 +99,25 @@ def counter_flex_heroes(team_df: dict) -> Counter:
 flexes = get_flex_heroes(processed_none)
 counts = counter_flex_heroes(processed_none)
 
-def get_flex_totals(team_df: dict) -> Series:
-    # Combine our seperate player dfs
-    totals = concat(processed_none).reset_index()
-    # Group by level 1 which should be the hero name (npc_...) and count players
-    counts = totals[['level_0', 'level_1']].groupby('level_1').count()
-    # Check we have more than one for a flex pick
-    counts = counts[counts['level_0'] > 1]
-    # Using the remaining hero names that are flex picks, filter hero name
-    totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
-    # Time lables + comp to sum over
-    labels = [*TIME_LABELS, 'comp']
-    # Do the sum and sort
-    totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
-    totals = totals.sort_values("sum", ascending=False)
+# def get_flex_totals(team_df: dict) -> Series:
+#     # Combine our seperate player dfs
+#     totals = concat(processed_none).reset_index()
+#     # Group by level 1 which should be the hero name (npc_...) and count players
+#     counts = totals[['level_0', 'level_1']].groupby('level_1').count()
+#     # Check we have more than one for a flex pick
+#     counts = counts[counts['level_0'] > 1]
+#     # Using the remaining hero names that are flex picks, filter hero name
+#     totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
+#     # Time lables + comp to sum over
+#     labels = [*TIME_LABELS, 'comp']
+#     # Do the sum and sort
+#     totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
+#     totals = totals.sort_values("sum", ascending=False)
     
-    # Return just the one column
-    return totals['sum']
+#     # Return just the one column
+#     return totals['sum']
 
-flex_count = get_flex_totals(processed_none)
+# flex_count = get_flex_totals(processed_none)
 
 fig = plt.figure()
 labels = [*TIME_LABELS, 'comp']
