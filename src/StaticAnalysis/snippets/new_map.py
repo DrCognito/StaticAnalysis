@@ -1,7 +1,4 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from lib.Common import add_map
+from StaticAnalysis.lib.Common import add_map
 import matplotlib.pyplot as plt
 import numpy as np
 
