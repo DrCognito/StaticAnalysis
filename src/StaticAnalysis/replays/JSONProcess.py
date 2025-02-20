@@ -150,6 +150,13 @@ def get_smoke_summary(json_in, team):
     return zip(smoke_summary[start], smoke_summary[end])
 
 
+def get_tormentor_summary(json_in):
+    for x in json_in:
+        if x['type'] == 'TormentorSummary':
+            return x
+    return {}
+
+
 def get_league_id(json_in):
     pick_ban = get_pick_ban(json_in)
 

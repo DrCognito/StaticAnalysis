@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
-                                    Smoke, TeamSelections, Ward)
+                                    Smoke, TeamSelections, Ward, Tormentor)
 from StaticAnalysis.replays.Common import Team
 
 
@@ -52,6 +52,16 @@ class Replay(Base):
                          cascade="all, delete-orphan",
                          #single_parent=True, passive_deletes=True
                          )
+    tormentor_spawns = relationship(Tormentor.TormentorSpawn, back_populates="replay",
+                                 lazy="dynamic",
+                                 cascade="all, delete-orphan",
+                                 #single_parent=True, passive_deletes='all'
+                                 )
+    tormentor_kills = relationship(Tormentor.TormentorKill, back_populates="replay",
+                                 lazy="dynamic",
+                                 cascade="all, delete-orphan",
+                                 #single_parent=True, passive_deletes='all'
+                                 )
 
     def get_player_by_hero(self, hero, nameType=HeroIDType.NPC_NAME):
         if nameType != HeroIDType.NPC_NAME:
@@ -169,6 +179,7 @@ def InitDB(path):
     Ward.InitDB(path)
     Scan.InitDB(path)
     Rune.InitDB(path)
+    Tormentor.InitDB(path)
 
     return engine
 
@@ -229,6 +240,10 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         working_replay.teams = TeamSelections.populate_from_JSON(jsonFile,
                                                                  working_replay,
                                                                  session)
+        
+        working_replay.tormentor_spawns, working_replay.tormentor_kills = Tormentor.populate_from_JSON(
+            jsonFile, working_replay, session
+        )
 
     session.merge(working_replay)
     return working_replay
