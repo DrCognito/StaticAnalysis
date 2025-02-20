@@ -59,10 +59,13 @@ from StaticAnalysis.replays.Scan import Scan
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
+from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
+from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players
 import StaticAnalysis
 from StaticAnalysis import session, team_session, pub_session
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 from math import isnan
+from typing import List
 
 import warnings
 warnings.filterwarnings(
@@ -125,6 +128,7 @@ arguments.add_argument("--summary", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--prioritypicks", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--runes", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--tormentors", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
 arguments.add_argument('--scrim_time',
@@ -1080,6 +1084,75 @@ def do_statistics(team: TeamInfo, r_query, table=True):
     return '\n'.join(main_str)
 
 
+def do_tormentor_routes(
+    team: TeamInfo, r_query, metadata: dict,
+    update_dire: bool, update_radiant: bool,
+    cache=True):
+    d_replays, r_replays = get_side_replays(r_query, session, team)
+    d_replays = d_replays.order_by(Replay.replayID.desc())
+    r_replays = r_replays.order_by(Replay.replayID.desc())
+
+    plot_base = Path(PLOT_BASE_PATH)
+    team_path: Path = plot_base / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    (team_path / 'dire').mkdir(parents=True, exist_ok=True)
+    (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
+
+    fig = plt.figure(figsize=(7, 7))
+    cache_dire = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
+
+    def _process_side(replays, side: Team):
+        s_string = "dire" if side == Team.DIRE else "radiant"
+        saved_paths = []
+        r: Replay
+        for r in replays:
+            if not is_full_replay(session, r):
+                continue
+            r_file = f"{r.replayID}_tormentor1_{s_string}.png"
+            cache_path = cache_dire / r_file
+            destination = team_path / s_string / f"tormentor1_{r.replayID}.png"
+
+            if cache and destination.exists():
+                saved_paths.append(str(destination.relative_to(plot_base)))
+                continue
+            elif cache and cache_path.exists():
+                shutil.copyfile(cache_path, destination)
+                saved_paths.append(str(destination.relative_to(plot_base)))
+            else:
+                tormentor_spawns: List[TormentorSpawn] = r.tormentor_spawns
+                tormentor_kills: List[TormentorKill] = r.tormentor_kills
+                if not tormentor_spawns and not tormentor_kills:
+                    print(f"No tormentor kills registered for {r.replayID}")
+                    continue
+
+                tspawn = tormentor_spawns[0].game_time
+                tkill = tormentor_kills[0].game_time
+                spawn_location = (
+                    tormentor_spawns[0].xCoordinate,
+                    tormentor_spawns[0].yCoordinate)
+                # Time range info
+                min_time = tspawn - 1*60
+                time_slice = tkill - min_time
+                # Do the plot!
+                plot_tormentor_kill_players(
+                    r, team, side, session, team_session,
+                    tkill, spawn_location, fig, time_slice=time_slice)
+                # Save it
+                fig.tight_layout()
+                fig.savefig(cache_path)
+                shutil.copyfile(cache_path, destination)
+                saved_paths.append(str(destination.relative_to(plot_base)))
+                fig.clf()
+        return saved_paths
+
+    if update_dire:
+        metadata[f'tormentor_routes_dire'] = _process_side(d_replays, Team.DIRE)
+    if update_radiant:
+        metadata[f'tormentor_routes_radiant'] = _process_side(r_replays, Team.RADIANT)
+
+    return metadata
+
+
 def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
                       update_dire: bool, update_radiant: bool, limit=None,
                       cache=True):
@@ -1554,6 +1627,15 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_runes(team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
+    if args.tormentors:
+        print("Processing tormentors", end=" ")
+        start = t.process_time()
+        metadata = do_tormentor_routes(
+            team, r_query, metadata, new_dire,
+            new_radiant, cache=True)
+        plt.close('all')
+        print(f"Processed in {t.process_time() - start}")
+    
     if args.summary:
         print("Processing summary.", end=" ")
         start = t.process_time()
@@ -1792,7 +1874,9 @@ if __name__ == "__main__":
     if args.prioritypicks is None:
         args.prioritypicks = default_process
     if args.runes is None:
-        args.runes = False
+        args.runes = default_process
+    if args.tormentors is None:
+        args.tormentors = default_process
 
     scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
     try:
