@@ -3,6 +3,7 @@ from sqlalchemy import (BigInteger, Column, Float, ForeignKey, Integer, String,
 from StaticAnalysis.replays import Base
 from StaticAnalysis.replays.JSONProcess import get_tormentor_summary
 from typing import Tuple, List
+from sqlalchemy.orm import relationship
 
 
 class TormentorSpawn(Base):
@@ -11,6 +12,7 @@ class TormentorSpawn(Base):
         BigInteger, ForeignKey("Replays.replayID"),
         primary_key=True
         )
+    replay = relationship("Replay", back_populates="tormentor_spawns")
     time = Column(Integer, primary_key=True)
     game_time = Column(Integer)
     xCoordinate = Column(Float)
@@ -26,6 +28,7 @@ class TormentorKill(Base):
         BigInteger, ForeignKey("Replays.replayID"),
         primary_key=True
         )
+    replay = relationship("Replay", back_populates="tormentor_kills")
     time = Column(Integer, primary_key=True)
     game_time = Column(Integer)
     steamID = Column(BigInteger)
@@ -66,7 +69,7 @@ def populate_from_JSON(json, replay_in, session) -> Tuple[List[TormentorSpawn], 
         for rp in replay_in.players:
             if rp.hero == p:
                 steamID = rp.steamID
-            break
+                break
         if steamID is None:
             print(f"Could not assign tormentor kill @ {t} from hero {p} a steamID")
         kill.steamID = steamID
