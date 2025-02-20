@@ -24,7 +24,7 @@ from typing import List
 from pandas import DataFrame
 from matplotlib.axes import Axes
 
-def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None):
+def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None, min_time=None):
     # if max_time is not None:
     #     paths = [
     #         df.loc[df['game_time'] <= max_time] for df in paths
@@ -42,7 +42,11 @@ def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=Non
     plots = []
     for colour, path, name in zip(colours, paths, names):
         row_filter = None
-        if max_time is not None:
+        if min_time is not None and max_time is not None:
+            path = path.loc[path['game_time'].between(min_time, max_time)].copy()
+        elif min_time is not None:
+            path = path.loc[path['game_time'] >= min_time].copy()
+        elif max_time is not None:
             path = path.loc[path['game_time'] <= max_time].copy()
         if path.empty:
             continue
@@ -70,7 +74,8 @@ def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=Non
 
 
 def get_player_dataframes(
-    replay: Replay, side: Team, session, smoke_alpha=0.5
+    replay: Replay, side: Team, session, smoke_alpha=0.5,
+    min_time: int = None, max_time: int = 45
     ):
     # Pregame player positions
     positions = []
@@ -79,7 +84,19 @@ def get_player_dataframes(
         if player.team != side:
             continue
         # Note to future self: You can not filter the players list like this as it is not lazy.
-        query = player.status.filter(PlayerStatus.game_time <= 45)
+        if min_time is not None and max_time is not None:
+            # .between() is inclusive
+            query = player.status.filter(
+                PlayerStatus.game_time.between(min_time, max_time)
+                )
+        elif min_time is not None:
+            query = player.status.filter(
+                PlayerStatus.game_time >= min_time
+                )
+        elif max_time is not None:
+            query = player.status.filter(
+                PlayerStatus.game_time <= max_time
+                )
         # p_df = dataframe_xy(player.status.filter(PlayerStatus.game_time <= 0),
         #                     PlayerStatus, session)
         sql_query = query.with_entities(
@@ -128,6 +145,16 @@ def plot_highlighted_smoke_path(
     return plot_highlighted_path(positions, ax_in, alpha=alpha)
 
 
+def plot_highlighted_smoke_path_general(
+    positions: List[DataFrame], min_time: int, max_time, ax_in: Axes, alpha=0.5
+    ):
+    positions = [
+        df[df['is_smoked'] & (df['game_time'].between(min_time, max_time))] for df in positions
+    ]
+
+    return plot_highlighted_path(positions, ax_in, alpha=alpha)
+
+
 def add_smoke_start_highlight(
     data: DataFrame, ax_in: Axes, font_size=12, time_col = 'Start time'
     ):
@@ -145,6 +172,18 @@ def add_smoke_start_highlight(
         path_effects=[PathEffects.withStroke(linewidth=3,foreground="w")],
         color='black')
 
+    return
+
+
+def add_nice_time(x, y, ax_in: Axes, time, font_size=12):
+    time = seconds_to_nice(time)
+    ax_in.text(
+        s=time,
+        x=x, y=y,
+        ha='center', va='center', zorder=5,
+        path_effects=[PathEffects.withStroke(linewidth=3,foreground="w")],
+        color='black')
+    
     return
 
 
