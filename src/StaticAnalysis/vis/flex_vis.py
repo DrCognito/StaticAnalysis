@@ -88,7 +88,7 @@ def plot_hero_flexstack(
             # Plot an outline seperately
             axe.barh(
                 offset, width, height=barh, left=left,
-                label=label, hatch=hatching, color='none',
+                label=label, color='none',
                 edgecolor = 'black', linewidth=1, zorder=1
                 )
             axe.set_yticks([offset,], [p,])
@@ -117,8 +117,11 @@ def get_flex_totals(team_df: dict, labels: list, use_cols: list = None) -> Serie
     # Using the remaining hero names that are flex picks, filter hero name
     totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
     # Do the sum and sort
-    totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
-    totals = totals.sort_values("sum", ascending=False)
+    if totals.empty:
+        totals['sum'] = []
+    else:
+        totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
+        totals = totals.sort_values("sum", ascending=False)
     
     # Return just the one column
     return totals['sum']
@@ -138,8 +141,11 @@ def get_flex_totals_pub(team_df: dict, labels: list, use_cols: list = None) -> S
     # Using the remaining hero names that are flex picks, filter hero name
     totals = totals[totals['hero_name'].isin(counts.index)].groupby('hero_name').sum()
     # Do the sum and sort
-    totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
-    totals = totals.sort_values("sum", ascending=False)
+    if totals.empty:
+        totals['sum'] = []
+    else:
+        totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
+        totals = totals.sort_values("sum", ascending=False)
     
     # Return just the one column
     return totals['sum']
@@ -280,13 +286,109 @@ def plot_flexstack(combined_df: dict, contexts: list, fig: Figure, limit=20):
 
 def fix_pubs_df_index(pubs_df: dict) -> dict:
     df: DataFrame
-    for _, df in pubs_df.items():
+    for p, df in pubs_df.items():
         df.index = [i[1] for i in df.index]
+        df = df.loc[~(df==0).all(axis=1)]
+        pubs_df[p] = df
 
     return pubs_df
 
 
 def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
+    plot_style = {
+        'barh':1.0,
+        'bargap':0.1,
+        'colour_map':{p:c for p, c in zip(pubs_df, colour_map)},
+        'plot_hatching':{
+            '<3 days':'/',
+            '3 to 7 days':'x',
+            '7 to 30 days':'o'},
+        'colour_float':{
+            '<3 days':0.2,
+            '3 to 7 days':0.4,
+            '7 to 30 days':0.6},
+        'plot_column':['<3 days', '3 to 7 days', '7 to 30 days'],
+    }
+
+    flex_count = get_flex_totals(pubs_df, contexts)
+
+    # Figure setup
+    # fig.set_size_inches(6, max(1.0*len(flex_count[20:]), 6))
+    fig.set_size_inches(6, max(1.0*len(flex_count[20:]), 10))
+    axe = fig.subplots()
+    axe.set_title("Pubs")
+    if flex_count.empty:
+        axe.text(0.5, 0.5, "No Data", fontsize=14,
+            horizontalalignment='center',
+            verticalalignment='center'
+        )
+    # Build a dictionary of rows for each hero
+    # Limit controls the max number of heroes to plot
+    offset = 0
+    yticks = []
+    ylabels = []
+    plot_labels = {}
+    p_order = list(pubs_df.keys())[::-1]
+    for h in flex_count.index[:limit]:
+        plot_dict = {}
+        for p in p_order:
+            df = pubs_df[p]
+            try:
+                plot_dict[p] = df.loc[h]
+            except KeyError:
+                # print(f"No data for hero {h} player {p}")
+                pass
+        offset, ticks, labels = plot_hero_flexstack(
+            offset=offset,
+            plot_labels=plot_labels,
+            hero_frequencies=plot_dict,
+            axe=axe,
+            **plot_style,
+        )
+        size = 0.6
+        x_pos = 0.0
+        y_pos = (ticks[0] + ticks[-1]) / 2.0
+        # Add the hero ircon
+        add_hero_icon(h, x_pos, y_pos, size, axe)
+        offset += 3*plot_style['bargap']
+        yticks += ticks
+        ylabels += labels
+        
+    axe.set_yticks(yticks, ylabels)
+    axe.yaxis.set_tick_params(pad=20)
+    # Make legend manually
+    # Player labels
+    handles = []
+    for p, cmap in plot_style['colour_map'].items():
+        patch = mpatches.Patch(color=cmap(0), label=p)
+        handles.append(patch)
+    l1 = axe.legend(handles=handles)
+    # l1_bbox = l1.get_bbox_to_anchor().inverse_transformed(axe.transAxes)
+    l1_bbox = l1.get_bbox_to_anchor()
+    l1_bbox = l1_bbox.transformed(fig.transFigure.inverted())
+    # Time labels
+    time_cmap = mpl_colormaps.get('copper')
+    handles_time = []
+    for t, s in plot_style['plot_hatching'].items():
+        patch = mpatches.Patch(facecolor=time_cmap(0), hatch=s, label=t, edgecolor='white')
+        handles_time.append(patch)
+    axe.add_artist(l1)
+    #Legend pos adjustments
+
+    axe.legend(
+        handles = handles_time,
+        # bbox=l1_bbox,
+        # loc='upper right', bbox_to_anchor=(l1_bbox.xmax, l1_bbox.ymin),
+        loc='upper right', bbox_to_anchor=(l1_bbox.xmax, l1_bbox.ymax - 0.11),
+        # loc=(0.05, 0.01),
+        bbox_transform=fig.transFigure
+        )
+    axe.xaxis.get_major_locator().set_params(integer=True)
+
+    return fig
+
+
+def plot_flex_comp(pubs_df: dict, contexts: list, fig: Figure, limit=20):
     plot_style = {
         'barh':1.0,
         'bargap':0.1,
@@ -359,7 +461,8 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
     axe.legend(
         handles = handles_time,
         ncol = 3,
-        loc=(0.0, -0.08)
+        loc=(0.0, 0.0),
+        bbox_transform=axe.transData
         )
 
     return fig
