@@ -12,12 +12,13 @@ from propubs.libs.vis import get_player_dataframe, process_dataframe, get_team_d
 from pandas import DataFrame, concat, Series
 from collections import Counter
 from propubs.libs import TIME_LABELS
-from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_flex_totals
+from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_flex_totals, get_flex_totals_pub, plot_flexstack_pub, fix_pubs_df_index
 from herotools.lib.position import strict_pos, loose_pos, mixed_pos
 
 xtreme_gaming = 8261500
 heroic = 9303484
 moodeng = 9678064
+parivision = 9572001
 r_filter = Replay.endTimeUTC >= MAIN_TIME
 
 def get_team(name):
@@ -99,25 +100,8 @@ def counter_flex_heroes(team_df: dict) -> Counter:
 flexes = get_flex_heroes(processed_none)
 counts = counter_flex_heroes(processed_none)
 
-# def get_flex_totals(team_df: dict) -> Series:
-#     # Combine our seperate player dfs
-#     totals = concat(processed_none).reset_index()
-#     # Group by level 1 which should be the hero name (npc_...) and count players
-#     counts = totals[['level_0', 'level_1']].groupby('level_1').count()
-#     # Check we have more than one for a flex pick
-#     counts = counts[counts['level_0'] > 1]
-#     # Using the remaining hero names that are flex picks, filter hero name
-#     totals = totals[totals['level_1'].isin(counts.index)].groupby('level_1').sum()
-#     # Time lables + comp to sum over
-#     labels = [*TIME_LABELS, 'comp']
-#     # Do the sum and sort
-#     totals['sum'] = totals[labels].sum(axis=1, numeric_only=True)
-#     totals = totals.sort_values("sum", ascending=False)
-    
-#     # Return just the one column
-#     return totals['sum']
-
 # flex_count = get_flex_totals(processed_none)
+pubs_count = get_flex_totals_pub(pubs_df_time_none, TIME_LABELS)
 
 fig = plt.figure()
 labels = [*TIME_LABELS, 'comp']
@@ -133,4 +117,10 @@ fig.savefig(output, bbox_inches='tight', dpi=150)
 fig.clf()
 fig = plot_flexstack(processed_strict, labels, fig)
 output = f'hero_flex_pub_strict.png'
+fig.savefig(output, bbox_inches='tight', dpi=150)
+#
+pubs_df_time_none = fix_pubs_df_index(pubs_df_time_none)
+fig.clf()
+fig = plot_flexstack_pub(pubs_df_time_none, contexts=TIME_LABELS, fig=fig)
+output = f'hero_flex_pubsOnly_strict.png'
 fig.savefig(output, bbox_inches='tight', dpi=150)
