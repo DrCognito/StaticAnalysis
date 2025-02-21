@@ -7,7 +7,7 @@ from sqlalchemy import and_, or_
 from StaticAnalysis import session, team_session, pub_session
 
 import matplotlib.pyplot as plt
-from herotools.important_times import MAIN_TIME
+from herotools.important_times import MAIN_TIME, ImportantTimes
 from propubs.libs.vis import get_player_dataframe, process_dataframe, get_team_df, plot_propub, colour_list, plot_team_pubs, plot_team_pubs_timesplit, process_dataframe_timeplit
 from pandas import DataFrame, concat, Series
 from collections import Counter
@@ -19,14 +19,15 @@ xtreme_gaming = 8261500
 heroic = 9303484
 moodeng = 9678064
 parivision = 9572001
-r_filter = Replay.endTimeUTC >= MAIN_TIME
+# r_filter = Replay.endTimeUTC >= MAIN_TIME
+r_filter = Replay.endTimeUTC >= ImportantTimes['7_37e']
 
 def get_team(name):
     t_filter = or_(TeamInfo.team_id == name, TeamInfo.name == name)
     team = team_session.query(TeamInfo).filter(t_filter).one_or_none()
 
     return team
-team = get_team(moodeng)
+team = get_team(heroic)
 
 def _is_flex(*args):
         pass_count = 0
@@ -105,22 +106,22 @@ pubs_count = get_flex_totals_pub(pubs_df_time_none, TIME_LABELS)
 
 fig = plt.figure()
 labels = [*TIME_LABELS, 'comp']
-fig = plot_flexstack(processed_none, labels, fig)
-output = f'hero_flex_pub.png'
-fig.savefig(output, bbox_inches='tight', dpi=150)
+# fig = plot_flexstack(processed_none, labels, fig)
+# output = f'hero_flex_pub.png'
+# fig.savefig(output, bbox_inches='tight', dpi=150)
 
-fig.clf()
-fig = plot_flexstack(processed_loose, labels, fig)
-output = f'hero_flex_pub_loose.png'
-fig.savefig(output, bbox_inches='tight', dpi=150)
+# fig.clf()
+# fig = plot_flexstack(processed_loose, labels, fig)
+# output = f'hero_flex_pub_loose.png'
+# fig.savefig(output, bbox_inches='tight', dpi=150)
 
-fig.clf()
-fig = plot_flexstack(processed_strict, labels, fig)
-output = f'hero_flex_pub_strict.png'
-fig.savefig(output, bbox_inches='tight', dpi=150)
-#
+# fig.clf()
+# fig = plot_flexstack(processed_strict, labels, fig)
+# output = f'hero_flex_pub_strict.png'
+# fig.savefig(output, bbox_inches='tight', dpi=150)
+# #
 pubs_df_time_none = fix_pubs_df_index(pubs_df_time_none)
 fig.clf()
 fig = plot_flexstack_pub(pubs_df_time_none, contexts=TIME_LABELS, fig=fig)
-output = f'hero_flex_pubsOnly_strict.png'
+output = f'hero_flex_pubsOnly_none.png'
 fig.savefig(output, bbox_inches='tight', dpi=150)
