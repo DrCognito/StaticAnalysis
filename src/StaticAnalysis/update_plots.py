@@ -19,7 +19,7 @@ from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pandas import DataFrame, IntervalIndex, cut, read_sql, concat
-from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit
+from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit, get_team_df
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
                                      get_team_last_result)
@@ -66,6 +66,9 @@ from StaticAnalysis import session, team_session, pub_session
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
 from math import isnan
 from typing import List
+from propubs.libs.vis import process_dataframe_timeplit
+from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_flex_totals, get_flex_totals_pub, plot_flexstack_pub, fix_pubs_df_index
+from propubs.libs import TIME_LABELS
 
 import warnings
 warnings.filterwarnings(
@@ -827,6 +830,25 @@ def do_player_picks(team: TeamInfo, metadata: dict,
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_hero_picks{postfix}'] = relpath
+
+    return metadata
+
+def do_flex_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time: datetime = None):
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+
+    flex_pubs_df = get_team_df(team, pub_session, min_time,
+        post_process=process_dataframe_timeplit, maxtime=end_time)
+    # Fix me chain with post_process?
+    flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
+    
+    output = team_path / f'hero_flex_pubs.png'
+    fig = plt.figure()
+    fig = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig)
+    fig.savefig(output, bbox_inches='tight', dpi=150)
+    fig.clf()
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata[f'plot_flex_pubs'] = relpath
 
     return metadata
 
@@ -1645,6 +1667,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
         metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
                                    mintime=stat_time, maxtime=end_time)
+        metadata = do_flex_pubs(team, metadata, time, end_time)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
