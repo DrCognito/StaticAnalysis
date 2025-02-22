@@ -1560,9 +1560,10 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
-            print("Pub data is newer, remaking pick plots.")
+            print("Pub data is newer, remaking pick plots and flex pubs.")
             # No need to do limit plots as they are without pubs.
             metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
+            metadata = do_flex_pubs(team, metadata, time, end_time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
