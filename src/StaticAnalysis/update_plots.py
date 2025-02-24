@@ -672,21 +672,15 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     time_pairs = [
-        (-10*60, 10*60),
-        (10*60, 20*60),
-        (20*60, 30*60),
-        (30*60, 40*60),
-        (40*60, 500*60)
+        (-10*60, 0*60),
+        (8*60, 15*60),
     ]
 
-    vmin, vmax = (1, None)
+    vmin, vmax = (1, 5)
 
     time_titles = [
-        'Pre-Game to 10 mins',
-        '10 mins to 20 mins',
-        '20 mins to 30 mins',
-        '30 mins to 40 mins',
-        '40 mins+'
+        'Pre-Game',
+        '8 mins to 15 mins',
     ]
     s_dire, s_radiant = get_smoke(r_query, session, team)
 
@@ -705,19 +699,19 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
             print("No smoke data for {}.".format(side))
             return
 
-        fig, axList = plt.subplots(3, 2, figsize=(8, 10))
-        ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = axList
+        fig, axList = plt.subplots(1, 2, figsize=(12, 6))
+        (ax1, ax2) = axList
         try:
             _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
             _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
-            _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
-            _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
-            _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
+            # _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
+            # _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
+            # _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
         except ValueError as e:
             print(e)
             print(data)
             return
-        ax6.axis('off')
+        # ax6.axis('off')
 
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/smoke_summary.jpg'.format(team_str)
