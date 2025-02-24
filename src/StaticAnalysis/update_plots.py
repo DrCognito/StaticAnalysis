@@ -1141,12 +1141,14 @@ def do_tormentor_routes(
                 shutil.copyfile(cache_path, destination)
                 saved_paths.append(str(destination.relative_to(plot_base)))
             else:
-                tormentor_spawns: List[TormentorSpawn] = r.tormentor_spawns
-                tormentor_kills: List[TormentorKill] = r.tormentor_kills
-                if not tormentor_spawns and not tormentor_kills:
+                tormentor_spawns: List[TormentorSpawn] = list(r.tormentor_spawns)
+                tormentor_kills: List[TormentorKill] = list(r.tormentor_kills)
+                if not tormentor_kills:
                     print(f"No tormentor kills registered for {r.replayID}")
                     continue
-
+                if not tormentor_spawns:
+                    print(f"No tormentor spawns registered for {r.replayID}")
+                    continue
                 tspawn = tormentor_spawns[0].game_time
                 tkill = tormentor_kills[0].game_time
                 spawn_location = (
