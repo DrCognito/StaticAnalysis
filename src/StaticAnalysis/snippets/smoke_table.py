@@ -1,7 +1,7 @@
 from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
-from StaticAnalysis.analysis.smoke_vis import smoke_start_locale, smoke_end_locale_first, smoke_end_locale_individual, get_smoke_time_info, get_smoke_time_players, get_smoked_player_table
+from StaticAnalysis.analysis.smoke_vis import smoke_start_locale, smoke_end_locale_first, smoke_end_locale_individual, get_smoke_time_info, get_smoke_time_players, get_smoked_player_table, get_smoke_table_replays
 from sqlalchemy import or_
 from StaticAnalysis.analysis.route_vis import get_player_dataframes
 from StaticAnalysis.replays.Player import Player
@@ -50,3 +50,7 @@ dire_summary_smoke = get_smoked_player_table(
 radiant_summary_smoke = get_smoked_player_table(
     replays, team, Team.RADIANT, session, team_session,
     min_time=-90, max_time=0)
+
+loc_table = get_smoke_table_replays(
+    replays, team, Team.DIRE, session, team_session,
+    min_time=8*60, max_time=15*60)
