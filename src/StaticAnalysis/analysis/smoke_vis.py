@@ -310,10 +310,12 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
     while game_time is not SMOKE_OUT_OF_RANGE:
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
-            print("Smoke duration undefined as it is beyond DF range (first)")
+            nice_time = seconds_to_nice(game_time)
+            print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
-            print("Longest duration could not be fully found as it is beyond DF range (last)")
+            nice_time = seconds_to_nice(game_time)
+            print(f"Longest duration could not be fully found as it is beyond DF range (last) {nice_time}")
             break
         # Fill last values
         out_dict['Start time'].append(game_time)
@@ -360,10 +362,12 @@ def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame
     while game_time is not SMOKE_OUT_OF_RANGE:
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
-            print("Smoke duration undefined as it is beyond DF range (first)")
+            nice_time = seconds_to_nice(game_time)
+            print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
-            print("Longest duration could not be fully found as it is beyond DF range (last)")
+            nice_time = seconds_to_nice(game_time)
+            print(f"Longest duration could not be fully found as it is beyond DF range (last) @ {nice_time}")
             break
         # Fill last values
         out_dict['Start time'].append(game_time)
