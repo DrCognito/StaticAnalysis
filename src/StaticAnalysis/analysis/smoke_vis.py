@@ -288,9 +288,44 @@ def get_first_smoke_start_end(
     return first_smoke, first_break, last_break
 
 
-# def get_smoked_players(
-#     data: List[DataFrame], names: List[str],
-#     min_time: int, max_time: int):
+def get_smoke_table_replays(
+    replays: List[Replay], team: TeamInfo,
+    side:Team, session: Session, team_session: Session,
+    min_time: int, max_time: int,
+    ) -> DataFrame:
+    dfs = []
+    for r in replays:
+        if side != r.get_side(team):
+            continue
+        r_df = get_smoke_table_replay(
+            r, team, side, session, team_session,
+            min_time, max_time
+        )
+        dfs.append(r_df)
+    
+    output = concat(dfs)
+    output = output.sort_values(by=['Start time'])
+    output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
+    
+    return output.reset_index(drop=True)
+
+
+def get_smoke_table_replay(
+    replay: Replay, team: TeamInfo,
+    side:Team, session: Session, team_session: Session,
+    min_time: int, max_time: int,
+    smoke_duration_buffer: int = 45) -> DataFrame:
+    from StaticAnalysis.analysis.route_vis import get_player_dataframes
+
+    # Get player positions
+    positions = get_player_dataframes(
+        replay, side, session, min_time=min_time - smoke_duration_buffer,
+        max_time=max_time + smoke_duration_buffer
+    )
+
+    df =  get_smoke_time_info(positions)
+    # Make sure our smoke times are restricted properly
+    return df.loc[df.loc[:, 'Start time'].between(min_time, max_time)]
 
 
 def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_locale_first) -> DataFrame:
