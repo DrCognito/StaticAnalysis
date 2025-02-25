@@ -47,7 +47,7 @@ from StaticAnalysis.analysis.visualisation import (
 from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
-from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table
+from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table, get_smoke_table_replays
 from StaticAnalysis.lib.Common import (ChainedAssignment, dire_ancient_cords,
                                        location_filter, radiant_ancient_cords,
                                        prepare_retrieve_figure, add_map, EXTENT)
@@ -693,26 +693,57 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         axis = plot_object_position(data_slice, bins=16, ax_in=axis,
                                     vmin=vmin, vmax=vmax)
         axis.set_title(title)
+    
+    def _plot_time_slice(times, title, data, axis):
+        data = get_smoke_table_replays(
+                r_query, team, side, session, team_session,
+                times[0], times[1]
+                )
+        axis = plot_object_position(data_slice, bins=16, ax_in=axis,
+                                    vmin=vmin, vmax=vmax)
+        axis.set_title(title)
 
     def _process_side(query, side: Team):
-        data = dataframe_xy_time_smoke(query, Smoke, session)
-        if data.empty:
-            print("No smoke data for {}.".format(side))
-            return
-
+        # data = dataframe_xy_time_smoke(query, Smoke, session)
         fig, axList = plt.subplots(1, 2, figsize=(12, 6))
-        (ax1, ax2) = axList
-        try:
-            _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
-            _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
-            # _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
-            # _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
-            # _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
-        except ValueError as e:
-            print(e)
-            print(data)
-            return
+        # if data.empty:
+        #     print("No smoke data for {}.".format(side))
+        #     return
+
+        # (ax1, ax2) = axList
+        # try:
+        #     _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
+        #     _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
+        #     # _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
+        #     # _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
+        #     # _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
+        # except ValueError as e:
+        #     print(e)
+        #     print(data)
+        #     return
         # ax6.axis('off')
+
+        for tpair, title, axe in zip(time_pairs, time_titles, axList):
+            df = get_smoke_table_replays(
+                r_query, team, side, session, team_session,
+                tpair[0], tpair[1]
+                )
+            if df.empty:
+                axe.text(0.5, 0.5, "No Data", fontsize=18,
+                      horizontalalignment='center',
+                      verticalalignment='center')
+                axe.set_title(title)
+                axe.yaxis.set_ticks([])
+                axe.xaxis.set_ticks([])
+            else:
+                df['xCoordinate'] = df.loc[:, 'averageXCoordinateStart']
+                df['yCoordinate'] = df.loc[:, 'averageYCoordinateStart']
+                axe = plot_object_position(
+                    df,
+                    bins=16, ax_in=axe,
+                    vmin=vmin, vmax=vmax
+                    )
+                axe.set_title(title)
 
         team_str = 'dire' if side == Team.DIRE else 'radiant'
         output = team_path / '{}/smoke_summary.jpg'.format(team_str)
