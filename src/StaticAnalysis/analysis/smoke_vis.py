@@ -42,7 +42,7 @@ def get_smoked_player_table_replay(
 
     # Get player positions
     positions = get_player_dataframes(
-        replay, side, session, min_time=min_time,
+        replay, side, session, min_time=min_time - smoke_duration_buffer,
         max_time=max_time + smoke_duration_buffer
     )
     # Get list of player names
@@ -57,8 +57,8 @@ def get_smoked_player_table_replay(
             name = get_player_name(team_session, player.steamID, team)
             order.append(player_list.index(name))
         except ValueError:
-            name = player.steamID
-            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
+            name = convert_to_32_bit(player.steamID)
+            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
         names.append(name)
     # Sort names by position
@@ -67,7 +67,7 @@ def get_smoked_player_table_replay(
 
     df =  get_smoke_time_players(positions, names)
     # Make sure our smoke times are restricted properly
-    return df.loc[df.loc[:, 'Start time'] <= max_time]
+    return df.loc[df.loc[:, 'Start time'].between(min_time, max_time)]
 
 
 def get_smoked_player_table(
@@ -345,9 +345,9 @@ def get_smoked_players_between(
             df.loc[:, 'game_time'].between(min_time,max_time) & df.loc[:, 'is_smoked']
             ]
         if not df.empty:
-            output.append(name)
+            output.append(str(name))
 
-    return ' '.join(output)
+    return ', '.join(output)
 
 
 def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame:
