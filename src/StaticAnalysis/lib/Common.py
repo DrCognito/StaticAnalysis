@@ -92,6 +92,7 @@ def location_filter(location, Type):
 
 def seconds_to_nice(s):
     '''Converts s seconds to a nicely formatted min:sec string'''
+    s = int(s)
     if s < 0:
         mins, sec = divmod(-1*s, 60)
         if sec < 10:
