@@ -46,7 +46,7 @@ smoke_table = get_smoke_time_info(positions)
 smoke_players = get_smoke_time_players(positions, names)
 dire_summary_smoke = get_smoked_player_table(
     replays, team, Team.DIRE, session, team_session,
-    min_time=-90, max_time=0)
+    min_time=8*60, max_time=15*60)
 radiant_summary_smoke = get_smoked_player_table(
     replays, team, Team.RADIANT, session, team_session,
     min_time=-90, max_time=0)
