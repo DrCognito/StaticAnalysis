@@ -138,8 +138,8 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
                              .filter(TeamPlayer.player_id == steam_id)\
                              .first()
     if player is None:
-        player_cache[f"{steam_id}_{team.team_id}"] = f"{steam_id}"
-        return f"{steam_id}"
+        player_cache[f"{steam_id}_{team.team_id}"] = f"{convert_to_32_bit(steam_id)}"
+        return f"{convert_to_32_bit(steam_id)}"
     else:
         player_cache[f"{steam_id}_{team.team_id}"] = player[0]
         return player[0]
