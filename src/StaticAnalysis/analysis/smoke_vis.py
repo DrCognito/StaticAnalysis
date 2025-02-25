@@ -9,7 +9,7 @@ from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from matplotlib.table import Table
 from matplotlib.text import Text
 from matplotlib.colors import to_rgba
-from pandas import DataFrame, read_sql
+from pandas import DataFrame, read_sql, concat
 from PIL.Image import Image, LANCZOS
 from PIL.Image import open as Image_open
 from sqlalchemy.orm import Session
@@ -28,6 +28,69 @@ from herotools.lib.common import SMOKE_DURATION
 from herotools.location import get_modal_position
 from typing import List, Tuple
 from numpy import nan, isnan
+from StaticAnalysis.replays.Player import Player
+from StaticAnalysis.lib.Common import get_player_name, seconds_to_nice
+from herotools.util import convert_to_32_bit
+
+
+def get_smoked_player_table_replay(
+    replay: Replay, team: TeamInfo,
+    side:Team, session: Session, team_session: Session,
+    min_time: int, max_time: int,
+    smoke_duration_buffer: int = 45) -> DataFrame:
+    from StaticAnalysis.analysis.route_vis import get_player_dataframes
+
+    # Get player positions
+    positions = get_player_dataframes(
+        replay, side, session, min_time=min_time,
+        max_time=max_time + smoke_duration_buffer
+    )
+    # Get list of player names
+    player_list = [p.name for p in team.players]
+    order = []
+    names = []
+    player: Player
+    for player in replay.players:
+        if player.team != side:
+            continue
+        try:
+            name = get_player_name(team_session, player.steamID, team)
+            order.append(player_list.index(name))
+        except ValueError:
+            name = player.steamID
+            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
+            order.append(-1*player.steamID)
+        names.append(name)
+    # Sort names by position
+    positions = [p for _, p in sorted(zip(order, positions))]
+    names = [n for _, n in sorted(zip(order, names))]
+
+    df =  get_smoke_time_players(positions, names)
+    # Make sure our smoke times are restricted properly
+    return df.loc[df.loc[:, 'Start time'] <= max_time]
+
+
+def get_smoked_player_table(
+    replays: List[Replay], team: TeamInfo,
+    side:Team, session: Session, team_session: Session,
+    min_time: int, max_time: int,
+    ) -> DataFrame:
+    dfs = []
+    for r in replays:
+        if side != r.get_side(team):
+            continue
+        r_df = get_smoked_player_table_replay(
+            r, team, side, session, team_session,
+            min_time, max_time
+        )
+        dfs.append(r_df)
+    
+    output = concat(dfs)
+    output = output.sort_values(by=['Start time'])
+    output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
+    
+    return output.reset_index(drop=True)
+
 
 def build_smoke_table(query: Query, session: Session) -> DataFrame:
     """Build a table of smokes with coordinates and times.
@@ -225,6 +288,11 @@ def get_first_smoke_start_end(
     return first_smoke, first_break, last_break
 
 
+# def get_smoked_players(
+#     data: List[DataFrame], names: List[str],
+#     min_time: int, max_time: int):
+
+
 def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_locale_first) -> DataFrame:
     game_time = -9000
     
@@ -260,6 +328,48 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
         out_dict['averageXCoordinateStart'].append(startX)
         out_dict['averageYCoordinateStart'].append(startY)
 
-        game_time, first_break, last_break = get_first_smoke_start_end(data, last_break)
+        game_time, first_break, last_break = get_first_smoke_start_end(data, min_time=last_break)
+
+    return DataFrame(out_dict)
+
+
+def get_smoked_players_between(
+    data: List[DataFrame], names: List[str],
+    min_time: int, max_time: int) -> str:
+    output = []
+    for df, name in zip(data, names):
+        # Restrict the dataframe to our times and smoked
+        df = df.loc[
+            df.loc[:, 'game_time'].between(min_time,max_time) & df.loc[:, 'is_smoked']
+            ]
+        if not df.empty:
+            output.append(name)
+
+    return ' '.join(output)
+
+
+def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame:
+    game_time = -9000
+    
+    out_dict = {
+        "Start time": [],
+        "Players": [],
+    }
+
+    game_time, first_break, last_break = get_first_smoke_start_end(data, game_time)
+    while game_time is not SMOKE_OUT_OF_RANGE:
+        # Have to manually control things like nan as they can not be tested for equality
+        if first_break is SMOKE_OUT_OF_RANGE:
+            print("Smoke duration undefined as it is beyond DF range (first)")
+            break
+        if last_break is SMOKE_OUT_OF_RANGE:
+            print("Longest duration could not be fully found as it is beyond DF range (last)")
+            break
+        # Fill last values
+        out_dict['Start time'].append(game_time)
+        players = get_smoked_players_between(data, names, game_time, last_break)
+        out_dict['Players'].append(players)
+
+        game_time, first_break, last_break = get_first_smoke_start_end(data, min_time=last_break)
 
     return DataFrame(out_dict)
