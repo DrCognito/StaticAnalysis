@@ -47,6 +47,7 @@ from StaticAnalysis.analysis.visualisation import (
 from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
+from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table
 from StaticAnalysis.lib.Common import (ChainedAssignment, dire_ancient_cords,
                                        location_filter, radiant_ancient_cords,
                                        prepare_retrieve_figure, add_map, EXTENT)
@@ -721,6 +722,15 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         plt.close(fig)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata['plot_smoke_{}'.format(team_str)] = relpath
+        
+        # Smoke tables
+        metadata[f'table_smoke_{team_str}'] = {}
+        for tpair, title in zip(time_pairs, time_titles):
+            df = get_smoked_player_table(
+                r_query, team, side, session, team_session,
+                tpair[0], tpair[1]
+                )
+            metadata[f'table_smoke_{team_str}'][title] = df.to_html()
 
     if update_dire:
         _process_side(s_dire, Team.DIRE)
