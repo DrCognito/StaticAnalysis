@@ -41,11 +41,15 @@ class TormentorKill(Base):
 def populate_from_JSON(json, replay_in, session) -> Tuple[List[TormentorSpawn], List[TormentorKill]]:
     summary = get_tormentor_summary(json)
     spawns = []
-    spawn_iter = zip(
-        summary['tormentorSpawnTime'],
-        summary['tormentorXcoord'],
-        summary['tormentorYcoord'],
-    )
+    try:
+        spawn_iter = zip(
+            summary['tormentorSpawnTime'],
+            summary['tormentorXcoord'],
+            summary['tormentorYcoord'],
+        )
+    except KeyError:
+        spawn_iter = []
+
     for t, x, y in spawn_iter:
         spawn = TormentorSpawn(replay_in)
 
@@ -58,7 +62,14 @@ def populate_from_JSON(json, replay_in, session) -> Tuple[List[TormentorSpawn], 
         spawns.append(spawn)
 
     kills = []
-    for t, p in zip(summary['tormentorDeathTimes'], summary['tormentorKillers']):
+    try:
+        kill_iter = zip(
+            summary['tormentorDeathTimes'], summary['tormentorKillers']
+        )
+    except KeyError:
+        kill_iter = []
+
+    for t, p in kill_iter:
         kill = TormentorKill(replay_in)
         
         kill.time = t
