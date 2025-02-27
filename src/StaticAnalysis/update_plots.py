@@ -48,8 +48,7 @@ from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
 from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table, get_smoke_table_replays
-from StaticAnalysis.lib.Common import (ChainedAssignment, dire_ancient_cords,
-                                       location_filter, radiant_ancient_cords,
+from StaticAnalysis.lib.Common import (ChainedAssignment, location_filter,
                                        prepare_retrieve_figure, add_map, EXTENT)
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
                                          make_meta)
@@ -64,7 +63,7 @@ from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
 from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players
 import StaticAnalysis
 from StaticAnalysis import session, team_session, pub_session
-from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times
+from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times, wisdom_rune_table, build_wisdom_rune_summary, plot_wisdom_table
 from math import isnan
 from typing import List
 from propubs.libs.vis import process_dataframe_timeplit
@@ -1001,6 +1000,8 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     # This MUST be cast to into or sqlalchemy can not filter with it and effectively imposes no limit!
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
+    rune_table = wisdom_rune_table(r_query, max_time=13*60)
+    rune_table = build_wisdom_rune_summary(rune_table, team_session)
     start = 6.5 * 60
     # end = int(rune_times['game_time'].max())
     # table = player_position_replays(session, r_query,
@@ -1077,7 +1078,10 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
         plot_player_routes(replay_pos, team, axis)
-        # fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
+        
+        df = rune_table.loc[rune_table.loc[:,'replayID'] == r_id].drop('replayID', axis=1)
+        plot_wisdom_table(df, axis)
+
         fig.tight_layout()
         fig.savefig(out_path)
         fig.clf()
