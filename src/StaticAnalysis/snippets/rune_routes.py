@@ -11,7 +11,16 @@ from StaticAnalysis.replays.Common import Team
 from StaticAnalysis.analysis.visualisation import plot_player_positioning
 from StaticAnalysis.analysis.route_vis import plot_player_paths
 from StaticAnalysis.analysis.Player import player_position_replays, player_positioning_single
-from StaticAnalysis.analysis.rune import wisdom_rune_times
+from StaticAnalysis.analysis.rune import wisdom_rune_times, wisdom_rune_table, build_wisdom_rune_summary, plot_wisdom_table
+from pandas import concat
+from math import isnan
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id
+import matplotlib.pyplot as plt
+from StaticAnalysis.lib.Common import (add_map, EXTENT)
+from StaticAnalysis.analysis.rune import plot_player_routes
+from StaticAnalysis.lib.Common import get_player_name, convert_to_32_bit, DIRE_ANCIENT_COORD, RADIANT_ANCIENT_COORD
+from StaticAnalysis.lib.team_info import get_player
+from math import sqrt
 
 
 def get_team(name) -> TeamInfo:
@@ -20,107 +29,120 @@ def get_team(name) -> TeamInfo:
 
     return team
 
-team = get_team(2586976)
-r_query = team.get_replays(session).filter(Replay.endTimeUTC >= ImportantTimes['Birmingham'])
-
-start = 6.5 * 60
+team = get_team(8291895)
+r_query = team.get_replays(session).filter(Replay.endTimeUTC >= MAIN_TIME)
 rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
-end = int(rune_times['game_time'].max())
-# end = 550
-test_query = player_position_replays(
-    session, r_query, start=start, end=end
-)
+rune_table = wisdom_rune_table(r_query, max_time=13*60)
+start = 6.5 * 60
 
-filter = (PlayerStatus.game_time > start,
-              PlayerStatus.game_time <= 550)
-
-query = (
-    session.query(
-        PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
-        PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time
-        )
-        .filter(*filter)
-        .join(r_query.subquery())
-)
-
-def player_position_single(
-    session, r_query,
-    team: TeamInfo, player: TeamPlayer,
-    side: Team,
-    start: int, end: int, recent_limit=None):
-
-    t_filter = ()
-    if start is not None:
-        t_filter += (PlayerStatus.game_time >= start,)
-    if end is not None:
-        t_filter += (PlayerStatus.game_time <= end,)
-
-    steam_id = player.player_id
-
-    r_filter = Replay.get_side_filter(team, side)
-    replays = r_query.filter(r_filter).subquery()
-    if recent_limit is not None:
-        replays = r_query.filter(r_filter).order_by(Replay.replayID.desc()).limit(recent_limit).subquery()
-
-    p_filter = t_filter + (PlayerStatus.steamID == steam_id,
-                            PlayerStatus.team == side)
-
-    player_q = session.query(PlayerStatus)\
-                        .filter(*p_filter)\
-                        .join(replays)
-
-    return player_q
-
-p_query = player_position_single(
-            session, r_query,
-            team, team.players[0],
-            Team.DIRE,
-            start, end=550, recent_limit=5
-        )
-from pandas import DataFrame
-def dataframe_xy(query, session) -> DataFrame:
-    sql_query = query.with_entities(
-        PlayerStatus.xCoordinate, PlayerStatus.yCoordinate,
-        PlayerStatus.team_id, PlayerStatus.steamID, PlayerStatus.replayID,
-        PlayerStatus.team, PlayerStatus.game_time).statement
-
-    data = read_sql(sql_query, session.bind)
-
-    return data
-
-# table = dataframe_xy(p_query, session)
-
-# from pandas import read_sql
-# table2 = read_sql(query.statement, session.bind)
-
-def player_position_replay_id(session, replay_id: int, start: int, end: int) -> DataFrame:
-    '''
-    More general player position table.
-    start: int in seconds
-    end: int in seconds
-    '''
-    filter = (
-        PlayerStatus.replayID == replay_id,
-        PlayerStatus.game_time > start,
-        PlayerStatus.game_time <= end
-        )
-
-    query = (
-        session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
-                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
-               .filter(*filter)
-            #    .join(r_query.subquery())
-    )
-
-    pos_table = read_sql(query.statement, session.bind)
-
-    return pos_table
-
-data = []
+table_replays = []
 r: Replay
 for r in r_query:
     rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
+    if isnan(rune_max):
+        print(f"No wisdom rune results for {r.replayID}")
+        continue
     rune_max = int(rune_max)
-    data.append(player_position_replay_id(session, r.replayID,
-                                          start=start, end=rune_max))
+    table_replays.append(player_position_replay_id(
+        session, r.replayID,
+        start=start, end=rune_max
+        ))
 
+table = concat(table_replays)
+
+fig = plt.figure()
+fig.set_size_inches(8.27, 8.27)
+r_id = table['replayID'].unique()[0]
+t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
+t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
+replay_pos = table[
+    (table["replayID"] == r_id) &
+    (table["game_time"] > t_min_rune) &
+    (table["game_time"] <= t_max_rune)
+    ]
+
+r: Replay = session.query(Replay).filter(Replay.replayID == str(r_id)).one_or_none()
+if r:
+    side = r.get_side(team)
+
+axis = fig.subplots()
+add_map(axis, extent=EXTENT)
+plot_player_routes(replay_pos, team, axis)
+# fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
+
+
+def get_player_name_simpler(pid: int):
+    player: TeamPlayer = get_player(pid)
+    if player is not None:
+        return player.name
+    else:
+        return convert_to_32_bit(pid)
+
+def get_playerobj(rid: int, pid: int, session = session):
+    return session.query(Player).filter(Player.replayID == rid, Player.steamID == pid).one_or_none()
+
+
+from pandas import DataFrame
+def map_player_location_time(time_col, pid_col):
+    x_col = []
+    y_col = []
+    pid: Player
+    for t, pid in zip(time_col, pid_col):
+        status: PlayerStatus = pid.get_position_at(t, relative_to_match_time=True)
+        x_col.append(status.xCoordinate)
+        y_col.append(status.yCoordinate)
+    
+    return x_col, y_col
+
+
+def map_player_location_time2(time_col, pid_col, rid_col, use_game_time=True, session=session):
+    if use_game_time:
+        tvar = PlayerStatus.game_time
+    else:
+        tvar = PlayerStatus.time
+    x_col = []
+    y_col = []
+    for t, pid, rid in zip(time_col, pid_col, rid_col):
+        status: PlayerStatus = session.query(PlayerStatus).filter(
+            PlayerStatus.steamID == pid,
+            PlayerStatus.replayID == rid,
+            tvar == t
+        ).one_or_none()
+        x_col.append(status.xCoordinate)
+        y_col.append(status.yCoordinate)
+
+    return x_col, y_col
+
+
+def get_closest_ancient(x, y):
+    vec_dire = (DIRE_ANCIENT_COORD[0] - x, DIRE_ANCIENT_COORD[1] - y)
+    length_dire = sqrt(vec_dire[0]*vec_dire[0] +  vec_dire[1]*vec_dire[1])
+
+    vec_radiant = (RADIANT_ANCIENT_COORD[0] - x, RADIANT_ANCIENT_COORD[1] - y)
+    length_radiant = sqrt(vec_radiant[0]*vec_radiant[0] +  vec_radiant[1]*vec_radiant[1])
+    
+    if length_dire <= length_radiant:
+        return Team.DIRE
+    else:
+        return Team.RADIANT
+
+def get_closest_ancient_str(x, y):
+    if get_closest_ancient(x, y) == Team.DIRE:
+        return "Dire"
+    return "Radiant"
+
+# rune_table['Name'] = rune_table['steamID'].map(get_player_name_simpler)
+# # rune_table['Player'] = rune_table.apply(lambda x: get_playerobj(x['replayID'], x['steamID']), axis=1)
+# # rune_table['xCoordinate'], rune_table['yCoordinate'] = map_player_location_time(rune_table['game_time'], rune_table['Player'])
+# rune_table['xCoordinate'], rune_table['yCoordinate'] = map_player_location_time2(rune_table['game_time'], rune_table['steamID'], rune_table['replayID'])
+# rune_table['rune_loc'] = rune_table.apply(lambda x: get_closest_ancient(x['xCoordinate'], x['yCoordinate']), axis=1)
+# rune_table['Stolen'] = rune_table['team'] != rune_table['rune_loc']
+
+from StaticAnalysis.analysis.rune import build_wisdom_rune_summary
+
+rune_table = build_wisdom_rune_summary(rune_table)
+df = rune_table.loc[rune_table.loc[:,'replayID'] == r_id].drop('replayID', axis=1)
+plot_wisdom_table(df, axis)
+fig.tight_layout()
+fig.savefig("rune_pos_test.png")
+fig.clf()
