@@ -9,6 +9,8 @@ from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
+from StaticAnalysis import session
+from herotools.HeroTools import FullNameMap
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -268,3 +270,31 @@ def closest_tower(position: tuple, tower_dict, scheme=['top', 'mid', 'bottom']):
             name = tower
 
     return name
+
+
+def map_player_location_time(time_col, pid_col, rid_col, use_game_time=True, session=session):
+    if use_game_time:
+        tvar = PlayerStatus.game_time
+    else:
+        tvar = PlayerStatus.time
+    x_col = []
+    y_col = []
+    for t, pid, rid in zip(time_col, pid_col, rid_col):
+        status: PlayerStatus = session.query(PlayerStatus).filter(
+            PlayerStatus.steamID == pid,
+            PlayerStatus.replayID == rid,
+            tvar == t
+        ).one_or_none()
+        x_col.append(status.xCoordinate)
+        y_col.append(status.yCoordinate)
+
+    return x_col, y_col
+
+
+def get_player_hero(steam_id: int, replay_id: int, session=session):
+    player: Player = session.query(Player).filter(
+        Player.replayID == replay_id, Player.steamID == steam_id
+    ).one_or_none()
+    if player is None:
+        print(f"Could not find player {steam_id} in {replay_id}")
+    return FullNameMap.get(player.hero, player.hero)
