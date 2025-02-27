@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 import pickle
 
 from herotools.util import convert_to_32_bit
+from StaticAnalysis.replays.Common import Team
 
 
 def relativeCellCord(cell):
@@ -35,8 +36,22 @@ def average_coorinates(coordinates):
 
 
 # [x0, y0], [x1, y1]
-radiant_ancient_cords = [[22/1024, 60/1024], [293/1024, 322/1024]]
-dire_ancient_cords = [[714/1024, 666/1024], [993/1024, 975/1024]]
+radiant_ancient_area = [[22/1024, 60/1024], [293/1024, 322/1024]]
+dire_ancient_area = [[714/1024, 666/1024], [993/1024, 975/1024]]
+
+RADIANT_ANCIENT_COORD = (8928.000000, 9446.000000)
+DIRE_ANCIENT_COORD = (23792.000000, 23232.000000)
+def get_closest_ancient(x, y):
+    vec_dire = (DIRE_ANCIENT_COORD[0] - x, DIRE_ANCIENT_COORD[1] - y)
+    length_dire = sqrt(vec_dire[0]*vec_dire[0] +  vec_dire[1]*vec_dire[1])
+
+    vec_radiant = (RADIANT_ANCIENT_COORD[0] - x, RADIANT_ANCIENT_COORD[1] - y)
+    length_radiant = sqrt(vec_radiant[0]*vec_radiant[0] +  vec_radiant[1]*vec_radiant[1])
+    
+    if length_dire <= length_radiant:
+        return Team.DIRE
+    else:
+        return Team.RADIANT
 
 # [xMin, xMax, yMin, yMax] matches matplotlib "extent"
 MAP_EXTENT_733_CALC = [6711.773778920308, 25817.172236503855, 7001.94459833795, 26096.127423822712]
