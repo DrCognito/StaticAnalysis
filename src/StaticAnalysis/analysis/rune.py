@@ -5,18 +5,21 @@ from StaticAnalysis.replays.Rune import Rune, RuneID
 from StaticAnalysis.analysis.visualisation import plot_object_position, get_binning_percentile_xy
 from StaticAnalysis.analysis.route_vis import plot_player_paths
 from pandas import DataFrame
-from StaticAnalysis.lib.team_info import TeamInfo
-from StaticAnalysis.lib.Common import get_player_simple
+from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
+from StaticAnalysis.lib.Common import get_player_simple, seconds_to_nice
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from StaticAnalysis.replays.Common import Team
-from StaticAnalysis.lib.Common import add_map, EXTENT, prepare_retrieve_figure
+from StaticAnalysis.lib.Common import EXTENT, convert_to_32_bit, get_closest_ancient
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axis import Axis
 import matplotlib.patheffects as PathEffects
 from pandas import read_sql
+from sqlalchemy.orm import Session
+from StaticAnalysis.lib.team_info import get_player
+from StaticAnalysis.analysis.Player import map_player_location_time, get_player_hero
 
 
 def wisdom_rune_times(r_query, max_time: int, session=session, extra_filter: tuple = None) -> DataFrame:
@@ -28,6 +31,55 @@ def wisdom_rune_times(r_query, max_time: int, session=session, extra_filter: tup
 
     return read_sql(rune_query.statement, session.bind)
 
+
+def wisdom_rune_table(r_query, max_time: int, session=session, extra_filter: tuple = None) -> DataFrame:
+    rune_query = (    
+        session.query(Rune, Rune.game_time)
+               .join(r_query.subquery())
+               .filter(Rune.runeType == RuneID.Wisdom, Rune.game_time < max_time)
+    )
+
+    return read_sql(rune_query.statement, session.bind)
+
+
+def build_wisdom_rune_summary(
+    rune_table: DataFrame, team_session: Session = team_session,):
+    def _name(pid: int):
+        player: TeamPlayer = get_player(pid, team_session)
+        if player is not None:
+            return player.name
+        else:
+            return convert_to_32_bit(pid)
+    # Build the new columns
+    rune_table['Name'] = rune_table['steamID'].map(_name)
+    rune_table['xCoordinate'], rune_table['yCoordinate'] = map_player_location_time(
+        rune_table['game_time'], rune_table['steamID'], rune_table['replayID']
+        )
+    rune_table['rune_loc'] = rune_table.apply(
+        lambda x: get_closest_ancient(x['xCoordinate'], x['yCoordinate']), axis=1
+        )
+    rune_table['StolenB'] = rune_table['team'] != rune_table['rune_loc']
+    rune_table['hero'] = rune_table.apply(
+        lambda x: get_player_hero(x['steamID'], x['replayID']), axis=1
+    )
+    rune_table['nice_time'] = rune_table['game_time'].map(seconds_to_nice)
+    # Polish for export
+    # Convert Stolen to text
+    rune_table.loc[:,'Stolen'] = rune_table.loc[:,'StolenB'].map({True:'yes', False:'no'}).astype(str)
+    # Convert rune_loc to text
+    rune_table.loc[:,'rune_loc'] = rune_table.loc[:,'rune_loc'].map({Team.DIRE:'Dire', Team.RADIANT:'Radiant'})
+    columns = ['replayID','nice_time', 'rune_loc', 'Name', 'hero', 'Stolen']
+    return rune_table.loc[:, columns]
+
+
+def plot_wisdom_table(df: DataFrame, axe):
+    table = axe.table(
+        cellText=df.values,
+        loc='bottom',
+        # colWidths=[0.05, 0.2, 0.1, 0.15, 0.05, 0.2, 0.1, 0.15],
+        colLabels=["Time", "Rune Side", "Player", "Hero", "Stolen?"])
+    
+    return axe
 
 def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
     players = [p.player_id for p in main_team.players]
