@@ -1,6 +1,6 @@
 from sqlalchemy import (BigInteger, Column, DateTime, ForeignKey, Integer,
                         String, and_, create_engine, or_)
-from sqlalchemy.orm import reconstructor, relationship, declarative_base
+from sqlalchemy.orm import reconstructor, relationship, declarative_base, Session
 
 import StaticAnalysis
 from StaticAnalysis.replays.Replay import Replay
@@ -84,6 +84,10 @@ class TeamInfo(TeamInfo_DB):
                                         .filter(additional_filter)
 
 
+def get_player(player_id: int, team_session: Session = None):
+    if team_session is None:
+        team_session = StaticAnalysis.team_session
+    return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == player_id).one_or_none()
 # Teams = {}
 # InitTeamDB()
 # TeamIDs = {}
