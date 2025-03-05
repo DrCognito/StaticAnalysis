@@ -5,6 +5,7 @@ from sqlalchemy.orm import reconstructor, relationship, declarative_base, Sessio
 import StaticAnalysis
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections
+from herotools.util import convert_to_64_bit
 
 Base_TI = declarative_base()
 
@@ -85,6 +86,7 @@ class TeamInfo(TeamInfo_DB):
 
 
 def get_player(player_id: int, team_session: Session = None):
+    player_id = convert_to_64_bit(player_id)
     if team_session is None:
         team_session = StaticAnalysis.team_session
     return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == player_id).one_or_none()
