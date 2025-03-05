@@ -28,6 +28,13 @@ class Player(Base):
     hero = Column(String)
     team = Column(Enum(Team))
     created_at = Column(Integer)
+    
+    @hybrid_property
+    def win(self):
+        from .Replay import Replay
+        winner = select(Replay.winner).\
+            where(self.replayID == Replay.replayID).scalar_subquery()
+        return self.team == winner
 
     # Relationships
     replay = relationship("Replay", back_populates="players", lazy="select")
