@@ -35,6 +35,16 @@ class Player(Base):
         winner = select(Replay.winner).\
             where(self.replayID == Replay.replayID).scalar_subquery()
         return self.team == winner
+    
+    @hybrid_property
+    def endGameTime(self):
+        from .Replay import Replay
+        return (
+            select(Replay.endTimeUTC)
+            .where(self.replayID == Replay.replayID)
+            .scalar_subquery()
+            .label("endGameTime")
+        )
 
     # Relationships
     replay = relationship("Replay", back_populates="players", lazy="select")
