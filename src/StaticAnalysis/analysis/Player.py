@@ -3,6 +3,7 @@ from operator import or_
 
 from pandas import DataFrame, Series, concat, read_sql
 from sqlalchemy import and_
+from sqlalchemy.orm import Session
 
 from StaticAnalysis.lib.Common import distance_between
 from StaticAnalysis.lib.team_info import TeamInfo
@@ -11,6 +12,9 @@ from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
 from StaticAnalysis import session
 from herotools.HeroTools import FullNameMap
+from herotools.important_times import MAIN_TIME
+from herotools.util import convert_to_64_bit
+from datetime import datetime
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -298,3 +302,17 @@ def get_player_hero(steam_id: int, replay_id: int, session=session):
     if player is None:
         print(f"Could not find player {steam_id} in {replay_id}")
     return FullNameMap.get(player.hero, player.hero)
+
+
+def get_player_heroes_dataframe(
+    steam_id: int, columns: list = None,
+    time_cut: datetime = MAIN_TIME, session: Session = session):
+    # Make sure its the 64bit id
+    steam_id = convert_to_64_bit(steam_id)
+    if columns is None:
+        columns = [Player,]
+    pquery = session.query(*columns).filter(
+        Player.steamID == steam_id, Player.endGameTime >= time_cut
+    )
+
+    return read_sql(pquery.statement, session.bind)
