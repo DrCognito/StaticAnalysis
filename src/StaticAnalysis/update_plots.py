@@ -27,7 +27,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
-from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id, Player, get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process
 from StaticAnalysis.analysis.priority_picks import (priority_picks,
                                                     priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -69,6 +69,8 @@ from typing import List
 from propubs.libs.vis import process_dataframe_timeplit
 from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_flex_totals, get_flex_totals_pub, plot_flexstack_pub, fix_pubs_df_index
 from propubs.libs import TIME_LABELS
+from propubs.libs.vis_comp import process_team_portraits
+from sqlalchemy.orm import Query
 
 import warnings
 warnings.filterwarnings(
@@ -823,6 +825,34 @@ def do_priority_picks(team, r_query, metadata):
     return metadata
 
 
+def do_portrait_picks(
+    team: TeamInfo, metadata: dict, r_query: Query
+    ) -> dict:
+    team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
+    team_path.mkdir(parents=True, exist_ok=True)
+    
+    table_cols = [Player.hero, Player.win, Player.endGameTime]
+    comp_df = get_team_dataframes_rquery(
+        team, r_query,
+        table_cols, session, _heroes_post_process
+    )
+    # Uses MAIN_TIME to get the missing comp heroes
+    update_df = get_team_dataframes(
+        team,
+        table_cols, post_process = _update_post_process)
+    full_table = process_team_portraits(
+        team,
+        comp_df,
+        update_df
+    )
+    output = team_path / f'hero_picks_portrait.png'
+    full_table.save(output)
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata['hero_picks_portrait'] = relpath
+    
+    return metadata
+
+
 def do_player_picks(team: TeamInfo, metadata: dict,
                     r_filter, limit=None, postfix='',
                     mintime=None, maxtime=None):
@@ -1372,10 +1402,16 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
         pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
-    plot_hero_picks = metadata.get('plot_hero_picks')
-    if plot_hero_picks:
+    # plot_hero_picks = metadata.get('plot_hero_picks')
+    # if plot_hero_picks:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+    plot_hero_picks_portrait = metadata.get('hero_picks_portrait')
+    if plot_hero_picks_portrait:
         pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+        pdf.image(
+            Path(PLOT_BASE_PATH) / plot_hero_picks_portrait,
+            keep_aspect_ratio=True, w=180)
     # Hero Flex
     plot_hero_flex = metadata.get('plot_hero_flex')
     if plot_hero_flex:
@@ -1496,9 +1532,16 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
     plot_hero_picks = metadata.get('plot_hero_picks')
-    if plot_hero_picks:
+    # plot_hero_picks = metadata.get('plot_hero_picks')
+    # if plot_hero_picks:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+    plot_hero_picks_portrait = metadata.get('hero_picks_portrait')
+    if plot_hero_picks_portrait:
         pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+        pdf.image(
+            Path(PLOT_BASE_PATH) / plot_hero_picks_portrait,
+            keep_aspect_ratio=True, w=180)
     # Hero Flex
     # plot_hero_flex = metadata.get('plot_hero_flex')
     # if plot_hero_flex:
@@ -1605,6 +1648,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             # No need to do limit plots as they are without pubs.
             metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
             metadata = do_flex_pubs(team, metadata, time, end_time)
+            metadata = do_portrait_picks(team, metadata, r_query)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
@@ -1711,6 +1755,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                    mintime=stat_time, maxtime=end_time)
         metadata = do_flex_pubs(team, metadata, time, end_time)
         plt.close('all')
+        metadata = do_portrait_picks(team, metadata, r_query)
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
         if new_dire or new_radiant:
