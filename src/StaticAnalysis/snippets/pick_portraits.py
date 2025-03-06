@@ -1,13 +1,13 @@
 from StaticAnalysis import session, team_session
 from herotools.important_times import MAIN_TIME
-from StaticAnalysis.analysis.Player import get_player_heroes_dataframe
+from StaticAnalysis.analysis.Player import get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.Player import Player
 from StaticAnalysis.lib.team_info import get_player, TeamInfo, TeamPlayer
 from pandas import DataFrame, read_sql
 from herotools.util import convert_to_32_bit, convert_to_64_bit
 from sqlalchemy import or_
-from propubs.libs.vis_comp import draw_recent_comp_record, TableStyle
+from propubs.libs.vis_comp import draw_recent_comp_record, TableStyle, process_team_portraits
 
 bzm_id = 93618577
 bzm: TeamPlayer = get_player(bzm_id, team_session)
@@ -27,7 +27,7 @@ r_query = tundra.get_replays(session).filter(r_filter)
 # player_stats = session.query(Player.hero, Player.win, Player.endGameTime).filter(
 #     Player.steamID == bzm.player_id, Player.endGameTime >= MAIN_TIME)
 # player_df = read_sql(player_stats.statement, session.bind)
-player_df = get_player_heroes_dataframe(bzm.player_id, [Player.hero, Player.win, Player.endGameTime])
+player_df = get_player_dataframe(bzm.player_id, [Player.hero, Player.win, Player.endGameTime])
 player_df['count'] = 1
 player_df_comp = player_df[['hero', 'count', 'win']].groupby(['hero']).sum()
 
@@ -37,3 +37,16 @@ style = TableStyle()
 test_line = draw_recent_comp_record(
     player_df_comp, "Recent Competitive", background=row_bg_cycle[1], table_style=style
     )
+
+comp_df = get_team_dataframes_rquery(
+    tundra, r_query,
+    [Player.hero, Player.win, Player.endGameTime], session, _heroes_post_process)
+update_df = get_team_dataframes(
+    tundra,
+    [Player.hero, Player.win, Player.endGameTime], post_process = _update_post_process)
+full_table = process_team_portraits(
+    tundra,
+    comp_df,
+    update_df
+)
+full_table.save("tundra_table.png")
