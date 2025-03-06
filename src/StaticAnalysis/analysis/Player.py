@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from StaticAnalysis.lib.Common import distance_between
-from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.lib.team_info import TeamInfo, TeamPlayer
 from StaticAnalysis.replays.Player import Player, PlayerStatus
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import PickBans, TeamSelections
@@ -304,9 +304,9 @@ def get_player_hero(steam_id: int, replay_id: int, session=session):
     return FullNameMap.get(player.hero, player.hero)
 
 
-def get_player_heroes_dataframe(
+def get_player_dataframe(
     steam_id: int, columns: list = None,
-    time_cut: datetime = MAIN_TIME, session: Session = session):
+    time_cut: datetime = MAIN_TIME, session: Session = session) -> DataFrame:
     # Make sure its the 64bit id
     steam_id = convert_to_64_bit(steam_id)
     if columns is None:
@@ -316,3 +316,74 @@ def get_player_heroes_dataframe(
     )
 
     return read_sql(pquery.statement, session.bind)
+
+
+from sqlalchemy.orm import Query
+def get_player_dataframe_rquery(
+    steam_id: int, r_query: Query, columns: list = None,
+    session: Session = session
+    ):
+    # Make sure its the 64bit id
+    steam_id = convert_to_64_bit(steam_id)
+    if columns is None:
+        columns = [Player,]
+    pquery = (
+        session.query(*columns)
+        .join(r_query.subquery())
+        .filter(Player.steamID == steam_id)
+        )
+    
+    return read_sql(pquery.statement, session.bind)
+
+
+def get_team_dataframes_rquery(
+    team: TeamInfo, r_query: Query,
+    columns: list = None, session: Session = session,
+    post_process=None) -> dict:
+
+    out_dict = {}
+    p: TeamPlayer
+    for p in team.players:
+        df = get_player_dataframe_rquery(
+            p.player_id, r_query, columns, session
+        )
+        if post_process is not None:
+            df = post_process(df)
+        out_dict[p.name] = df
+
+    return out_dict
+
+
+def get_team_dataframes(
+    team: TeamInfo, columns: list = None,
+    time_cut: datetime = MAIN_TIME, session: Session = session,
+    post_process=None) -> dict:
+
+    out_dict = {}
+    p: TeamPlayer
+    for p in team.players:
+        df = get_player_dataframe(
+            p.player_id, columns, time_cut, session
+        )
+        if post_process is not None:
+            df = post_process(df)
+        out_dict[p.name] = df
+
+    return out_dict
+
+
+def _heroes_post_process(df: DataFrame):
+    '''
+    Post processing helper for the team
+    '''
+    df['count'] = 1
+    df = df[['hero', 'count', 'win']].groupby(['hero']).sum()
+
+    return df
+
+def _update_post_process(df: DataFrame):
+    '''
+    Post process heroes but without grouping for update.
+    '''
+    df['count'] = 1
+    df = df.sort_values(['endGameTime'], ascending=True)
