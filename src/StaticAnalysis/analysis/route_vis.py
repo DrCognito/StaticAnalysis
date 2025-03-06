@@ -107,6 +107,8 @@ def get_player_dataframes(
             PlayerStatus.is_alive).statement
 
         p_df = read_sql(sql_query, session.bind)
+        if p_df.empty:
+            continue
         # p_df['alpha'] = p_df['is_smoked'].replace({True:smoke_alpha, False:1})
         p_df['alpha'] = p_df['is_smoked'].apply(
             lambda x: smoke_alpha if x else 1.0
