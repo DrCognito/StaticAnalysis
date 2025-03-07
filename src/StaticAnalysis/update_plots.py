@@ -826,16 +826,24 @@ def do_priority_picks(team, r_query, metadata):
 
 
 def do_portrait_picks(
-    team: TeamInfo, metadata: dict, r_query: Query
+    team: TeamInfo, metadata: dict, r_query: Query, use_team=False,
+    min_time: datetime = None
     ) -> dict:
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
     
     table_cols = [Player.hero, Player.win, Player.endGameTime]
-    comp_df = get_team_dataframes_rquery(
-        team, r_query,
-        table_cols, session, _heroes_post_process
-    )
+    if use_team:
+        comp_df = get_team_dataframes_rquery(
+            team, r_query,
+            table_cols, session, _heroes_post_process
+        )
+    else:
+        comp_df = get_team_dataframes(
+            team, table_cols, min_time,
+            session, _heroes_post_process
+        )
+
     # Uses MAIN_TIME to get the missing comp heroes
     update_df = get_team_dataframes(
         team,
@@ -1629,7 +1637,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         pubs_updated = False
     else:
         pubs_updated = pub_update_time > last_update_time
-
     if reprocess:
         if r_query.count() != 0:
             new_dire = True
@@ -1639,8 +1646,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         elif replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
             print(replay_list)
-            # Still do pubs!
-            pubs_updated = True
+        # Still do pubs!
+        pubs_updated = True
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
@@ -1648,7 +1655,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             # No need to do limit plots as they are without pubs.
             metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
             metadata = do_flex_pubs(team, metadata, time, end_time)
-            metadata = do_portrait_picks(team, metadata, r_query)
+            metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
@@ -1755,7 +1762,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                    mintime=stat_time, maxtime=end_time)
         metadata = do_flex_pubs(team, metadata, time, end_time)
         plt.close('all')
-        metadata = do_portrait_picks(team, metadata, r_query)
+        metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
         if new_dire or new_radiant:
