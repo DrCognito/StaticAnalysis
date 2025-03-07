@@ -1425,6 +1425,10 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     if plot_hero_flex:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
+    plot_flex_pubs = metadata.get('plot_flex_pubs')
+    if plot_flex_pubs:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_flex_pubs, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
     # plot_win_rate = metadata.get('plot_win_rate')
     # if plot_win_rate:
