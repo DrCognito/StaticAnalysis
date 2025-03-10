@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 import StaticAnalysis
 from StaticAnalysis import session
 from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
+from StaticAnalysis.lib.metadata import has_picks
 
 import time
 from datetime import timedelta
@@ -136,10 +137,11 @@ if __name__ == '__main__':
 
     skip_existing = args.skip_existing
     json_files = list(Path(PROCESSING_PATH).glob('*.json'))
+    archive_files = list(Path(ARCHIVE_PATH).glob('*.json'))
 
     if args.full_reprocess:
         skip_existing = False
-        json_files += list(Path(ARCHIVE_PATH).glob('*.json'))
+        json_files += archive_files
 
     processing_to_db(limit=args.limit, json_files=json_files, skip_existing=skip_existing)
 
@@ -150,7 +152,12 @@ if __name__ == '__main__':
         json_draft = []
         for j in list(Path(DRAFT_PROCESSING_PATH).glob('*.json')):
             if j.name in file_names:
-                print(f"Skipping draft for {j.name} as it has a full replay.")
+                print(f"Skipping draft for {j.name} as it has a full replay in processing.")
+                archive = Path(DRAFT_ARCHIVE_PATH) / j.name
+                rename(j, archive)
+                continue
+            if j.name in archive_files:
+                print(f"Skipping draft for {j.name} as it has a full replay in archive.")
                 archive = Path(DRAFT_ARCHIVE_PATH) / j.name
                 rename(j, archive)
                 continue
