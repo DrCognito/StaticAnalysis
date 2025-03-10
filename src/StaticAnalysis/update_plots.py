@@ -1435,23 +1435,32 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     #     pdf.add_page()
     #     pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
     # First Pick Drafts
-    plot_drafts_first = metadata.get('plot_drafts_first')
-    if plot_drafts_first:
+    # plot_drafts_first = metadata.get('plot_drafts_first')
+    # if plot_drafts_first:
+    #     pdf.add_page()
+    #     pdf.set_font('helvetica', size=12)
+    #     pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
+    #     for d in plot_drafts_first[1:]:
+    #         pdf.add_page()
+    #         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    # # Second Pick Drafts
+    # plot_drafts_second = metadata.get('plot_drafts_second')
+    # if plot_drafts_second:
+    #     pdf.add_page()
+    #     pdf.set_font('helvetica', size=12)
+    #     pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
+    #     for d in plot_drafts_second[1:]:
+    #         pdf.add_page()
+    #         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    plot_drafts_all = metadata.get('plot_drafts_all')
+    if plot_drafts_all:
         pdf.add_page()
         pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
-        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
-        for d in plot_drafts_first[1:]:
-            pdf.add_page()
-            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
-    # Second Pick Drafts
-    plot_drafts_second = metadata.get('plot_drafts_second')
-    if plot_drafts_second:
-        pdf.add_page()
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
-        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
-        for d in plot_drafts_second[1:]:
+        pdf.cell(0, 0, f"Drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_all[0], y=15, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_all[1:]:
             pdf.add_page()
             pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
 
@@ -1565,23 +1574,32 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     #     pdf.add_page()
     #     pdf.image(Path(PLOT_BASE_PATH) / plot_win_rate, keep_aspect_ratio=True, w=180)
     # First Pick Drafts
-    plot_drafts_first = metadata.get('plot_drafts_first')
-    if plot_drafts_first:
+    # plot_drafts_first = metadata.get('plot_drafts_first')
+    # if plot_drafts_first:
+    #     pdf.add_page()
+    #     pdf.set_font('helvetica', size=12)
+    #     pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
+    #     for d in plot_drafts_first[1:]:
+    #         pdf.add_page()
+    #         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    # # Second Pick Drafts
+    # plot_drafts_second = metadata.get('plot_drafts_second')
+    # if plot_drafts_second:
+    #     pdf.add_page()
+    #     pdf.set_font('helvetica', size=12)
+    #     pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
+    #     for d in plot_drafts_second[1:]:
+    #         pdf.add_page()
+    #         pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
+    plot_drafts_all = metadata.get('plot_drafts_all')
+    if plot_drafts_all:
         pdf.add_page()
         pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 0, f"First pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
-        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_first[0], y=15, keep_aspect_ratio=True, w=180)
-        for d in plot_drafts_first[1:]:
-            pdf.add_page()
-            pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
-    # Second Pick Drafts
-    plot_drafts_second = metadata.get('plot_drafts_second')
-    if plot_drafts_second:
-        pdf.add_page()
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 0, f"Second pick drafts", new_x="LMARGIN", new_y="NEXT", align='C')
-        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_second[0], y=15, keep_aspect_ratio=True, w=180)
-        for d in plot_drafts_second[1:]:
+        pdf.cell(0, 0, f"Drafts", new_x="LMARGIN", new_y="NEXT", align='C')
+        pdf.image(Path(PLOT_BASE_PATH) / plot_drafts_all[0], y=15, keep_aspect_ratio=True, w=180)
+        for d in plot_drafts_all[1:]:
             pdf.add_page()
             pdf.image(Path(PLOT_BASE_PATH) / d, keep_aspect_ratio=True, w=180)
 
