@@ -14,6 +14,7 @@ from StaticAnalysis.vis.flex_vis import plot_flexstack_pub, fix_pubs_df_index
 from sqlalchemy.orm import Query
 from sqlalchemy import and_, or_
 import matplotlib.pyplot as plt
+from herotools.HeroTools import FullNameMap
 
 
 r_filter = Replay.endTimeUTC >= MAIN_TIME
@@ -40,8 +41,10 @@ flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
 flex_picks = flex_picks.query('Counts > 1')
 with ChainedAssignment():
     flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
-flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
-fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
+flex_picks['Name'] = flex_picks.index.map(FullNameMap)
+# flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
+flex_picks = flex_picks.sort_values(['Name'], ascending=False)
+fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
 output = 'flex_test.png'
 # fig.savefig(output, bbox_extra_artists=extra,
 #             bbox_inches='tight', dpi=150)
@@ -61,4 +64,4 @@ fig = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig2)
 # fig.savefig(output, bbox_inches='tight', dpi=150)
 # fig.clf()
 
-plt.show()
+# plt.show()
