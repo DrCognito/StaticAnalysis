@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF
 from herotools.important_times import ImportantTimes, nice_time_names
-from herotools.lib.position import strict_pos, loose_pos, mixed_pos
+from herotools.HeroTools import FullNameMap
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -953,8 +953,10 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     flex_picks = flex_picks.query('Counts > 1')
     with ChainedAssignment():
         flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
-    flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
-    fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
+        flex_picks['Name'] = flex_picks.index.map(FullNameMap)
+    # flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
+    flex_picks = flex_picks.sort_values(['Name'], ascending=False)
+    fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
     output = team_path / f'hero_flex{postfix}.png'
     fig.savefig(output, bbox_extra_artists=extra,
                 bbox_inches='tight', dpi=150)
