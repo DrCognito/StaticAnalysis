@@ -13,6 +13,20 @@ import pickle
 from herotools.util import convert_to_32_bit
 from StaticAnalysis.replays.Common import Team
 
+from matplotlib import colormaps as mpl_colormaps
+
+colour_map = [
+    mpl_colormaps.get('cool'),
+    mpl_colormaps.get('summer'),
+    mpl_colormaps.get('winter'),
+    mpl_colormaps.get('spring'),
+    mpl_colormaps.get('copper')
+    ]
+error_colourmap = mpl_colormaps.get('Reds')
+colours = [
+    cmap(0) for cmap in colour_map
+]
+
 
 def relativeCellCord(cell):
     return (cell - 64)/128
