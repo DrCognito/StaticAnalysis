@@ -1669,7 +1669,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             new_draft_dire = True
         elif replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
-            print(replay_list)
+            # print(replay_list)
         # Still do pubs!
         pubs_updated = True
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
