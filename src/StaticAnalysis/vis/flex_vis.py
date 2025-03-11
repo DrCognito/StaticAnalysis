@@ -327,7 +327,7 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
         flex_count = flex_count.to_frame()
         flex_count['Name'] = flex_count.index.map(FullNameMap)
         # Limit and sort for alphabetical sorting of output!
-        flex_count = flex_count.head(5).sort_values('Name', ascending=False)
+        flex_count = flex_count.head(limit).sort_values('Name', ascending=False)
     # Build a dictionary of rows for each hero
     # Limit controls the max number of heroes to plot
     offset = 0
