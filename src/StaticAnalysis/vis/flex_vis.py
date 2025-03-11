@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from herotools.HeroTools import (HeroIconPrefix, HeroIDType, convertName,
-                                 heroShortName)
+                                 heroShortName, FullNameMap)
 from matplotlib import colormaps as mpl_colormaps
 from StaticAnalysis.analysis.visualisation import make_image_annotation_flex
 from PIL import Image
@@ -322,6 +322,12 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
             horizontalalignment='center',
             verticalalignment='center'
         )
+    else:
+         # Remap the index using hero names so can be used for sorting
+        flex_count = flex_count.to_frame()
+        flex_count['Name'] = flex_count.index.map(FullNameMap)
+        # Limit and sort for alphabetical sorting of output!
+        flex_count = flex_count.head(5).sort_values('Name', ascending=False)
     # Build a dictionary of rows for each hero
     # Limit controls the max number of heroes to plot
     offset = 0
@@ -329,7 +335,7 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
     ylabels = []
     plot_labels = {}
     p_order = list(pubs_df.keys())[::-1]
-    for h in flex_count.index[:limit]:
+    for h in flex_count.index:
         plot_dict = {}
         for p in p_order:
             df = pubs_df[p]
@@ -362,7 +368,7 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
     for p, cmap in plot_style['colour_map'].items():
         patch = mpatches.Patch(color=cmap(0), label=p)
         handles.append(patch)
-    l1 = axe.legend(handles=handles)
+    l1 = axe.legend(handles=handles, loc='upper right')
     # l1_bbox = l1.get_bbox_to_anchor().inverse_transformed(axe.transAxes)
     l1_bbox = l1.get_bbox_to_anchor()
     l1_bbox = l1_bbox.transformed(fig.transFigure.inverted())
