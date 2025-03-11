@@ -169,7 +169,7 @@ gc = pygsheets.authorize(outh_file="apps.googleusercontent.com.json")
 SCRIMS_SHEETKEY = StaticAnalysis.CONFIG['scrims']['SCRIMS_GOOGLE_SHEET']
 sheet = gc.open_by_key(SCRIMS_SHEETKEY)
 
-scrim_sheet = sheet.worksheet_by_title(r"Sheet1")
+scrim_sheet = sheet.worksheet_by_title(r"Past Scrim ID's")
 # Column uses numbers, starting at 1! returns list[string]
 team_names = scrim_sheet.get_col(2)
 scrim_ids = scrim_sheet.get_col(3)
@@ -178,7 +178,7 @@ if len(team_names) != len(scrim_ids):
     print("Warning: team names do not match scrim ids in length!")
 scrim_dict = {}
 
-for scrim_id, name in zip(scrim_ids[1:], team_names[1:]):
+for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
     if scrim_id == '':
         # Lots of trailing info in the columns.
         continue
@@ -245,7 +245,7 @@ scrim_path = Path('E:\\Dota2\\dbScrim\\')
 scrim_files = list(scrim_path.glob("*.dem"))
 file_ids = {s.stem for s in scrim_files}
 # Check the ones we have that are new as above
-for scrim_id in file_ids.difference(scrim_ids[1:]):
+for scrim_id in file_ids.difference(scrim_ids[2:]):
     if not scrim_id.isnumeric():
         print(f"Invalid scrim id from file {scrim_id}")
         continue
