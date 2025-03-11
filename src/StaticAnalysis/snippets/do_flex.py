@@ -25,6 +25,7 @@ def get_team(name) -> TeamInfo:
 tundra  = get_team(8291895)
 team = tundra
 fig = plt.figure()
+fig1, fig2 = fig.subfigures(1,2)
 
 
 # Normal flex plot
@@ -40,11 +41,11 @@ flex_picks = flex_picks.query('Counts > 1')
 with ChainedAssignment():
     flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
 flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
-fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig)
+fig1, extra = plot_flex_picks(flex_picks.iloc[:, 0:-2], fig1)
 output = 'flex_test.png'
-fig.savefig(output, bbox_extra_artists=extra,
-            bbox_inches='tight', dpi=150)
-fig.clf()
+# fig.savefig(output, bbox_extra_artists=extra,
+#             bbox_inches='tight', dpi=150)
+# fig.clf()
 
 # Pub flex plot
 min_time = MAIN_TIME
@@ -54,7 +55,6 @@ flex_pubs_df = get_team_df(team, pub_session, min_time,
 flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
 
 output = f'flex_pubs_test.png'
-fig = plt.figure()
-fig = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig)
-fig.savefig(output, bbox_inches='tight', dpi=150)
-fig.clf()
+fig2 = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig2)
+# fig.savefig(output, bbox_inches='tight', dpi=150)
+# fig.clf()
