@@ -18,9 +18,10 @@ from PIL import Image
 
 import StaticAnalysis
 from StaticAnalysis.analysis.Player import pick_context
-from StaticAnalysis.lib.Common import EXTENT
+from StaticAnalysis.lib.Common import EXTENT, ChainedAssignment, colours
 from StaticAnalysis.lib.team_info import TeamInfo
-from StaticAnalysis.lib.Common import ChainedAssignment
+import matplotlib.patches as mpatches
+
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
 
@@ -239,6 +240,7 @@ def plot_player_heroes(data: DataFrame, axes: list):
 def plot_flex_picks(data: DataFrame, fig: Figure):
     player_bars_x = {p: list() for p in data.columns}
     player_bars_y = {p: list() for p in data.columns}
+    pcolours = {p:col for p, col in zip(data.columns, colours)}
     x_ticks = []
     x_labels = []
 
@@ -253,7 +255,7 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
         entries = 0
 
         # for player, count in row[1].iteritems():
-        for player, count in row[1].items():
+        for player, count in [*row[1].items()][::-1]:
             if count == 0:
                 continue
             player_bars_x[player].append(position)
@@ -274,17 +276,25 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
     position -= set_gap
     fig.set_size_inches(6, max(0.5*position, 6))
     axe = fig.subplots()
-
-    # colours = ['c', 'g', 'b', 'm', 'k']
-    # for player, c in zip(player_bars_x, colours):
+ 
     has_data = False
     for player in player_bars_x:
         if player_bars_x[player]:
             has_data = True
             axe.barh(player_bars_x[player], player_bars_y[player],
-                     height=0.7*b_width, label=player)
+                     height=0.7*b_width, label=player, color=pcolours[player])
             axe.set_yticks(x_ticks, x_labels)
     axe.yaxis.set_tick_params(pad=33)
+
+    # Custom legend
+    handles = []
+    for p in data.columns:
+        patch = mpatches.Patch(facecolor=pcolours[p], label=p)
+        handles.append(patch)
+
+    axe.legend(
+        handles = handles,
+        )
 
     if not has_data:
         axe.text(0.5, 0.5, "No Data", fontsize=14,
