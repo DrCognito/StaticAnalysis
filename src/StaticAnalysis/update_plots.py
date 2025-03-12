@@ -333,7 +333,7 @@ def do_positioning(team: TeamInfo, r_query,
 
 def do_draft(team: TeamInfo, metadata,
              update_dire=True, update_radiant=True,
-             r_filter=None, per_side_limit=None):
+             r_filter=None, per_side_limit=None, scrim_list: list = None):
     '''Produces draft images from the replays in r_query.
        Will only proceed for sides with update = True.
     '''
@@ -391,7 +391,8 @@ def do_draft(team: TeamInfo, metadata,
                                .all()
         dire_drafts = replay_draft_image(replays,
                                          team,
-                                         team.name)
+                                         team.name,
+                                         scrim_list=scrim_list)
         _clean_up_plots(metadata.get('plot_dire_drafts'))
         if dire_drafts is not None:
             metadata['plot_dire_drafts'] = _save_store(dire_drafts, 'dire/drafts')
@@ -405,7 +406,8 @@ def do_draft(team: TeamInfo, metadata,
                                .all()
         radiant_drafts = replay_draft_image(replays,
                                             team,
-                                            team.name)
+                                            team.name,
+                                            scrim_list=scrim_list)
         _clean_up_plots(metadata.get('plot_radiant_drafts'))
         if radiant_drafts is not None:
             metadata['plot_radiant_drafts'] = _save_store(radiant_drafts, 'radiant/drafts')
@@ -421,7 +423,8 @@ def do_draft(team: TeamInfo, metadata,
         drafts_first = replay_draft_image(replays,
                                           team,
                                           team.name,
-                                          second_pick=False)
+                                          second_pick=False,
+                                          scrim_list=scrim_list)
         _clean_up_plots(metadata.get('plot_drafts_first'))
         if drafts_first is not None:
             metadata['plot_drafts_first'] = _save_store(drafts_first, 'drafts_first')
@@ -429,14 +432,16 @@ def do_draft(team: TeamInfo, metadata,
         drafts_second = replay_draft_image(replays,
                                            team,
                                            team.name,
-                                           first_pick=False)
+                                           first_pick=False,
+                                           scrim_list=scrim_list)
         _clean_up_plots(metadata.get('plot_drafts_second'))
         if drafts_second is not None:
             metadata['plot_drafts_second'] = _save_store(drafts_second, 'drafts_second')
 
         drafts_all = replay_draft_image(replays,
                                         team,
-                                        team.name,)
+                                        team.name,
+                                        scrim_list=scrim_list)
         _clean_up_plots(metadata.get('plot_drafts_all'))
         if drafts_all is not None:
             metadata['plot_drafts_all'] = _save_store(drafts_all, 'drafts_all')
@@ -1426,11 +1431,11 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     plot_hero_flex = metadata.get('plot_hero_flex')
     if plot_hero_flex:
         pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, y=0, keep_aspect_ratio=True, w=180, h=290)
     plot_flex_pubs = metadata.get('plot_flex_pubs')
     if plot_flex_pubs:
         pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_flex_pubs, keep_aspect_ratio=True, w=180, h=290)
+        pdf.image(Path(PLOT_BASE_PATH) / plot_flex_pubs, y=0, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
     # plot_win_rate = metadata.get('plot_win_rate')
     # if plot_win_rate:
@@ -1611,7 +1616,8 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
 
 
 def process_team(team: TeamInfo, metadata, time: datetime,
-                 args: argparse.Namespace, end_time: datetime = None, replay_list=None):
+                 args: argparse.Namespace, end_time: datetime = None, extra_replay_list=None,
+                 scrim_list=None):
 
     if len(team.players) != 5:
         print(f"Team {team.name} ({team.team_id}) has incorrect number of players ({len(team.players)})! Skipping!")
@@ -1628,8 +1634,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     else:
         r_filter = Replay.endTimeUTC >= time
 
-    if replay_list is not None:
-        r_filter = and_(Replay.replayID.in_(replay_list), r_filter)
+    if extra_replay_list is not None:
+        r_filter = and_(Replay.replayID.in_(extra_replay_list), r_filter)
 
     r_filter = and_(Replay.replayID.not_in([8178449560,]),
                     r_filter)
@@ -1667,7 +1673,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             new_radiant = True
             new_draft_radiant = True
             new_draft_dire = True
-        elif replay_list is not None:
+        elif extra_replay_list is not None:
             print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
             # print(replay_list)
         # Still do pubs!
@@ -1715,7 +1721,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         plt.close('all')
         print("Processing drafts.", end=" ")
         start = t.process_time()
-        metadata = do_draft(team, metadata, new_draft_dire, new_draft_radiant, r_filter)
+        metadata = do_draft(
+            team, metadata, new_draft_dire, new_draft_radiant,
+            r_filter, scrim_list=scrim_list)
         plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.positioning:
@@ -2054,16 +2062,21 @@ if __name__ == "__main__":
                                                 args, replay_list=scrim_list)
                 store_generalstats(team, stat_string)
 
+            team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
+            if team_scrims is not None:
+                scrim_list = list(team_scrims.keys())
+            else:
+                scrim_list = None
             for time, end in zip(TIME_CUT, END_TIME):
                 data_set_name = time
                 metadata = get_create_metadata(team, data_set_name)
                 metadata['time_cut'] = TIME_CUT[time].timestamp()
 
-                process_team(team, metadata, TIME_CUT[time], args, end_time=end)
+                process_team(team, metadata, TIME_CUT[time], args, end_time=end,
+                             scrim_list=scrim_list)
 
             if args.scrim_time:
                 done_scrims = True
-                team_scrims = SCRIM_REPLAY_DICT.get(str(team.team_id))
 
                 if team_scrims is None:
                     print(f"No scrims for {team.name}. Skipping.")
@@ -2071,11 +2084,11 @@ if __name__ == "__main__":
                     end_time = None
                     if args.scrim_endtime is not None:
                         end_time = ImportantTimes[args.scrim_endtime]
-                    scrim_list = list(team_scrims.keys())
                     metadata = get_create_metadata(team, "Scrims")
                     metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
                     process_team(team, metadata, ImportantTimes[args.scrim_time],
-                                 args, end_time=end_time, replay_list=scrim_list)
+                                 args, end_time=end_time, extra_replay_list=scrim_list,
+                                 scrim_list=scrim_list)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
