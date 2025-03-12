@@ -452,7 +452,7 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
 
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, add_league_date=True, caching=True,
-                       add_lane_outcome=False,
+                       add_lane_outcome=False, is_scrim=False,
                        fig=plt.gcf()):
     has_nw = has_networth(session, replay)
     if caching:
@@ -493,6 +493,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
             if team_win:
                 opp_name += " (winner)"
 
+
     # Team spacer
     spacer = Image.new('RGB', (10, team_line.size[1]), (255,255,255,0))
     spacerDraw = ImageDraw.Draw(spacer)
@@ -525,6 +526,12 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         faction_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                   (255, 255, 255, 0))
         faction_canv = ImageDraw.Draw(faction_image)
+        if is_scrim:
+            # Add a circle
+            x = (first_pick_box_offset + spacing)//2
+            y = (font_size + spacing) // 2
+            rad = min(x, y)//2
+            faction_canv.circle((x,y), radius=rad, fill='yellow', width=1, outline='black')
         if main_team_faction == Team.DIRE:
             faction_canv.text((first_pick_box_offset + spacing, spacing), text=main_name,
                                font=font, fill=(168, 56, 6))
@@ -670,8 +677,10 @@ def draw_tournament_linebreak(text: str, width: int, height: int = 30, font_size
     
     return spacer
 
-def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
-                       first_pick=True, second_pick=True, line_limit=9):
+def replay_draft_image(
+    replays: List[Replay], team: TeamInfo, team_name: str,
+    first_pick=True, second_pick=True, line_limit=9,
+    scrim_list: list=None):
     line_sets = list()
     line_lengths = list()
     max_width = 0
@@ -706,7 +715,13 @@ def replay_draft_image(replays: List[Replay], team: TeamInfo, team_name: str,
         if not is_first and not second_pick:
             continue
 
-        line = pickban_line_image(replay, team, add_team_name=True, caching=True, fig=fig)
+        if scrim_list and str(replay.replayID) in scrim_list:
+            is_scrim = True
+        else:
+            is_scrim = False
+
+        line = pickban_line_image(replay, team, add_team_name=True,
+                                  caching=True, fig=fig, is_scrim=is_scrim)
         if line is None:
             continue
         max_width = max(max_width, line.size[0])
