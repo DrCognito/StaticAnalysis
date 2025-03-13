@@ -252,7 +252,7 @@ class CumulativePlayerStatus():
     def game_time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
-            where(self.replayID == Replay.replayID).scalar_subquery()
+            where(self.replay_ID == Replay.replayID).scalar_subquery()
         return self.time - creepSpawn
 
 
