@@ -11,10 +11,11 @@ from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
 from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scatter, plot_circle_scatter
 from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice
 from StaticAnalysis.lib.team_info import TeamInfo
-from StaticAnalysis.replays.Player import Player, PlayerStatus
+from StaticAnalysis.replays.Player import Player, PlayerStatus, Kills, Deaths
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Smoke import Smoke
+from StaticAnalysis.replays.Rune import Rune, RuneID
 from pandas import read_sql
 from matplotlib.colors import to_rgba
 from herotools.util import convert_to_32_bit
@@ -23,6 +24,7 @@ from StaticAnalysis.analysis.smoke_vis import get_smoke_time_info
 from typing import List
 from pandas import DataFrame
 from matplotlib.axes import Axes
+from sqlalchemy.orm import Session
 
 def plot_player_paths(paths, colours, names, axis, smoke_alpha=0.3, max_time=None, min_time=None):
     # if max_time is not None:
@@ -197,7 +199,7 @@ def add_drafts(replay: Replay, ax_in: Axes):
             dire_line = process_team_portrait(replay, t, spacing=2)
 
     rad_axis = ax_in.inset_axes(
-        bounds=[0, -0.1, 1.0, 0.1]
+        bounds=[0, -0.11, 1.0, 0.1]
     )
     rad_axis.imshow(radiant_line)
     rad_axis.axis('off')
@@ -209,6 +211,68 @@ def add_drafts(replay: Replay, ax_in: Axes):
     dire_axis.axis('off')
 
     return
+
+
+def make_summary(
+    replay: Replay, session: Session,
+    min_time: int = None, max_time: int = None,
+    bounty_grace: int = 30) -> dict:
+    team_map = {p.steamID:p.team for p in replay.players}
+    kills = {Team.DIRE: 0, Team.RADIANT: 0}
+    deaths = {Team.DIRE: 0, Team.RADIANT: 0}
+    bounties = {Team.DIRE: 0, Team.RADIANT: 0}
+    first_blood = {Team.DIRE: 'no', Team.RADIANT: 'no'}
+    
+    # Setup the time filters
+    if min_time is not None and max_time is not None:
+        k_time = Kills.game_time.between(min_time, max_time)
+        d_time = Deaths.game_time.between(min_time, max_time)
+        r_time = Rune.game_time.between(min_time, max_time + bounty_grace)
+    elif max_time is not None:
+        k_time = Kills.game_time <= max_time
+        d_time = Deaths.game_time <= max_time
+        r_time = Rune.game_time <= max_time  + bounty_grace
+    elif min_time is not None:
+        k_time = Kills.game_time >= min_time
+        d_time = Deaths.game_time >= min_time
+        r_time = Rune.game_time >= min_time
+    else:
+        print(min_time, max_time)
+        raise ValueError("One or both of min_time and max_time must be specified.")
+
+
+    kill_query = session.query(Kills).filter(
+        Kills.replay_ID == replay.replayID, k_time
+    )
+    kill: Kills
+    is_first = True
+    for kill in kill_query:
+        if is_first:
+            first_blood[team_map[kill.steam_ID]] = 'yes'
+            is_first = False
+        kills[team_map[kill.steam_ID]] += 1
+
+    death_query = session.query(Deaths).filter(
+        Deaths.replay_ID == replay.replayID, d_time
+    )
+    death: Deaths
+    for death in death_query:
+        deaths[team_map[death.steam_ID]] += 1
+
+    rune_query = session.query(Rune).filter(
+        Rune.replayID == replay.replayID, r_time,
+        Rune.runeType == RuneID.Bounty
+    )
+    bounty: Rune
+    for bounty in rune_query:
+        bounties[bounty.team] += 1
+        
+    output = {
+        Team.DIRE: f'''Kills: {kills[Team.DIRE]}, Deaths: {deaths[Team.DIRE]}, Bounties: {bounties[Team.DIRE]}, Drew First Blood: {first_blood[Team.DIRE]}''',
+        Team.RADIANT: f'''Kills: {kills[Team.RADIANT]}, Deaths: {deaths[Team.RADIANT]}, Bounties: {bounties[Team.RADIANT]}, Drew First Blood: {first_blood[Team.RADIANT]}''',
+    }
+    
+    return output
 
 
 def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
@@ -312,7 +376,6 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     # Smoke table if wanted!
     smoke_table = get_smoke_time_info(positions)
     add_smoke_start_highlight(smoke_table, axis)
-    # print(smoke_table)
     # smoke_table['Start time'] = smoke_table['Start time'].apply(lambda x: seconds_to_nice(x))
     # axis.table(
     #     cellText = smoke_table[['Start time', 'Start location', 'End location']].to_numpy(),
@@ -333,6 +396,17 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     axis.patch.set_edgecolor('black')
     axis.patch.set_linewidth('1')
     
+    # Summary line
+    summary_dict = make_summary(
+        replay, session, min_time=None, max_time=0,
+        bounty_grace=30
+    )
+    axis.text(s=summary_dict[side], x=0, y=-0.005,
+              ha='left', va='top', zorder=5,
+            #   path_effects=[PathEffects.withStroke(linewidth=3,
+            #                 foreground="w")],
+              color='black',
+              transform=axis.transAxes)
 
     return axis
 
