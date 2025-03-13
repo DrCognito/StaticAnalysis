@@ -174,6 +174,35 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
         return player[0]
 
 
+def get_player_name_simple(steam_id: int, team_session: Session) -> str:
+    from StaticAnalysis.lib.team_info import TeamPlayer
+    """Returns a known players name from a steamID.
+
+    Arguments:
+        team_session {Session} -- Open session to team_info DB.
+        steam_id {int} -- 64-bit steamID.
+
+    Raises:
+        ValueError: If the steamID is not known.
+
+    Returns:
+        str -- Player name.
+    """
+    if steam_id in player_cache:
+        return player_cache[f"{steam_id}"]
+
+    player = team_session.query(TeamPlayer.name)\
+                         .filter(TeamPlayer.player_id == steam_id).one_or_none()
+
+    if player is None:
+        player_cache[f"{steam_id}"] = f"{convert_to_32_bit(steam_id)}"
+        return f"{convert_to_32_bit(steam_id)}"
+    else:
+        player_cache[f"{steam_id}"] = player[0]
+        return player[0]
+
+
+
 def get_player_simple(steam_id: int, team_session: Session) -> "TeamPlayer":
     from StaticAnalysis.lib.team_info import TeamPlayer
     return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == steam_id).one_or_none()
