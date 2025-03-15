@@ -574,15 +574,17 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         font = ImageFont.truetype('arialbd.ttf', font_size)
         replay_time: datetime = replay.endTimeUTC
         date_str = replay_time.strftime(r"%b %d %Y")
-        if (lid := replay.league_ID) in league_id_map:
-            league_str = league_id_map[lid].title
-            text = league_str + ", " + date_str
-        elif lid == 0:
-            league_str = ""
-            text = date_str
-        else:
-            league_str = f"Id: {str(lid)}"
-            text = league_str + ", " + date_str
+        replay_id = str(replay.replayID)
+        text = replay_id + ", " + date_str
+        # if (lid := replay.league_ID) in league_id_map:
+        #     league_str = league_id_map[lid].title
+        #     text = league_str + ", " + date_str
+        # elif lid == 0:
+        #     league_str = ""
+        #     text = date_str
+        # else:
+        #     league_str = f"Id: {str(lid)}"
+        #     text = league_str + ", " + date_str
 
         ld_image = Image.new('RGB', (team_line.size[0] - opp_box_width, 2*font_size + 2*spacing + 1),
                              (255, 255, 255, 0))
