@@ -9,7 +9,7 @@ from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
 from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scatter, plot_circle_scatter
-from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice
+from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice, get_player_name_simple
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus, Kills, Deaths
 from StaticAnalysis.replays.Replay import Replay, Team
@@ -407,14 +407,50 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             #                 foreground="w")],
               color='black',
               transform=axis.transAxes)
+    # Death locations
+    summary_table = get_summary_table(
+        replay, session,
+        max_time=0, stat=Deaths, team_session=team_session
+    )
+    if not summary_table.empty:
+        summary_table['colour'] = summary_table['team'].map(
+            {Team.DIRE: 'red', Team.RADIANT:'green'}
+        )
+        axis.scatter(
+            x=summary_table['xCoordinate'], y=summary_table['yCoordinate'],
+            c=summary_table['colour'], s=100, zorder=5, marker='X', edgecolors='black'
+        )
 
     return axis
 
 
-# def plot_pregame_sing(replay: Replay, team: TeamInfo,
-#                       session, team_session,
-#                       fig, pos, ward_size: Tuple[int, int] = (8, 7),
-#                       time_range=(-120, 0)):
+def get_summary_table(
+    replay: Replay, session: Session, max_time: int, stat: type, team_session: Session
+    ) -> DataFrame:
+    def _player_pos_dict(row, player_map) -> dict:
+        p: Player
+        p = player_map[row.steam_ID]
+        x = p.get_position_at(row.game_time, True).xCoordinate
+        y = p.get_position_at(row.game_time, True).yCoordinate
+        return {'xCoordinate': x, 'yCoordinate': y}
+    stat_query = session.query(stat.game_time, stat.steam_ID).filter(
+        stat.replay_ID == replay.replayID, stat.game_time <= max_time)
+    stat_df = read_sql(stat_query.statement, session.bind)
+    # Add Player name
+    name_mapper = lambda x: get_player_name_simple(x, team_session)
+    stat_df['name'] = stat_df['steam_ID'].map(name_mapper)
+    # Add playher team
+    team_map = {p.steamID:p.team for p in replay.players}
+    stat_df['team'] = stat_df['steam_ID'].map(team_map)
+    # Get player positions
+    if not stat_df.empty:
+        player_map = {p.steamID:p for p in replay.players}
+        stat_df[['xCoordinate', 'yCoordinate']] = stat_df.apply(
+            lambda x: _player_pos_dict(x, player_map), axis=1, result_type='expand')
+
+    return stat_df
+
+
 def plot_pregame_sing(replay: Replay, team: TeamInfo,
                       session, team_session,
                       axis, pos, time_range=(-120, 0)):

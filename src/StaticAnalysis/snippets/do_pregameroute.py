@@ -1,5 +1,6 @@
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis.replays.Player import Player
 from StaticAnalysis.update_plots import get_team
 from StaticAnalysis.analysis.Replay import get_side_replays
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
@@ -22,11 +23,11 @@ r_replays = r_replays.order_by(Replay.replayID.desc())
 
 fig = plt.figure(figsize=(7, 7))
 
-plot_pregame_players(d_replays[0], team, Team.DIRE, session, team_session, fig)
+plot_pregame_players(d_replays[3], team, Team.DIRE, session, team_session, fig)
 fig.tight_layout()
 fig.savefig('pregame_route_dire.png')
 fig.clf()
-plot_pregame_players(r_replays[0], team, Team.RADIANT, session, team_session, fig)
+plot_pregame_players(r_replays[3], team, Team.RADIANT, session, team_session, fig)
 fig.tight_layout()
 fig.savefig('pregame_route_radiant.png')
 fig.clf()
@@ -95,6 +96,12 @@ def make_summary(
     
     return output
 
+def player_pos_dict(row, player_map) -> dict:
+    p: Player
+    p = player_map[row.steam_ID]
+    x = p.get_position_at(row.game_time, True).xCoordinate
+    y = p.get_position_at(row.game_time, True).yCoordinate
+    return {'xCoordinate': x, 'yCoordinate': y}
 
 def get_summary_table(
     replay: Replay, session: Session, max_time: int, stat: type
@@ -109,9 +116,20 @@ def get_summary_table(
     # Add playher team
     team_map = {p.steamID:p.team for p in replay.players}
     stat_df['team'] = stat_df['steam_ID'].map(team_map)
+    # Get player positions
+    if not stat_df.empty:
+        player_map = {p.steamID:p for p in replay.players}
+        stat_df[['xCoordinate', 'yCoordinate']] = stat_df.apply(
+        lambda x: player_pos_dict(x, player_map), axis=1, result_type='expand')
     
     return stat_df
 
 kills_df = get_summary_table(d_replays[3], session, 10*60, Kills)
 deaths_df = get_summary_table(d_replays[3], session, 10*60, Deaths)
 summary = make_summary(d_replays[3], session, None, 0, 30)
+
+#https://stackoverflow.com/questions/16236684/apply-pandas-function-to-column-to-create-multiple-new-columns
+replay = d_replays[3]
+player_map = {p.steamID:p for p in replay.players}
+applied_df = kills_df.apply(lambda x: player_pos_dict(x, player_map), axis=1, result_type='expand')
+kills_df[['xCoordinate', 'yCoordinate']] = kills_df.apply(lambda x: player_pos_dict(x, player_map), axis=1, result_type='expand')

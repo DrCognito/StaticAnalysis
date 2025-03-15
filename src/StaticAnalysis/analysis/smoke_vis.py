@@ -84,12 +84,15 @@ def get_smoked_player_table(
             min_time, max_time
         )
         dfs.append(r_df)
+
+    if dfs:
+        output = concat(dfs)
+        output = output.sort_values(by=['Start time'])
+        output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
     
-    output = concat(dfs)
-    output = output.sort_values(by=['Start time'])
-    output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
-    
-    return output.reset_index(drop=True)
+        return output.reset_index(drop=True)
+    else:
+        return DataFrame()
 
 
 def build_smoke_table(query: Query, session: Session) -> DataFrame:
@@ -303,11 +306,14 @@ def get_smoke_table_replays(
         )
         dfs.append(r_df)
     
-    output = concat(dfs)
-    output = output.sort_values(by=['Start time'])
-    output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
+    if dfs:
+        output = concat(dfs)
+        output = output.sort_values(by=['Start time'])
+        output['Start time'] = output.loc[:, 'Start time'].map(seconds_to_nice)
     
-    return output.reset_index(drop=True)
+        return output.reset_index(drop=True)
+    else:
+        return DataFrame()
 
 
 def get_smoke_table_replay(

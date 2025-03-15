@@ -767,7 +767,10 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
                 r_query, team, side, session, team_session,
                 tpair[0], tpair[1]
                 )
-            metadata[f'table_smoke_{team_str}'][title] = df.to_html()
+            if df.empty:
+                metadata[f'table_smoke_{team_str}'][title] = None
+            else:
+                metadata[f'table_smoke_{team_str}'][title] = df.to_html()
 
     if update_dire:
         _process_side(s_dire, Team.DIRE)
@@ -1406,13 +1409,13 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
 
     # Pick priority
     pick_priority = metadata.get('pick_priority')
-    if pick_priority:
+    if False:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
     # Draft summary + pick tables
     plot_draft_summary = metadata.get('plot_draft_summary')
     plot_picktables = metadata.get('plot_picktables')
-    if plot_draft_summary or plot_picktables:
+    if False:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
         pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
