@@ -508,7 +508,7 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
 
 def pick_summary_line(n_first: int, n_second: int, table_setup: TableProperties) -> Image:
     text_font = ImageFont.truetype(table_setup.font, table_setup.p_summary_font_size)
-    output_string = f"{n_first + n_second:.0f} games - {n_first:.0f} first pick, {n_second:.0f} second pick."
+    output_string = f"~{n_first + n_second:.0f} games - {n_first:.0f} first pick, {n_second:.0f} second pick."
 
     width = 2*table_setup.padding + int(text_font.getlength(output_string))
     height = table_setup.p_summary_font_size + table_setup.padding
@@ -549,8 +549,19 @@ def create_tables(r_query: Query,
     
     # Pick Summary line
     if not final_df.empty:
+        # Sum the total picks in a column which are Counters
+        first_col = str(CURRENT_PATCH.first_pick[0])
+        second_col = str(CURRENT_PATCH.second_pick[0])
+
+        first_pick_tot = sum(
+            final_df[first_col].map(lambda x: x.total())
+        )
+        second_pick_tot = sum(
+            final_df[second_col].map(lambda x: x.total())
+        )
+
         text_image = pick_summary_line(
-            len(first_df)/5, len(second_df)/5, table_setup
+            first_pick_tot, second_pick_tot, table_setup
         )
         images.append(text_image)
 
