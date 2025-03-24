@@ -92,6 +92,7 @@ class TableProperties:
     font: FreeTypeFont
     min_cell_height: int
     min_cell_width: int
+    p_summary_font_size: int
 
 
 # Definition for table styling
@@ -107,6 +108,7 @@ table_setup = TableProperties(
     font='arialbd.ttf',
     min_cell_height=50,
     min_cell_width=100,
+    p_summary_font_size=16,
 )
 # Divider image, also used as placeholder
 divider = Image.new('RGBA', (table_setup.divider_spacing, table_setup.padding), (255, 255, 255, 0))
@@ -504,6 +506,23 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
     return table_image
 
 
+def pick_summary_line(n_first: int, n_second: int, table_setup: TableProperties) -> Image:
+    text_font = ImageFont.truetype(table_setup.font, table_setup.p_summary_font_size)
+    output_string = f"{n_first + n_second:.0f} games - {n_first:.0f} first pick, {n_second:.0f} second pick."
+
+    width = 2*table_setup.padding + int(text_font.getlength(output_string))
+    height = table_setup.p_summary_font_size + table_setup.padding
+    text_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
+    text_canvas = ImageDraw.Draw(text_image)
+    
+    text_canvas.text(
+        xy=(table_setup.padding, 0),
+        text=output_string, fill='black', font=text_font
+    )
+    
+    return text_image
+
+
 def create_tables(r_query: Query,
                   team: TeamInfo,
                   sess: Session = session, team_sess: Session = team_session) -> Image:
@@ -523,23 +542,35 @@ def create_tables(r_query: Query,
     final_df = process_df(first_df, second_df, team_sess, team)
     image_df = image_table(final_df, table_desc, table_setup)
 
+    images = []
     # Image of the picks
     pick_image = draw_table(image_df, table_setup)
+    images.append(pick_image)
+    
+    # Pick Summary line
+    if not final_df.empty:
+        text_image = pick_summary_line(
+            len(first_df)/5, len(second_df)/5, table_setup
+        )
+        images.append(text_image)
 
     # Percent table
     percent_df = percent_table(final_df)
     percent_image = draw_percent(percent_df, table_setup)
+    images.append(percent_image)
 
     # Combine the two images
     spacing = 50
-    width = max(pick_image.size[0], percent_image.size[0])
-    height = pick_image.size[1] + percent_image.size[1] + spacing
+    # width = max(pick_image.size[0], percent_image.size[0])
+    width = max(map(lambda x: x.size[0], images))
+    height = sum(map(lambda x: x.size[1], images)) + (len(images) - 1) * spacing
+    # height = pick_image.size[1] + percent_image.size[1] + spacing
 
     final = Image.new('RGBA', (width, height),
                     (255, 255, 255, 255))
     x, y = 0, 0
-    final.paste(pick_image, (x, y), pick_image)
-    y += pick_image.size[1] + spacing
-    final.paste(percent_image, (x, y), percent_image)
+    for i in images:
+        final.paste(i, (x, y), i)
+        y += i.size[1] + spacing
 
     return final
