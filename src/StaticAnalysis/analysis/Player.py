@@ -387,3 +387,5 @@ def _update_post_process(df: DataFrame):
     '''
     df['count'] = 1
     df = df.sort_values(['endGameTime'], ascending=True)
+    
+    return df
