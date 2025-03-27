@@ -389,3 +389,36 @@ def _update_post_process(df: DataFrame):
     df = df.sort_values(['endGameTime'], ascending=True)
     
     return df
+
+
+def get_hero_winrate(
+    player: TeamPlayer | int, hero: str, session: Session = session,
+    min_time: datetime = None, max_time: datetime = None,
+    r_query: Query = None) -> float:
+    # Ensure player is a 64bit player/steam ID
+    if type(player) is int:
+        player = convert_to_64_bit(player)
+    elif type(player) is TeamPlayer:
+        player = player.player_id
+    p_query = session.query(Player).filter(
+        Player.steamID == player, Player.hero == hero)
+
+    if r_query is not None:
+        p_query = p_query.join(r_query.subquery())
+    
+    if min_time is not None and max_time is not None:
+        p_query = p_query.filter(Player.endGameTime.between(
+            min_time, max_time
+        ))
+    elif min_time is not None:
+        p_query = p_query.filter(Player.endGameTime >= min_time)
+    elif max_time is not None:
+        p_query = p_query.filter(Player.endGameTime <= max_time)
+
+    tot_games = p_query.count()
+    if tot_games == 0:
+        return None
+    pwins_query = p_query.filter(Player.win == True)
+    wins = pwins_query.count()
+    
+    return wins/tot_games
