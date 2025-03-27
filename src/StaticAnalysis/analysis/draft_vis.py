@@ -723,7 +723,7 @@ def replay_draft_image(
             is_scrim = False
 
         line = pickban_line_image(replay, team, add_team_name=True,
-                                  caching=False, fig=fig, is_scrim=is_scrim)
+                                  caching=True, fig=fig, is_scrim=is_scrim)
         if line is None:
             continue
         max_width = max(max_width, line.size[0])
