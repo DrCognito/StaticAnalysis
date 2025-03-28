@@ -25,9 +25,10 @@ from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
                                      get_team_last_result)
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
-from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id, Player, get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id, Player, get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process, get_hero_winrate, get_hero_picks
 from StaticAnalysis.analysis.priority_picks import (priority_picks,
                                                     priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -51,8 +52,8 @@ from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table, get_smoke
 from StaticAnalysis.lib.Common import (ChainedAssignment, location_filter,
                                        prepare_retrieve_figure, add_map, EXTENT)
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
-                                         make_meta)
-from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
+                                         make_meta, has_wards)
+from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
 from StaticAnalysis.replays.Player import PlayerStatus
 from StaticAnalysis.replays.Replay import InitDB, Replay, Team
 from StaticAnalysis.replays.Scan import Scan
@@ -852,6 +853,40 @@ def do_portrait_picks(
             session, _heroes_post_process
         )
 
+    def add_extra_cols(
+        player: TeamPlayer | int, df: DataFrame, session: Session = session,
+        r_query: Query = None) -> DataFrame:
+        if df.empty:
+            return df
+
+        df['0to7 winrate'] = df.index.map(
+            lambda x : get_hero_winrate(
+                player, x, session,
+                ImportantTimes['PreviousWeek'], ImportantTimes['Now'],
+                r_query
+                )
+        )
+        df['0to7 picks'] = df.index.map(
+        lambda x : get_hero_picks(
+            player, x, session, ImportantTimes['PreviousWeek'], ImportantTimes['Now'], r_query
+            )
+        )
+        
+        df['0to14 winrate'] = df.index.map(
+            lambda x : get_hero_winrate(
+                player, x, session,
+                ImportantTimes['PreviousFortnight'], ImportantTimes['Now'],
+                r_query
+                )
+        )
+        
+        return df
+    # Add the winrate columns by player
+    for p in team.players:
+        df = comp_df.get(p.name)
+        if df is not None:
+            add_extra_cols(p, df, r_query=r_query)
+
     # Uses MAIN_TIME to get the missing comp heroes
     update_df = get_team_dataframes(
         team,
@@ -1286,7 +1321,9 @@ def do_pregame_routes(team: TeamInfo, r_query, metadata: dict,
         r: Replay
         i = 0
         for r in replays:
-            if not is_full_replay(session, r):
+            # if not is_full_replay(session, r):
+            #     continue
+            if not has_wards(session, r):
                 continue
             if limit is not None and i >= limit:
                 break
@@ -1670,6 +1707,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         pubs_updated = False
     else:
         pubs_updated = pub_update_time > last_update_time
+        pubs_updated = True
     if reprocess:
         if r_query.count() != 0:
             new_dire = True
