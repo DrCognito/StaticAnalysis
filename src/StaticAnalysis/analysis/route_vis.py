@@ -12,6 +12,7 @@ from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scat
 from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice, get_player_name_simple
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Player import Player, PlayerStatus, Kills, Deaths
+from StaticAnalysis.lib.metadata import has_picks
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Smoke import Smoke
@@ -383,7 +384,8 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     #     colWidths=[0.1, 0.2, 0.2,],
     #     colLabels=["Time", "Start Location", "End Location",]
     # )
-    add_drafts(replay, axis)
+    if has_picks(session, replay):
+        add_drafts(replay, axis)
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
