@@ -161,3 +161,10 @@ def get_league_id(json_in):
     pick_ban = get_pick_ban(json_in)
 
     return pick_ban['leagueID']
+
+
+def get_player_stacks(json_in):
+    for x in json_in:
+        if x['type'] == 'CampStack':
+            for y in zip(x['hero'], x['time'], x['stacks']):
+                yield y

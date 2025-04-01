@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
-                                    Smoke, TeamSelections, Ward, Tormentor)
+                                    Smoke, TeamSelections, Ward, Tormentor, Stacks)
 from StaticAnalysis.replays.Common import Team
 
 
@@ -58,6 +58,11 @@ class Replay(Base):
                                  #single_parent=True, passive_deletes='all'
                                  )
     tormentor_kills = relationship(Tormentor.TormentorKill, back_populates="replay",
+                                 lazy="dynamic",
+                                 cascade="all, delete-orphan",
+                                 #single_parent=True, passive_deletes='all'
+                                 )
+    player_stacks = relationship(Stacks.PlayerStack, back_populates="replay",
                                  lazy="dynamic",
                                  cascade="all, delete-orphan",
                                  #single_parent=True, passive_deletes='all'
@@ -244,6 +249,8 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         working_replay.tormentor_spawns, working_replay.tormentor_kills = Tormentor.populate_from_JSON(
             jsonFile, working_replay, session
         )
+        
+        working_replay.player_stacks = Stacks.populate_from_JSON(jsonFile, working_replay, session)
 
     session.merge(working_replay)
     return working_replay
