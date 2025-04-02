@@ -38,6 +38,7 @@ from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
                                             get_smoke, hero_win_rate,
                                             pair_rate, win_rate_table)
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
+from StaticAnalysis.analysis.Stacks import do_stacks
 # from StaticAnalysis.analysis.table_picks import create_tables
 from StaticAnalysis.analysis.table_picks_panda import create_tables
 from StaticAnalysis.analysis.visualisation import (
@@ -1834,8 +1835,9 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
                                    mintime=stat_time, maxtime=end_time)
         metadata = do_flex_pubs(team, metadata, time, end_time)
-        plt.close('all')
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
+        metadata = do_stacks(team, r_query, metadata)
+        plt.close('all')
         print(f"Processed in {t.process_time() - start}")
     if args.prioritypicks:
         if new_dire or new_radiant:
