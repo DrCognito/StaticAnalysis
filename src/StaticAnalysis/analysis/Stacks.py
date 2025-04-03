@@ -18,13 +18,14 @@ PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
 
 def get_player_average_stacks(
     player: TeamPlayer | int, r_query: Query, session: Session = session,
-    min_time: int = None, max_time: int = None) -> float:
+    min_time: int = None, max_time: int = None, enforce_team: TeamInfo = None) -> float:
     if type(player) is int:
         steam_id = convert_to_64_bit(player)
     elif type(player) is TeamPlayer:
         steam_id = player.player_id
 
     stacks = []
+    r: Replay
     for r in r_query:
         rid = r.replayID
         test_player = session.query(Player).filter(
@@ -32,10 +33,21 @@ def get_player_average_stacks(
         if test_player is None:
             if False:
                 if type(player) is TeamPlayer:
-                    print(f"Player {player.name}, {steam_id} missing for {rid}")
+                    print(f"[Stacks] Player {player.name}, {steam_id} missing for {rid}")
                 else:
-                    print(f"Player {steam_id} missing for {rid}")
+                    print(f"[Stacks] Player {steam_id} missing for {rid}")
             continue
+        if enforce_team is not None:
+            team_side = r.get_side(enforce_team)
+            if team_side is None:
+                print(f"[Stacks] {enforce_team.name} not found in {rid}")
+            if test_player.team != team_side:
+                if True:
+                    if type(player) is TeamPlayer:
+                        print(f"[Stacks] Player {player.name}, {steam_id} wrong team for {rid}")
+                    else:
+                        print(f"[Stacks] Player {steam_id} wrong team for {rid}")
+                continue
         # Find how many to deduct first
         prior_stacks = 0
         if min_time is not None:
@@ -185,7 +197,8 @@ def build_stack_dict(
     
     out_dict = {}
     for (t0, t1), l in zip(times, labels):
-        proc = lambda x: get_player_average_stacks(x, r_query, session, t0, t1)
+        proc = lambda x: get_player_average_stacks(
+            x, r_query, session, t0, t1, enforce_team=team)
         out_dict[l] = [proc(p) for p in team.players]
         out_dict[l].append(get_team_average_stacks(team, r_query, session, t0, t1))
 
