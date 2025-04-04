@@ -1687,7 +1687,6 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         print("Failed to retrieve replays for team {}".format(team.name))
         quit()
 
-
     # start = t.process_time()
     new_dire, dire_list = is_updated(session, r_query, team, Team.DIRE,
                                      metadata.get('replays_dire'), is_full_replay)
@@ -1720,6 +1719,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             # print(replay_list)
         # Still do pubs!
         pubs_updated = True
+    # Disable pubs for forseeable future
+    pubs_updated = False
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
