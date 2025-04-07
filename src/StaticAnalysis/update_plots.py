@@ -915,22 +915,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
     fig.set_size_inches(8.27, 11.69)
 
     hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=False)
-    if limit is None:
-        axes_all = fig.subplots(5, 2)
-        axes_first = [a[0] for a in axes_all]
-
-        axes_second = [a[1] for a in axes_all]
-        axes_second[0].set_title("Pubs")
-        pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > mintime else mintime
-        # plot_team_pubs_timesplit(
-        #     team, axes_second, pub_session,
-        #     mintime=pro_pub_time, maxtime=maxtime,
-        #     pos_requirements=strict_pos)
-        plot_team_pubs_timesplit(
-            team, axes_second, pub_session,
-            mintime=pro_pub_time, maxtime=maxtime,)
-    else:
-        axes_first = fig.subplots(5)
+    axes_first = fig.subplots(5)
 
     extra = plot_player_heroes(hero_picks_df, axes_first)
     axes_first[0].set_title("Matches")
@@ -1379,7 +1364,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("helvetica", "B", 24)
-    dataset = metadata['name']
+    dataset = nice_time_names.get(metadata['name'], metadata['name'])
     time_string = metadata.get('time_string', "(No replay data)")
     pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
@@ -1473,10 +1458,11 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     if plot_hero_flex:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, y=0, keep_aspect_ratio=True, w=180, h=290)
-    plot_flex_pubs = metadata.get('plot_flex_pubs')
-    if plot_flex_pubs:
-        pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_flex_pubs, y=0, keep_aspect_ratio=True, w=180, h=290)
+    # Flex pubs
+    # plot_flex_pubs = metadata.get('plot_flex_pubs')
+    # if plot_flex_pubs:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_flex_pubs, y=0, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
     # plot_win_rate = metadata.get('plot_win_rate')
     # if plot_win_rate:
@@ -1521,7 +1507,7 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("helvetica", "B", 24)
-    dataset = metadata['name']
+    dataset = nice_time_names.get(metadata['name'], metadata['name'])
     time_string = metadata.get('time_string', "(No replay data)")
     pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
@@ -1727,7 +1713,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             print("Pub data is newer, remaking pick plots and flex pubs.")
             # No need to do limit plots as they are without pubs.
             metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
-            metadata = do_flex_pubs(team, metadata, time, end_time)
+            # metadata = do_flex_pubs(team, metadata, time, end_time)
             metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
 
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
@@ -1835,7 +1821,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
         metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
                                    mintime=stat_time, maxtime=end_time)
-        metadata = do_flex_pubs(team, metadata, time, end_time)
+        # metadata = do_flex_pubs(team, metadata, time, end_time)
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
         metadata = do_stacks(team, r_query, metadata)
         plt.close('all')
