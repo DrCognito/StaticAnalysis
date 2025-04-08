@@ -90,17 +90,21 @@ def get_player(player_id: int, team_session: Session = None):
     if team_session is None:
         team_session = StaticAnalysis.team_session
     return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == player_id).one_or_none()
-# Teams = {}
-# InitTeamDB()
-# TeamIDs = {}
-# PlayerIDs = {}
 
-# PlayerIDs['Mad Lads'] = OrderedDict()
-# PlayerIDs['Mad Lads']['Qojkva'] = 76561198047004422
-# PlayerIDs['Mad Lads']['Madara'] = 76561198055695796
-# PlayerIDs['Mad Lads']['Khezu'] = 76561198129291346
-# PlayerIDs['Mad Lads']['MaybeNextTime'] = 76561198047219142
-# PlayerIDs['Mad Lads']['Synderen'] = 76561197964547457
-# TeamIDs['Mad Lads'] = 5229049
-# Teams['Mad Lads'] = TeamInfo(name='Mad Lads', players=PlayerIDs['Mad Lads'],
-#                              team_id=TeamIDs['Mad Lads'])
+
+def get_players(players: list['Player | int'], team_session: Session = None):
+    from StaticAnalysis.replays.Player import Player
+    if team_session is None:
+        team_session = StaticAnalysis.team_session
+    output: list[TeamPlayer] = []
+    for p in players:
+        if type(p) is int:
+            p = convert_to_64_bit(p)
+            db_p = team_session.query(TeamPlayer).filter(TeamPlayer.player_id == p).one_or_none()
+            output.append(db_p)
+        if type(p) is Player:
+            db_p = team_session.query(TeamPlayer).filter(TeamPlayer.player_id == p.steamID).one_or_none()
+            output.append(db_p)
+        else:
+            raise ValueError(f'Invalid type {type(p)} in player list argument.')
+    return output
