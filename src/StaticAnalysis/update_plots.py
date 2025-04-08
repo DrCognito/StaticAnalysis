@@ -1366,7 +1366,7 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     pdf.set_font("helvetica", "B", 24)
     dataset = nice_time_names.get(metadata['name'], metadata['name'])
     time_string = metadata.get('time_string', "(No replay data)")
-    pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
+    pdf.multi_cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
     # Stats
     pdf.cell(0, 5, f"Win rates:", new_x="LMARGIN", new_y="NEXT")
@@ -1509,7 +1509,7 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     pdf.set_font("helvetica", "B", 24)
     dataset = nice_time_names.get(metadata['name'], metadata['name'])
     time_string = metadata.get('time_string', "(No replay data)")
-    pdf.cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
+    pdf.multi_cell(0, 10, f"{team.name} {time_string}, {dataset}", align="c", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font('helvetica', size=12)
     # Stats
     pdf.cell(0, 5, f"Win rates:", new_x="LMARGIN", new_y="NEXT")
