@@ -153,3 +153,4 @@ setup.env
 
 # Config files not for publishing
 setup.toml
+current_team.ps1
