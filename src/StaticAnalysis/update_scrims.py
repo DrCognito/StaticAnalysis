@@ -74,6 +74,9 @@ def is_valid_replay(replay: Replay) -> bool:
     if replay.teams[0].teamName == replay.teams[1].teamName:
         print(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
         return False
+    if replay.teams[0].teamID != main_team_id and replay.teams[1].teamID != main_team_id:
+        print(f"{replay.replayID}: Main team is missing.")
+        return False
 
     return True
 
