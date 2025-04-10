@@ -60,6 +60,7 @@ class PickBans(Base):
 
 
 def populate_from_JSON(json, replay_in, session):
+    from StaticAnalysis.analysis.table_picks_panda import CURRENT_PATCH
     def _process_team(json, replay_in, team):
         assert(team in Team)
         new_team = TeamSelections(replay_in)
@@ -89,6 +90,23 @@ def populate_from_JSON(json, replay_in, session):
             new_pb.is_pick = is_pick
 
             pick_ban_list.append(new_pb)
+        if len(pick_ban_list) == 0:
+            # Often happens with redrafts so we only have picks
+            # No first pick info without pickbans so just pick one
+            orders = CURRENT_PATCH.first_pick if team == Team.DIRE else CURRENT_PATCH.second_pick
+            pick_order = 0
+            print(f"[TeamSelections] Could not populate PickBans from PicksAndBans in replay, using Player.")
+            for p in replay_in.players:
+                if p.team != team:
+                    continue
+                new_pb = PickBans()
+                new_pb.replayID = replay_in.replayID
+                new_pb.is_pick = True
+                new_pb.order = orders[pick_order]
+                pick_order += 1
+                new_pb.hero = p.hero
+                
+                pick_ban_list.append(new_pb)
 
         new_team.draft = pick_ban_list
 
