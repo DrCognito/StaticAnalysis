@@ -327,11 +327,12 @@ def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing
 
     tot_width_pick += spacing
     tot_width_ban += spacing
+    width = max(tot_width_ban, tot_width_pick)
 
     #b_colour = (255, 255, 255, 0)
     b_colour = (255, 255, 255, 255)
     #out_box = Image.new('RGBA', (max([tot_width_pick, tot_width_ban]), 2*height), b_colour)
-    out_box = Image.new('RGBA', (tot_width_ban, 2*height), b_colour)
+    out_box = Image.new('RGBA', (width, 2*height), b_colour)
 
     processed_size = spacing
     extras = 0
