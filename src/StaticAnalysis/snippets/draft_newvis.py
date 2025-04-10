@@ -1,23 +1,11 @@
-import os
-import sys
-from os import environ as environment
-
-from dotenv import load_dotenv
-
-import Setup
-from analysis.draft_vis import (hero_box_image, hero_box_image_portrait,
+from StaticAnalysis.analysis.draft_vis import (hero_box_image, hero_box_image_portrait,
                                 process_team_dotabuff, process_team_portrait,
                                 process_team_portrait_dotabuff,
                                 replay_draft_image, pickban_line_image)
-from lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
-from replays.Replay import Replay, Team
+from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo, TeamPlayer
+from StaticAnalysis.replays.Replay import Replay, Team
+from StaticAnalysis import team_session, session
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-# DB Setups
-session = Setup.get_fullDB()
-team_session = Setup.get_team_session()
-load_dotenv(dotenv_path="../setup.env")
 
 
 def get_team(name):
@@ -27,8 +15,8 @@ def get_team(name):
     return team
 
 
-team = get_team("Alliance")
-r_query = team.get_replays(session).filter(Replay.replayID == 5538671659)
+team = get_team("Team Spirit")
+r_query = team.get_replays(session).filter(Replay.replayID == 8248178512)
 
 replay: Replay = r_query.first()
 
