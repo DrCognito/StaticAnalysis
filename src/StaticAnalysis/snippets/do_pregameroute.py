@@ -16,10 +16,12 @@ from StaticAnalysis.replays.Rune import Rune, RuneID
 
 r_filter = Replay.endTimeUTC >= MAIN_TIME
 r_query = session.query(Replay).filter(r_filter)
-team: TeamInfo = get_team(8599101)
+team: TeamInfo = get_team(8255888)
 d_replays, r_replays = get_side_replays(r_query, session, team)
 d_replays = d_replays.order_by(Replay.replayID.desc())
 r_replays = r_replays.order_by(Replay.replayID.desc())
+print(f"Team name dire: {d_replays[3].get_nice_side_name(Team.DIRE)}")
+print(f"Team name radiant: {d_replays[3].get_nice_side_name(Team.RADIANT)}")
 
 fig = plt.figure(figsize=(7, 7))
 
