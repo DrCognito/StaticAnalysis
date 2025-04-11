@@ -193,7 +193,10 @@ class Replay(Base):
         name, c = names.most_common(1)[0] # (name, count)
         if c >= 3:
             return name
-        
+        # See if there is a name in the replay
+        if id_dict[team].teamName is not None and id_dict[team].teamName != ' ':
+            return id_dict[team].teamName
+
         return "Unknown"
 
 
