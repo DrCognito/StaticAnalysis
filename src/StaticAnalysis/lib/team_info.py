@@ -84,6 +84,16 @@ class TeamInfo(TeamInfo_DB):
             return session.query(Replay).filter(self.filter)\
                                         .filter(additional_filter)
 
+    @staticmethod
+    def get_team_name(team_id: int, team_session: Session = None):
+        if team_session is None:
+            team_session = StaticAnalysis.team_session
+        t = team_session.query(TeamInfo).filter(TeamInfo.team_id == team_id).one_or_none()
+        if t is None:
+            raise ValueError(f"No such team id {team_id} exists in DB.")
+        
+        return t.name
+
 
 def get_player(player_id: int, team_session: Session = None):
     player_id = convert_to_64_bit(player_id)
@@ -92,7 +102,7 @@ def get_player(player_id: int, team_session: Session = None):
     return team_session.query(TeamPlayer).filter(TeamPlayer.player_id == player_id).one_or_none()
 
 
-def get_players(players: list['Player | int'], team_session: Session = None):
+def get_players(players: list['Player | int'], team_session: Session = None) -> list[TeamPlayer]:
     from StaticAnalysis.replays.Player import Player
     if team_session is None:
         team_session = StaticAnalysis.team_session
@@ -108,3 +118,17 @@ def get_players(players: list['Player | int'], team_session: Session = None):
         else:
             raise ValueError(f'Invalid type {type(p)} in player list argument.')
     return output
+
+
+def get_player_teams(players: list['Player | int'], team_session: Session = None):
+    from StaticAnalysis.replays.Player import Player
+    team_players = get_players(players, team_session)
+    teams = []
+    for p in team_players:
+        if p is not None:
+            t = team_session.query(TeamInfo).filter(TeamInfo.team_id == p.team_id).one_or_none()
+        else:
+            t = None
+        teams.append(t)
+        
+    return teams
