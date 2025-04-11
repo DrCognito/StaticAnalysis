@@ -422,6 +422,21 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             x=summary_table['xCoordinate'], y=summary_table['yCoordinate'],
             c=summary_table['colour'], s=100, zorder=5, marker='X', edgecolors='black'
         )
+    # Team names
+    dire_name = replay.get_nice_side_name(Team.DIRE)
+    radiant_name = replay.get_nice_side_name(Team.RADIANT)
+    # Radiant
+    axis.text(0.0, 0.0, radiant_name,
+        horizontalalignment='right',
+        verticalalignment='bottom',
+        rotation='vertical',
+        transform=axis.transAxes, size=16)
+    # Dire
+    axis.text(1.0, 1.0, dire_name,
+        horizontalalignment='left',
+        verticalalignment='top',
+        rotation=270,
+        transform=axis.transAxes, size=16)
 
     return axis
 
