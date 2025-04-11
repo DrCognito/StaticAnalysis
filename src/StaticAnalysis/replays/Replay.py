@@ -4,12 +4,13 @@ from datetime import datetime
 from herotools.HeroTools import HeroIDType, convertName
 from sqlalchemy import (BigInteger, Column, DateTime, Integer, create_engine,
                         or_)
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Session
 from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
                                     Smoke, TeamSelections, Ward, Tormentor, Stacks)
 from StaticAnalysis.replays.Common import Team
+from collections import Counter
 
 
 class Replay(Base):
@@ -172,6 +173,28 @@ class Replay(Base):
                 radiant_team: TeamSelections = t
 
         return {Team.DIRE: dire_team, Team.RADIANT: radiant_team}
+    
+    def get_nice_side_name(self, team: Team, team_session: Session = None) -> str:
+        '''
+        Attempt to get a nice name for a team on side Team or a team matching a TeamInfo id.
+        '''
+        from StaticAnalysis.lib.team_info import get_player_teams, TeamInfo
+        # Try the team ID first
+        id_dict = self.get_team_dict()
+        try:
+            return TeamInfo.get_team_name(id_dict[team].teamID)
+        except ValueError:
+            # No such team id raises ValueError
+            pass
+        players = self.get_players(team)
+        player_teams = get_player_teams(players, team_session)
+        names = Counter(t.name for t in player_teams if t is not None)
+        # Accept the most common if it is the majority
+        name, c = names.most_common(1)[0] # (name, count)
+        if c >= 3:
+            return name
+        
+        return "Unknown"
 
 
 def InitDB(path):
