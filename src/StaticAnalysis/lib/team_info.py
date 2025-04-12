@@ -132,3 +132,16 @@ def get_player_teams(players: list['Player | int'], team_session: Session = None
         teams.append(t)
         
     return teams
+
+
+def get_team(tid: int | str, team_session: Session = None):
+    if team_session is None:
+        team_session = StaticAnalysis.team_session
+    if type(tid) is str:
+        team: TeamInfo = team_session.query(TeamInfo).filter(TeamInfo.name == tid).one_or_none()
+    elif type(tid) is int:
+        team: TeamInfo = team_session.query(TeamInfo).filter(TeamInfo.team_id == tid).one_or_none()
+    else:
+        raise ValueError("Invalid type")
+    
+    return team
