@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 import StaticAnalysis
 from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
+from StaticAnalysis.lib.team_info import get_team as id_to_team
 from StaticAnalysis.replays.Replay import InitDB, Replay, Team
 
 SCRIMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
@@ -32,7 +33,7 @@ missing = set()
 unknown_teams = set()
 
 
-def get_team(name: str) -> TeamInfo:
+def get_team(name: str | int) -> TeamInfo:
     if name in team_map:
         name = team_map[name]
     team: TeamInfo = team_session.query(TeamInfo).filter(TeamInfo.name == name).one_or_none()
@@ -254,6 +255,17 @@ for scrim_id in file_ids.difference(scrim_ids[2:]):
         continue
     print(f"Checking id {scrim_id} not present in sheet!")
     name = "unknown"
+    for t in replay.teams:
+        if t.teamID is None or t.teamID == main_team_id:
+            continue
+        ot = id_to_team(t.teamID)
+        if ot is None:
+            continue
+        name = ot.name
+        if ot.team_id in scrim_dict:
+            scrim_dict[ot.team_id][int(scrim_id)] = main_team_name
+        else:
+            scrim_dict[ot.team_id] = {int(scrim_id): main_team_name}
     # Do OG also
     if main_team_id in scrim_dict:
         scrim_dict[main_team_id][int(scrim_id)] = name
@@ -269,6 +281,16 @@ for scrim_id in file_ids.difference(scrim_ids[2:]):
 
     replay = fix_replay_mainonly(replay)
     session.commit()
+    for t in replay.teams:
+        if t.teamID is None or t.teamID == main_team_id:
+            continue
+        ot = id_to_team(t.teamID)
+        if ot is None:
+            continue
+        if ot.team_id in scrim_dict:
+            scrim_dict[ot.team_id][int(scrim_id)] = main_team_name
+        else:
+            scrim_dict[ot.team_id] = {int(scrim_id): main_team_name}
 
     # replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
     # # Check replay is new enough
