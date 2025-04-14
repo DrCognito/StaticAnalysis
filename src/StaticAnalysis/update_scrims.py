@@ -254,6 +254,11 @@ for scrim_id in file_ids.difference(scrim_ids[2:]):
         print(f"Invalid scrim id from file {scrim_id}")
         continue
     print(f"Checking id {scrim_id} not present in sheet!")
+
+    replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
+    if replay is None:
+        print(f"Missing {scrim_id} in processed db.")
+        continue
     name = "unknown"
     for t in replay.teams:
         if t.teamID is None or t.teamID == main_team_id:
@@ -272,25 +277,11 @@ for scrim_id in file_ids.difference(scrim_ids[2:]):
     else:
         scrim_dict[main_team_id] = {int(scrim_id): name}
 
-    replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
-    if replay is None:
-        print(f"Missing {scrim_id} in processed db.")
-        continue
     if is_valid_replay(replay):
         continue
 
     replay = fix_replay_mainonly(replay)
     session.commit()
-    for t in replay.teams:
-        if t.teamID is None or t.teamID == main_team_id:
-            continue
-        ot = id_to_team(t.teamID)
-        if ot is None:
-            continue
-        if ot.team_id in scrim_dict:
-            scrim_dict[ot.team_id][int(scrim_id)] = main_team_name
-        else:
-            scrim_dict[ot.team_id] = {int(scrim_id): main_team_name}
 
     # replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
     # # Check replay is new enough
