@@ -352,7 +352,7 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
+            # print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
@@ -404,7 +404,7 @@ def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
+            # print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
