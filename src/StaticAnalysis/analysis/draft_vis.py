@@ -780,7 +780,7 @@ def replay_draft_image(
         if tot_height <= 0:
             continue
         if first_sheet:
-            sheet = Image.new('RGB', (max_width, tot_height + font_size + 10),
+            sheet = Image.new('RGB', (max_width, tot_height + font_size + 5),
                               (255, 255, 255, 255))
             canvas = ImageDraw.Draw(sheet)
 
