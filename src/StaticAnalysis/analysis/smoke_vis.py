@@ -408,7 +408,7 @@ def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame
             break
         if last_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            print(f"Longest duration could not be fully found as it is beyond DF range (last) @ {nice_time}")
+            # print(f"Longest duration could not be fully found as it is beyond DF range (last) @ {nice_time}")
             break
         # Fill last values
         out_dict['Start time'].append(game_time)

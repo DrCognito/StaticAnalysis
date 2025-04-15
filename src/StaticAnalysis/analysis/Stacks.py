@@ -44,11 +44,11 @@ def get_player_average_stacks(
             if test_player.team != team_side:
                 if True:
                     if type(player) is TeamPlayer:
+                        # print(f"[Stacks] Player {player.name}, {steam_id} wrong team for {rid}")
                         pass
-                        print(f"[Stacks] Player {player.name}, {steam_id} wrong team for {rid}")
                     else:
+                        # print(f"[Stacks] Player {steam_id} wrong team for {rid}")
                         pass
-                        print(f"[Stacks] Player {steam_id} wrong team for {rid}")
                 continue
         # Find how many to deduct first
         prior_stacks = 0

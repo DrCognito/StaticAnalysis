@@ -162,7 +162,7 @@ def get_player_name(team_session: Session, steam_id: int, team) -> str:
                          .one_or_none()
 
     if player is None:
-        print(f"Steam id {steam_id} ({convert_to_32_bit(steam_id)}) not found for {team.name}.")
+        # print(f"[PlayerName] Steam id {steam_id} ({convert_to_32_bit(steam_id)}) not found for {team.name}.")
         player = team_session.query(TeamPlayer.name)\
                              .filter(TeamPlayer.player_id == steam_id)\
                              .first()
