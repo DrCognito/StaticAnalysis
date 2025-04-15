@@ -58,7 +58,7 @@ def get_smoked_player_table_replay(
             order.append(player_list.index(name))
         except ValueError:
             name = convert_to_32_bit(player.steamID)
-            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
+            # print(f"[Smoke] Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
         names.append(name)
     # Sort names by position

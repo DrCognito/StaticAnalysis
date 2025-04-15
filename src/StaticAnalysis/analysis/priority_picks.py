@@ -54,8 +54,8 @@ def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
             df.loc[h, f"{t} Available"] += 1
 
         if len(found) != len(pat):
-            print(f"Invalid pickban pattern for {replay.replayID}")
-            print(f"found: {found} vs wanted: {pat}")
+            print(f"[PrioPicks] Invalid pickban pattern for {replay.replayID}")
+            # print(f"found: {found} vs wanted: {pat}")
             return BAD_REPLAY_SENTINEL
 
     return df

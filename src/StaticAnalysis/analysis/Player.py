@@ -72,7 +72,7 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
         for pick in p_picks:
             # Check if the player is actually on the right team!
             if pick.replay.get_side(team) != pick.team:
-                print(f"Skipped {pick.steamID} in {pick.replayID} (wrong side).")
+                print(f"[Player] Skipped {pick.steamID} in {pick.replayID} (wrong side).")
                 continue
             if pick.hero in p_res:
                 p_res[pick.hero] += 1
