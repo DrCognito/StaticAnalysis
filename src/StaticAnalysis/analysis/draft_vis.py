@@ -11,7 +11,7 @@ from herotools.lib.league import league_id_map
 from herotools.important_times import tournament_list, ImportantTimes, nice_time_names
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 import StaticAnalysis
 from StaticAnalysis.lib.team_info import TeamInfo
@@ -19,7 +19,7 @@ from StaticAnalysis.lib.metadata import has_networth
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.analysis.networth import get_laning_image
-from StaticAnalysis import session
+from StaticAnalysis import session, FONT_CACHE
 import matplotlib.pyplot as plt
 
 scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
@@ -51,7 +51,7 @@ def pickban_box_image(size=(64, 80), isPick=True, isWinner=False):
 
     # Text
     font_size = size[1] - size[0]
-    font = ImageFont.truetype('arialbd.ttf', font_size)
+    font = FONT_CACHE['arialbd.ttf', font_size]
     x_pos = math.floor(size[0]/2 - font.getlength(text)/2)
     canvas.text((x_pos, size[0]), text, fill=outline_colour,
                 font=font)
@@ -75,7 +75,7 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
         text_canv = ImageDraw.Draw(text_image)
 
         font_size = size[0]
-        font = ImageFont.truetype('arialbd.ttf', font_size)
+        font = FONT_CACHE['arialbd.ttf', font_size]
         # offset = font.getsize(text)[0]
         offset = font.getlength(text)
         text_canv.text(((size[1] - offset)/2, 0), text=text,
@@ -89,14 +89,16 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
     return out_box
 
 
+image_cache = {}
 def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox: bool = True):
     image: str = hero_portrait[hero]
     if not is_pick:
         image = image.replace(".png", "_grey.png")
     portrait_location = hero_portrait_prefix / image
-    portrait = Image.open(portrait_location)
 
-    portrait = portrait.convert("RGBA")
+    if portrait_location not in image_cache:
+        image_cache[portrait_location] = Image.open(portrait_location).convert('RGBA')
+    portrait = image_cache[portrait_location]
 
     # Dimensions
     dimensions = portrait.size
@@ -121,7 +123,7 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox
 
     # Put in the portrait
     out_box.paste(portrait, (boarder, boarder), portrait)
-    font = ImageFont.truetype('arialbd.ttf', font_size)
+    font = FONT_CACHE['arialbd.ttf', font_size]
     if add_textbox:
         if is_pick:
             text = "PICK"
@@ -130,8 +132,12 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox
             text = "BAN"
             extra = hero_portrait_prefix.parent / "x_mark.png"
 
-        extra_graphic = Image.open(extra).convert("RGBA")
-        extra_graphic = extra_graphic.resize((font_size, font_size))
+        if (extra, font_size) not in image_cache:
+            image_cache[(extra, font_size)] = Image.open(extra).convert('RGBA').resize(font_size)
+        extra_graphic = image_cache[(extra, font_size)]
+
+        # extra_graphic = Image.open(extra).convert("RGBA")
+        # extra_graphic = extra_graphic.resize((font_size, font_size))
 
         # Text box
         canvas.rectangle((boarder, text_off_y,
@@ -204,7 +210,7 @@ def hero_box_image(hero, isPick, isFirst=False, isWinner=False):
         # Text
         text = "1st"
         font_size = size[1] - size[0]
-        font = ImageFont.truetype('arialbd.ttf', font_size)
+        font = FONT_CACHE['arialbd.ttf', font_size]
         outline_colour = (255, 255, 255, 255)
         left, top, right, bottom = font.getbbox(text)
         w, h = right - left, bottom - top
@@ -513,7 +519,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
     if add_team_name:
         font_size = 17
         height = team_line.size[1] + font_size + 2*spacing
-        font = ImageFont.truetype('arialbd.ttf', font_size)
+        font = FONT_CACHE['arialbd.ttf', font_size]
         # Opposition name
         text_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
                                (255, 255, 255, 0))
@@ -572,7 +578,7 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     if add_league_date:
         font_size = 12
-        font = ImageFont.truetype('arialbd.ttf', font_size)
+        font = FONT_CACHE['arialbd.ttf', font_size]
         replay_time: datetime = replay.endTimeUTC
         date_str = replay_time.strftime(r"%b %d %Y")
         replay_id = str(replay.replayID)
@@ -644,7 +650,7 @@ def draw_tournament_linebreak(text: str, width: int, height: int = 30, font_size
     spacerDraw = ImageDraw.Draw(spacer)
 
     # Text
-    font = ImageFont.truetype('arialbd.ttf', font_size)
+    font = FONT_CACHE['arialbd.ttf', font_size]
     text_w = spacerDraw.textlength(text, font=font)
     text_start = (width - text_w)//2
     text_end = text_start + text_w
@@ -781,7 +787,7 @@ def replay_draft_image(
                               (255, 255, 255, 255))
             canvas = ImageDraw.Draw(sheet)
 
-            font = ImageFont.truetype('arialbd.ttf', font_size)
+            font = FONT_CACHE['arialbd.ttf', font_size]
             canvas.text((5, 0), team_name, fill='black', font=font)
             canvas.text((sheet.size[0]/2 + 5, 0), 'Opponent', fill='black',
                         font=font)
