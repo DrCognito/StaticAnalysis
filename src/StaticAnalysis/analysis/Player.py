@@ -222,9 +222,14 @@ def player_position_replay_id(session, replay_id: int, start: int, end: int) -> 
         PlayerStatus.game_time <= end
         )
 
+    # query = (
+    #     session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
+    #                   PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
+    #            .filter(*filter)
+    # )
     query = (
-        session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate, PlayerStatus.team_id,
-                      PlayerStatus.steamID, PlayerStatus.replayID, PlayerStatus.team, PlayerStatus.game_time)
+        session.query(PlayerStatus.xCoordinate, PlayerStatus.yCoordinate,
+                      PlayerStatus.steamID, PlayerStatus.replayID)
                .filter(*filter)
     )
 
