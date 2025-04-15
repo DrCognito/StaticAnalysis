@@ -4,7 +4,7 @@ from datetime import datetime
 from herotools.HeroTools import HeroIDType, convertName
 from sqlalchemy import (BigInteger, Column, DateTime, Integer, create_engine,
                         or_)
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
@@ -103,6 +103,32 @@ class Replay(Base):
             final_filter = or_(id_filter, stack_filter)
 
         return final_filter
+    
+    @reconstructor
+    def on_load(self):
+        '''
+        Runs after the object is loaded from the DB. Use to setup some useful stuff.
+        '''
+        ts: TeamSelections.TeamSelections
+        for ts in self.teams:
+            if ts.team == Team.RADIANT:
+                self.radiant_id = ts.teamID
+                self.radiant_name = ts.teamName
+            elif ts.team == Team.DIRE:
+                self.dire_id = ts.teamID
+                self.dire_name = ts.teamName
+        self.player_team_map = {
+            p: self.dire_id if p.team == Team.DIRE else self.radiant_id for p in self.players
+        }
+        # Also add steam IDs
+        self.player_team_map.update(
+            {
+                p.steamID: self.dire_id if p.team == Team.DIRE else self.radiant_id for p in self.players
+            }
+        )
+        self.player_side_map = {
+            p.steamID:p.team for p in self.players
+        }
 
     def first_pick(self):
         if self.teams[0].firstPick:
@@ -118,13 +144,8 @@ class Replay(Base):
         return first_pick_side == team_side
 
     PLAYER_NOTFOUND = object()
-    def get_team_id_player(self, player: 'Player'):
-        ts: TeamSelections
-        for ts in self.teams:
-            if player.team == ts.team:
-                return ts.teamID
-
-        return Replay.PLAYER_NOTFOUND
+    def get_team_id_player(self, player: Player.Player | int):
+        return self.player_team_map.get(player, Replay.PLAYER_NOTFOUND)
 
     def get_side(self, team: 'TeamInfo') -> Team:
         """Get side that a team is on or None if not found."""
