@@ -19,6 +19,7 @@ from StaticAnalysis.analysis.visualisation import make_image_annotation_table
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.TeamSelections import TeamSelections
+from StaticAnalysis import FONT_CACHE
 
 
 @dataclass
@@ -298,7 +299,7 @@ class Table():
         return table_image
 
     def draw_player_names(self):
-        font = ImageFont.truetype('arialbd.ttf', self.header_font_size)
+        font = FONT_CACHE['arialbd.ttf', self.header_font_size]
         width = 0
         for name in self.player_list.values():
             width = max(width, int(font.getlength(name)))
@@ -317,7 +318,7 @@ class Table():
         return text_image
 
     def draw_order_labels(self):
-        font = ImageFont.truetype('arialbd.ttf', self.header_font_size)
+        font = FONT_CACHE['arialbd.ttf', self.header_font_size]
         height = self.header_size
         width = self.tot_width()
 
@@ -462,7 +463,7 @@ class Cell():
         width = self.table.order_size[self.order]
         cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
         cell_canvas = ImageDraw.Draw(cell_image)
-        font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
+        font = FONT_CACHE['arialbd.ttf', self.table.count_font_size]
         # cell_canv = ImageDraw.Draw(cell_image)
         x, y = 0, self.table.padding
         tot = 0
@@ -579,8 +580,8 @@ def create_tables(r_query: Query, session: Session, team: TeamInfo,
 
 def render_percent_table(df: DataFrame, min_width=50,
                          header_font_size=20, text_font_size=16):
-    header_font = ImageFont.truetype('arialbd.ttf', header_font_size)
-    text_font = ImageFont.truetype('arialbd.ttf', text_font_size)
+    header_font = FONT_CACHE['arialbd.ttf', header_font_size]
+    text_font = FONT_CACHE['arialbd.ttf', text_font_size]
     padding = 2
     widths = {k:min_width for k in df.columns}
     columns = ['Index'] + list(df.columns)

@@ -18,6 +18,7 @@ from sqlalchemy import and_
 from pandas import Series, concat, pivot_table, read_sql
 from collections import Counter
 from StaticAnalysis.lib.Common import get_player_name
+from StaticAnalysis import FONT_CACHE
 
 @dataclass
 class OrderTimeRegion:
@@ -104,7 +105,7 @@ table_setup = TableProperties(
     header_size=22,
     header_font_size=22 - 2,  # header_size - padding
     divider_spacing=5,
-    # font = ImageFont.truetype('arialbd.ttf', self.table.count_font_size)
+    # font = FONT_CACHE['arialbd.ttf', self.table.count_font_size]
     font='arialbd.ttf',
     min_cell_height=50,
     min_cell_width=100,
@@ -139,7 +140,7 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
     # Image setup
     cell_image = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     cell_canvas = ImageDraw.Draw(cell_image)
-    count_font = ImageFont.truetype(table_setup.font, table_setup.count_font_size)
+    count_font = FONT_CACHE[table_setup.font, table_setup.count_font_size]
 
     # Setup iters to use as cursors
     # x_iter is just a range of hero sized spacing up to the edge (width)
@@ -187,7 +188,7 @@ def draw_name(name: str, table_setup: TableProperties) -> Image:
     '''
     Draws a name image according to table_setup.
     '''
-    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    font = FONT_CACHE['arialbd.ttf', table_setup.header_font_size]
     width = (
         4 * table_setup.padding
         + int(font.getlength(name))
@@ -215,7 +216,7 @@ def draw_header(title: str, table_setup: TableProperties) -> Image:
     '''
     Draws a header title image according to table_setup.
     '''
-    font = ImageFont.truetype('arialbd.ttf', table_setup.header_font_size)
+    font = FONT_CACHE['arialbd.ttf', table_setup.header_font_size]
     width = (
         2 * table_setup.padding
         + int(font.getlength(title))
@@ -507,7 +508,7 @@ def draw_percent(percent_table: DataFrame, table_setup: TableProperties) -> Imag
 
 
 def pick_summary_line(n_first: int, n_second: int, table_setup: TableProperties) -> Image:
-    text_font = ImageFont.truetype(table_setup.font, table_setup.p_summary_font_size)
+    text_font = FONT_CACHE[table_setup.font, table_setup.p_summary_font_size]
     output_string = f"~{n_first + n_second:.0f} games - {n_first:.0f} first pick, {n_second:.0f} second pick."
 
     width = 2*table_setup.padding + int(text_font.getlength(output_string))
