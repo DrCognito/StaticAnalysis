@@ -1053,7 +1053,8 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     return metadata
 
 
-def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radiant: bool, reprocess: False) -> dict:
+def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radiant: bool,
+            reprocess: bool = False) -> dict:
     if not new_dire and not new_radiant:
         return metadata
     # Check out directories exist
@@ -1071,89 +1072,50 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     rune_table = wisdom_rune_table(r_query, max_time=13*60)
     rune_table = build_wisdom_rune_summary(rune_table, team_session)
-    start = 6.5 * 60
-    # end = int(rune_times['game_time'].max())
-    # table = player_position_replays(session, r_query,
-    #                                 start=start, end=end)
 
-    table_replays = []
+    fig.set_size_inches(8.27, 8.27)
     r: Replay
     for r in r_query:
         rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
         if isnan(rune_max):
             print(f"No wisdom rune results for {r.replayID}")
             continue
-        rune_max = int(rune_max)
-        table_replays.append(player_position_replay_id(
-            session, r.replayID,
-            start=start, end=rune_max
-            ))
-    
-    if not table_replays:
-        # No data here!
-        return metadata
-    table = concat(table_replays)
-
-    do_rune_pos = False
-    if do_rune_pos:
-        # Set the maximum by max overall and then filter later
-        # Maybe could be done better but not trivially so?
-        fig.set_size_inches(8.27, 11.69)
-
-        plot_player_positions(table, team, fig)
-        out_path = meta_path / "rune_pos_7m.png"
-        fig.subplots_adjust(wspace=0.01, hspace=0.01, left=0.06, right=0.94, top=0.97, bottom=0.01)
-        # fig.tight_layout()
-        fig.savefig(out_path)
-        metadata["plot_rune_pos_7m"] = str(out_path.relative_to(Path(PLOT_BASE_PATH)))
-
-        fig.clf()
-
-
-    metadata["rune_routes_7m_dire"] = []
-    metadata["rune_routes_7m_radiant"] = []
-
-    fig.set_size_inches(8.27, 8.27)
-    for r_id in table['replayID'].unique():
-        t_min_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].min() - 30
-        t_max_rune = rune_times[rune_times["replayID"] == r_id]["game_time"].max()
-        replay_pos = table[
-            (table["replayID"] == r_id) &
-            (table["game_time"] > t_min_rune) &
-            (table["game_time"] <= t_max_rune)
-            ]
-        if replay_pos.empty: 
-            continue
-
-        side = None
-        out_path = positions / f"{r_id}.png"
-        if r_id in metadata['replays_dire']:
-            side = Team.DIRE
-        elif r_id in metadata['replays_radiant']:
-            side = Team.RADIANT
-        else:
-            r: Replay = session.query(Replay).filter(Replay.replayID == str(r_id)).one_or_none()
-            if r:
-                side = r.get_side(team)
-        if side == Team.DIRE:
-            metadata["rune_routes_7m_dire"].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
-        elif side == Team.RADIANT:
-            metadata["rune_routes_7m_radiant"].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
-        else:
-            print(f"Unable to allocate side for {r_id}")
+        # Check to see if we should process this replay
+        out_path = positions / f"{r.replayID}.png"
         if out_path.exists() and not reprocess:
             continue
-
+        # Get the table of positions
+        rune_min = int(rune_times[rune_times["replayID"] == r.replayID]["game_time"].min()) - 30
+        rune_max = int(rune_max)
+        table = player_position_replay_id(
+            session, r.replayID,
+            start=rune_min, end=rune_max
+            )
+        # team_id_map = lambda x: r.get_team_id_player(x['steamID'])
+        if table.empty:
+            # No position data
+            continue
+        table['team_id'] = table['steamID'].map(r.get_team_id_player)
+        table['team'] = table['steamID'].map(r.player_side_map)
+        side = r.get_side(team)
+        if side is None:
+            print(f"[Rune] Could not determine side for {team.name} in {r.replayID}")
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
-        plot_player_routes(replay_pos, team, axis)
+        plot_player_routes(table, team, axis)
         
-        df = rune_table.loc[rune_table.loc[:,'replayID'] == r_id].drop('replayID', axis=1)
+        df = rune_table.loc[rune_table.loc[:,'replayID'] == r.replayID].drop('replayID', axis=1)
         plot_wisdom_table(df, axis)
 
         fig.tight_layout()
         fig.savefig(out_path)
         fig.clf()
+    
+        if side == Team.DIRE:
+            (metadata.get("rune_routes_7m_dire", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+        elif side == Team.RADIANT:
+            (metadata.get("rune_routes_7m_radiant", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+
     return metadata
 
 
