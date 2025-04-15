@@ -114,9 +114,13 @@ class Replay(Base):
             if ts.team == Team.RADIANT:
                 self.radiant_id = ts.teamID
                 self.radiant_name = ts.teamName
+                if self.winner == Team.RADIANT:
+                    self.winner_id = ts.teamID
             elif ts.team == Team.DIRE:
                 self.dire_id = ts.teamID
                 self.dire_name = ts.teamName
+                if self.winner == Team.DIRE:
+                    self.winner_id = ts.teamID
         self.player_team_map = {
             p: self.dire_id if p.team == Team.DIRE else self.radiant_id for p in self.players
         }
