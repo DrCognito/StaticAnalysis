@@ -457,6 +457,70 @@ def process_team_dotabuff(replay: Replay, team: TeamSelections, spacing=5):
     return out_box
 
 
+def add_line_text(
+    replay:Replay, main_team: TeamInfo, draft_image: Image,
+    is_scrim: bool, add_league_date: bool, spacing: int) -> Image:
+
+    # Get the name
+    main_side = replay.get_side(main_team)
+    if main_side is None:
+        print(f"[Draft] Failed to find main team {main_team.name} in {replay.replayID}")
+        return
+    elif main_side == Team.DIRE:
+        main_name = "Dire"
+        opp_name = replay.get_nice_side_name(Team.RADIANT)
+    elif main_side == Team.RADIANT:
+        main_name = "Radiant"
+        opp_name = replay.get_nice_side_name(Team.DIRE)
+    # Get the winner
+    if main_side == replay.winner:
+        main_name += " (winner)"
+    else:
+        opp_name += " (winner)"
+        
+    font_size = 17
+    first_pick_box_offset = 17
+    font = FONT_CACHE['arialbd.ttf', font_size]
+    text_canv = ImageDraw.Draw(draft_image)
+    # Opposition name
+    text_canv.text(
+        xy=(draft_image.size[0]//2 + spacing + first_pick_box_offset, spacing),
+        text=opp_name, font=font, fill='black')
+    text_canv.text(
+        xy=(450, spacing),
+        text="Arr", font=font)
+    # Main team name
+    if main_side == Team.DIRE:
+        text_canv.text(
+            xy = (first_pick_box_offset + spacing, spacing), text=main_name,
+            font=font, fill=(168, 56, 6))
+    elif main_side == Team.RADIANT:
+        text_canv.text(
+            xy = (first_pick_box_offset + spacing, spacing), text=main_name,
+            font=font, fill=(89, 131, 7)
+            )
+    if add_league_date:
+        lfont_size = 12
+        font = FONT_CACHE['arialbd.ttf', lfont_size]
+        replay_time: datetime = replay.endTimeUTC
+        ago = (ImportantTimes['Now'] - replay_time).days
+        date_str = replay_time.strftime(r"%b %d %Y")
+        replay_id = str(replay.replayID)
+        text = f"{replay_id}, {date_str}, {ago} days ago"
+        text_canv.text(
+            xy=(draft_image.size[0] - spacing, spacing),
+            text=text, anchor='ra', font=font, fill='black', stroke_width=0,
+        )
+    if is_scrim:
+        # Add a circle
+        x = (first_pick_box_offset + spacing)//2
+        y = (font_size + spacing) // 2 + spacing
+        rad = min(x, y)//2
+        text_canv.circle((x,y), radius=rad, fill='yellow', width=1, outline='black')
+    
+    return draft_image
+
+
 def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
                        add_team_name=True, add_league_date=True, caching=True,
                        add_lane_outcome=False, is_scrim=False,
@@ -470,7 +534,11 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
             file_name = f"{replay.replayID}_{team.name}.png"
         file_path = cache_dir / file_name
         if file_path.exists():
-            return Image.open(file_path)
+            if file_path not in image_cache:
+                image_cache[file_path] = Image.open(file_path)
+            pb_line = image_cache[file_path]
+            pb_line = add_line_text(replay, team, pb_line, is_scrim, add_league_date, spacing)
+            return pb_line
 
     t: TeamSelections
     for t in replay.teams:
@@ -514,40 +582,9 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         lane_outcome = None
     fig.clf()
 
-    # Opposition team name text, size concerns?
-    opp_box_width = 0
-    if add_team_name:
-        font_size = 17
-        height = team_line.size[1] + font_size + 2*spacing
-        font = FONT_CACHE['arialbd.ttf', font_size]
-        # Opposition name
-        text_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
-                               (255, 255, 255, 0))
-        text_canv = ImageDraw.Draw(text_image)
-        first_pick_box_offset = 17
-        (left, top, opp_box_width, right) = text_canv.textbbox(xy=(first_pick_box_offset + spacing, spacing),
-                                                      text=opp_name)
-        text_canv.text((first_pick_box_offset + spacing, spacing), text=opp_name,
-                       font=font, fill=(0, 0, 0))
-        # Faction text
-        faction_image = Image.new('RGB', (team_line.size[0], font_size + 2*spacing),
-                                  (255, 255, 255, 0))
-        faction_canv = ImageDraw.Draw(faction_image)
-        if is_scrim:
-            # Add a circle
-            x = (first_pick_box_offset + spacing)//2
-            y = (font_size + spacing) // 2
-            rad = min(x, y)//2
-            faction_canv.circle((x,y), radius=rad, fill='yellow', width=1, outline='black')
-        if main_team_faction == Team.DIRE:
-            faction_canv.text((first_pick_box_offset + spacing, spacing), text=main_name,
-                               font=font, fill=(168, 56, 6))
-        else:
-            faction_canv.text((first_pick_box_offset + spacing, spacing), text=main_name,
-                                font=font, fill=(89, 131, 7))
-    else:
-        height = team_line.size[1]
-
+    font_size = 17
+    text_height = font_size + 2*spacing
+    height = team_line.size[1] + text_height
     width = (draft_width := team_line.size[0] + spacer.size[0] + opposition_line.size[0])
     if lane_outcome is not None:
         width = max(width, lane_outcome.size[0])
@@ -560,55 +597,13 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
 
     out_box = Image.new('RGB', (width, height), (255, 255, 255, 0))
 
-    if add_team_name:
-        out_box.paste(faction_image, (x_draft_off, 0))
-        out_box.paste(team_line, (x_draft_off, text_image.size[1]))
-
-        out_box.paste(text_image, (team_line.size[0] + spacer.size[0] + x_draft_off, 0))
-        out_box.paste(opposition_line,
-                      (team_line.size[0] + spacer.size[0] + x_draft_off, text_image.size[1]))
-    else:
-        out_box.paste(team_line, (x_draft_off, 0), team_line)
-
-        out_box.paste(opposition_line,
-                    (team_line.size[0] + spacer.size[0] + x_draft_off, 0))
+    out_box.paste(team_line, (x_draft_off, text_height), team_line)
+    out_box.paste(
+        opposition_line, (team_line.size[0] + spacer.size[0] + x_draft_off, text_height)
+        )
 
     if lane_outcome is not None:
         out_box.paste(lane_outcome, (x_lanepos, y_lanepos), lane_outcome)
-
-    if add_league_date:
-        font_size = 12
-        font = FONT_CACHE['arialbd.ttf', font_size]
-        replay_time: datetime = replay.endTimeUTC
-        date_str = replay_time.strftime(r"%b %d %Y")
-        replay_id = str(replay.replayID)
-        text = replay_id + ", " + date_str
-        # if (lid := replay.league_ID) in league_id_map:
-        #     league_str = league_id_map[lid].title
-        #     text = league_str + ", " + date_str
-        # elif lid == 0:
-        #     league_str = ""
-        #     text = date_str
-        # else:
-        #     league_str = f"Id: {str(lid)}"
-        #     text = league_str + ", " + date_str
-
-        ld_image = Image.new('RGB', (team_line.size[0] - opp_box_width, 2*font_size + 2*spacing + 1),
-                             (255, 255, 255, 0))
-        ld_canv = ImageDraw.Draw(ld_image)
-
-        (left, top, right, bottom) = ld_canv.multiline_textbbox(xy=(0, spacing),
-                                                                text=text,
-                                                                spacing=1,
-                                                                align='right')
-        ld_canv.multiline_text(xy=(0, spacing),
-                               text=text,
-                               spacing=1,
-                               align='right',
-                               fill=(0, 0, 0))
-        ld_image = ld_image.crop((0, 0, right, bottom))
-
-        out_box.paste(ld_image, (out_box.size[0] - ld_image.size[0], 2))
 
     if caching:
         cache_dir = Path(StaticAnalysis.CONFIG['cache']["CACHE"])
@@ -619,6 +614,8 @@ def pickban_line_image(replay: Replay, team: TeamInfo, spacing=5,
         file_path = cache_dir / file_name
         assert file_path.exists() is False
         out_box.save(file_path)
+
+    out_box = add_line_text(replay, team, out_box, is_scrim, add_league_date, spacing)
 
     return out_box
 
