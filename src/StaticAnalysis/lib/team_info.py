@@ -121,6 +121,8 @@ def get_players(players: list['Player | int'], team_session: Session = None) -> 
 
 
 def get_player_teams(players: list['Player | int'], team_session: Session = None):
+    if team_session is None:
+        team_session = StaticAnalysis.team_session
     from StaticAnalysis.replays.Player import Player
     team_players = get_players(players, team_session)
     teams = []
