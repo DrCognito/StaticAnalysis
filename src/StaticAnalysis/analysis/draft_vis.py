@@ -133,7 +133,7 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox
             extra = hero_portrait_prefix.parent / "x_mark.png"
 
         if (extra, font_size) not in image_cache:
-            image_cache[(extra, font_size)] = Image.open(extra).convert('RGBA').resize(font_size)
+            image_cache[(extra, font_size)] = Image.open(extra).convert('RGBA').resize((font_size, font_size))
         extra_graphic = image_cache[(extra, font_size)]
 
         # extra_graphic = Image.open(extra).convert("RGBA")
