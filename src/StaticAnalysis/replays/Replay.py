@@ -215,7 +215,10 @@ class Replay(Base):
         player_teams = get_player_teams(players, team_session)
         names = Counter(t.name for t in player_teams if t is not None)
         # Accept the most common if it is the majority
-        name, c = names.most_common(1)[0] # (name, count)
+        try:
+            name, c = names.most_common(1)[0] # (name, count)
+        except IndexError:
+            c = 0
         if c >= 3:
             return name
         # See if there is a name in the replay
