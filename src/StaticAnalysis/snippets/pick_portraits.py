@@ -25,6 +25,7 @@ r_filter = Replay.endTimeUTC >= MAIN_TIME
 tundra = get_team(8291895)
 gladiators = get_team(8599101)
 spirit = get_team(7119388)
+falcons = get_team(9247354)
 r_query = spirit.get_replays(session).filter(r_filter)
 
 # player_stats = session.query(Player.hero, Player.win, Player.endGameTime).join(r_query.subquery()).filter(Player.steamID == bzm.player_id)
@@ -87,18 +88,18 @@ hero='npc_dota_hero_silencer'
 
 
 comp_df = get_team_dataframes_rquery(
-    spirit, r_query,
+    falcons, r_query,
     [Player.hero, Player.win, Player.endGameTime], session, _heroes_post_process)
-for p in spirit.players:
+for p in falcons.players:
     df = comp_df.get(p.name)
     if df is not None:
         add_extra_cols(p, df)
 update_df = get_team_dataframes(
-    spirit,
+    falcons,
     [Player.hero, Player.win, Player.endGameTime], post_process = _update_post_process)
 full_table = process_team_portraits(
-    spirit,
+    falcons,
     comp_df,
     update_df
 )
-full_table.save("spirit_table.png")
+full_table.save("falcons_table.png")
