@@ -90,7 +90,9 @@ def draw_firstpick_box(team: TeamSelections, size=(20, 80)):
 
 
 image_cache = {}
-def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox: bool = True):
+def hero_box_image_portrait(
+    hero: str, is_pick: bool, pick_num: int, add_textbox: bool = True,
+    add_order: bool = True):
     image: str = hero_portrait[hero]
     if not is_pick:
         image = image.replace(".png", "_grey.png")
@@ -154,28 +156,28 @@ def hero_box_image_portrait(hero: str, is_pick: bool, pick_num: int, add_textbox
                     extra_graphic)
 
     # Number box, has to be drawn to temp canvas
-    tint = (0, 0, 0, 200)
-    # transparent version of the tint color.
-    tmp = Image.new('RGBA', out_box.size, (0, 0, 0, 0))
-    # Create a drawing context for it.
-    draw = ImageDraw.Draw(tmp)
-    draw.rectangle((text_box_x + boarder - 1.5*font_size,
-                    boarder,
-                    text_box_x,
-                    boarder + 1.5*font_size),
-                   fill=tint)
-    str_num = str(pick_num)
-    if len(str_num) == 1:
-        # Adjust for single didget size manually
-        factor = 1.0
-    else:
-        factor = 1.5
+    if add_order:
+        tint = (0, 0, 0, 200)
+        # transparent version of the tint color.
+        tmp = Image.new('RGBA', out_box.size, (0, 0, 0, 0))
+        # Create a drawing context for it.
+        draw = ImageDraw.Draw(tmp)
+        draw.rectangle((text_box_x + boarder - 1.5*font_size,
+                        boarder,
+                        text_box_x,
+                        boarder + 1.5*font_size),
+                    fill=tint)
+        str_num = str(pick_num)
+        if len(str_num) == 1:
+            # Adjust for single didget size manually
+            factor = 1.0
+        else:
+            factor = 1.5
     # w, h = font.getsize(str(pick_num))
-
-    draw.text((text_box_x + boarder - factor*font_size, boarder + 1),
-                str_num,
-                fill='white', font=font)
-    out_box = Image.alpha_composite(out_box, tmp)
+        draw.text((text_box_x + boarder - factor*font_size, boarder + 1),
+                    str_num,
+                    fill='white', font=font)
+        out_box = Image.alpha_composite(out_box, tmp)
 
     return out_box
 
@@ -306,7 +308,9 @@ def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing
     prev_is_pick = team.draft[0].is_pick
     extra_space_pick = []
     extra_space_ban = []
-
+    add_order = True
+    if team.firstPick is None:
+        add_order = False
     height = 0
     for selection in team.draft:
         changed_phase = prev_is_pick != selection.is_pick
@@ -317,7 +321,8 @@ def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing
             hbox = hero_box_image_portrait(selection.hero,
                                            selection.is_pick,
                                            selection.order,
-                                           add_textbox=False)
+                                           add_textbox=False,
+                                           add_order=add_order)
             tot_width_pick += hbox.size[0]
             hero_boxes_pick.append(hbox)
             height = max(height, hbox.size[1] + spacing*2)
@@ -326,7 +331,8 @@ def process_team_portrait_dotabuff(replay: Replay, team: TeamSelections, spacing
             hbox = hero_box_image_portrait(selection.hero,
                                            selection.is_pick,
                                            selection.order,
-                                           add_textbox=False)
+                                           add_textbox=False,
+                                           add_order=add_order)
             tot_width_ban += hbox.size[0]
             hero_boxes_ban.append(hbox)
             height = max(height, hbox.size[1] + spacing*2)
