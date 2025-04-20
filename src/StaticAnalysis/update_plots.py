@@ -12,7 +12,7 @@ import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
 import matplotlib.pyplot as plt
 import pytz
-from fpdf import FPDF
+from fpdf import FPDF, Align
 from herotools.important_times import ImportantTimes, nice_time_names
 from herotools.HeroTools import FullNameMap
 from matplotlib import rcParams, ticker
@@ -138,6 +138,7 @@ arguments.add_argument("--runes", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--tormentors", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
+arguments.add_argument('--pubs_updated', action='store_true', default=False)
 arguments.add_argument('--scrim_time',
                        help='''Time cut for the scrims to be processed at.''')
 arguments.add_argument('--scrim_endtime',
@@ -1394,27 +1395,27 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
 
     # Pick priority
     pick_priority = metadata.get('pick_priority')
-    if False:
+    if pick_priority:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
     # Draft summary + pick tables
     plot_draft_summary = metadata.get('plot_draft_summary')
     plot_picktables = metadata.get('plot_picktables')
-    if False:
+    if plot_draft_summary and plot_picktables:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
         pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
-    # plot_hero_picks = metadata.get('plot_hero_picks')
-    # if plot_hero_picks:
-    #     pdf.add_page()
-    #     pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
+    plot_hero_picks = metadata.get('plot_hero_picks')
+    if plot_hero_picks:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_picks, keep_aspect_ratio=True, w=180)
     plot_hero_picks_portrait = metadata.get('hero_picks_portrait')
     if plot_hero_picks_portrait:
         pdf.add_page()
         pdf.image(
             Path(PLOT_BASE_PATH) / plot_hero_picks_portrait,
-            keep_aspect_ratio=True, w=180)
+            keep_aspect_ratio=True, y=5, w=180, h=290)
     # Hero Flex
     plot_hero_flex = metadata.get('plot_hero_flex')
     if plot_hero_flex:
@@ -1541,14 +1542,14 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     #     pdf.add_page()
     #     pdf.image(Path(PLOT_BASE_PATH) / pick_priority, keep_aspect_ratio=True, w=180)
     # # Draft summary + pick tables
-    plot_draft_summary = metadata.get('plot_draft_summary')
-    plot_picktables = metadata.get('plot_picktables')
-    if plot_draft_summary or plot_picktables:
-        pdf.add_page()
-        pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
-        pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
+    # plot_draft_summary = metadata.get('plot_draft_summary')
+    # plot_picktables = metadata.get('plot_picktables')
+    # if plot_draft_summary or plot_picktables:
+    #     pdf.add_page()
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_draft_summary, y=0, keep_aspect_ratio=True, w=180)
+    #     pdf.image(Path(PLOT_BASE_PATH) / plot_picktables, x=5, y=0.53*297, keep_aspect_ratio=True, w=200)
     # Hero Picks
-    plot_hero_picks = metadata.get('plot_hero_picks')
+    # plot_hero_picks = metadata.get('plot_hero_picks')
     # plot_hero_picks = metadata.get('plot_hero_picks')
     # if plot_hero_picks:
     #     pdf.add_page()
@@ -1558,12 +1559,12 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.add_page()
         pdf.image(
             Path(PLOT_BASE_PATH) / plot_hero_picks_portrait,
-            keep_aspect_ratio=True, w=180)
+            keep_aspect_ratio=True, y=5, w=180, h=290)
     # Hero Flex
-    # plot_hero_flex = metadata.get('plot_hero_flex')
-    # if plot_hero_flex:
-    #     pdf.add_page()
-    #     pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
+    plot_hero_flex = metadata.get('plot_hero_flex')
+    if plot_hero_flex:
+        pdf.add_page()
+        pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
     # Win Rate
     # plot_win_rate = metadata.get('plot_win_rate')
     # if plot_win_rate:
@@ -1668,13 +1669,16 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         # Still do pubs!
         pubs_updated = True
     # Disable pubs for forseeable future
-    pubs_updated = False
+    pubs_updated = args.pubs_updated
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
         print("No new updates for {}".format(team.name))
         if pubs_updated:
-            print("Pub data is newer, remaking pick plots and flex pubs.")
+            if metadata['name'] == 'Scrims' and r_query.count() == 0:
+                print("Skipping forced pubs for zero replay Scrims dataset.")
+                return metadata
+            print("Pub data update true, remaking hero picks.")
             # No need to do limit plots as they are without pubs.
-            metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
+            # metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
             # metadata = do_flex_pubs(team, metadata, time, end_time)
             metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
 
@@ -1694,7 +1698,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
             return metadata
 
-        return
+        return metadata
 
     metadata['replays_dire'] = list(dire_list)
     metadata['drafts_only_dire'] = list(dire_drafts)
