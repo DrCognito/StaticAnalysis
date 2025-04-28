@@ -4,6 +4,7 @@ import matplotlib.patheffects as PathEffects
 from PIL.Image import open as Image_open
 
 import StaticAnalysis
+from StaticAnalysis import LOG
 from StaticAnalysis.analysis.draft_vis import process_team_portrait
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
@@ -238,7 +239,7 @@ def make_summary(
         d_time = Deaths.game_time >= min_time
         r_time = Rune.game_time >= min_time
     else:
-        print(min_time, max_time)
+        LOG.error("Invalid min and max time %s %s" % min_time, max_time)
         raise ValueError("One or both of min_time and max_time must be specified.")
 
 
@@ -298,7 +299,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             order.append(player_list.index(name))
         except ValueError:
             name = player.steamID
-            print(f"[PreGame] Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
+            LOG.debug(f"[PreGame] Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
 
         names.append(name)
@@ -341,18 +342,18 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
                 colour = colour_cache[ward.player.steamID]
             except KeyError:
                 usable_time = t - replay.creepSpawn
-                print(f"KeyError retrieving {ward.player.steamID}")
-                print(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
-                print(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
-                print(f"Colour cache:{colour_cache}")
+                LOG.error(f"KeyError retrieving {ward.player.steamID}")
+                LOG.debug(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
+                LOG.debug(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
+                LOG.debug(f"Colour cache:{colour_cache}")
                 if ward.ward_type == WardType.OBSERVER:
-                    print("Ward is an obs ward!")
+                    LOG.warning("Ward is an obs ward!")
                     raise
                 continue
 
             axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
         else:
-            print(f"Failed to find player for ward {x1}, {y1} at {t}")
+            LOG.error(f"Failed to find player for ward {x1}, {y1} at {t}")
 
     data = build_ward_table(wards, session, team_session, team)
 
@@ -364,7 +365,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
         w = wards.filter(Ward.ward_type == w_type)
         data = build_ward_table(w, session, team_session, team)
         if data.empty and w_type == WardType.OBSERVER:
-            # print(f"Ward table for {w_type} empty!")
+            LOG.error(f"Ward table for {w_type} empty!")
             continue
         w_icon = w_icons[w_type]
         w_icon.thumbnail(ward_size)
@@ -525,18 +526,18 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
                 colour = colour_cache[ward.player.steamID]
             except KeyError:
                 usable_time = t - replay.creepSpawn
-                print(f"KeyError retrieving {ward.player.steamID}")
-                print(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
-                print(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
-                print(f"Colour cache:{colour_cache}")
+                LOG.error(f"KeyError retrieving {ward.player.steamID}")
+                LOG.debug(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
+                LOG.debug(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
+                LOG.debug(f"Colour cache:{colour_cache}")
                 if ward.ward_type == WardType.OBSERVER:
-                    print("Ward is an obs ward!")
+                    LOG.error("Ward is an obs ward!")
                     raise
                 continue
 
             axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
         else:
-            print(f"Failed to find player for ward {x1}, {y1} at {t}")
+            LOG.error(f"Failed to find player for ward {x1}, {y1} at {t}")
 
     data = build_ward_table(wards, session, team_session, team)
 
@@ -548,7 +549,7 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
         w = wards.filter(Ward.ward_type == w_type)
         data = build_ward_table(w, session, team_session, team)
         if data.empty and w_type == WardType.OBSERVER:
-            # print(f"Ward table for {w_type} empty!")
+            LOG.warning(f"Ward table for {w_type} empty!")
             continue
         w_icon = w_icons[w_type]
         w_icon.thumbnail(ward_size)

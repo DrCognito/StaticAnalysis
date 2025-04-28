@@ -7,6 +7,7 @@ from StaticAnalysis.analysis.visualisation import make_image_annotation_flex, x_
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.TeamSelections import PickBans
+from StaticAnalysis import LOG
 from matplotlib.ticker import MaxNLocator
 
 BAD_REPLAY_SENTINEL = object()
@@ -40,7 +41,7 @@ def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
                 hero_bag.remove(pb.hero)
             elif pb.order in pat:
                 if not pb.is_pick:
-                    print(f"Invalid pickban pattern for {replay.replayID} at {pb.order}")
+                    LOG.debug(f"Invalid pickban pattern for {replay.replayID} at {pb.order}")
                 found.append(pb.order)
                 df.loc[pb.hero, f"{t} Picked"] += 1
         # Remove oppositions picks and bans
@@ -54,8 +55,8 @@ def replay_prio_pick(replay: Replay, team: TeamInfo) -> DataFrame:
             df.loc[h, f"{t} Available"] += 1
 
         if len(found) != len(pat):
-            print(f"[PrioPicks] Invalid pickban pattern for {replay.replayID}")
-            # print(f"found: {found} vs wanted: {pat}")
+            LOG.debug(f"[PrioPicks] Invalid pickban pattern for {replay.replayID}")
+            LOG.debug(f"found: {found} vs wanted: {pat}")
             return BAD_REPLAY_SENTINEL
 
     return df

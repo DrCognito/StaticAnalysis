@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 import StaticAnalysis
+from StaticAnalysis import LOG
 from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
                                                process_team_portrait)
 from StaticAnalysis.analysis.visualisation import make_image_annotation2
@@ -58,7 +59,7 @@ def get_smoked_player_table_replay(
             order.append(player_list.index(name))
         except ValueError:
             name = convert_to_32_bit(player.steamID)
-            # print(f"[Smoke] Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
+            LOG.debug(f"[Smoke] Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
         names.append(name)
     # Sort names by position
@@ -352,11 +353,11 @@ def get_smoke_time_info(data: List[DataFrame], end_location_provider=smoke_end_l
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            # print(f"[Smoke] Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
+            LOG.debug(f"[Smoke] Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            print(f"Longest duration could not be fully found as it is beyond DF range (last) {nice_time}")
+            LOG.debug(f"Longest duration could not be fully found as it is beyond DF range (last) {nice_time}")
             break
         # Fill last values
         out_dict['Start time'].append(game_time)
@@ -404,11 +405,11 @@ def get_smoke_time_players(data: List[DataFrame], names: List[str]) -> DataFrame
         # Have to manually control things like nan as they can not be tested for equality
         if first_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            # print(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
+            LOG.debug(f"Smoke duration undefined as it is beyond DF range (first) @ {nice_time}")
             break
         if last_break is SMOKE_OUT_OF_RANGE:
             nice_time = seconds_to_nice(game_time)
-            # print(f"Longest duration could not be fully found as it is beyond DF range (last) @ {nice_time}")
+            LOG.debug(f"Longest duration could not be fully found as it is beyond DF range (last) @ {nice_time}")
             break
         # Fill last values
         out_dict['Start time'].append(game_time)

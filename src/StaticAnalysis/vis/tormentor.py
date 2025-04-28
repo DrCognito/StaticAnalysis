@@ -1,4 +1,4 @@
-from StaticAnalysis import CONFIG
+from StaticAnalysis import CONFIG, LOG
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Player import Player
@@ -47,7 +47,7 @@ def plot_tormentor_kill_players(
             order.append(player_list.index(name))
         except ValueError:
             name = player.steamID
-            print(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)})not found in {replay.replayID}")
+            LOG.debug(f"Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
 
         names.append(name)
@@ -94,18 +94,18 @@ def plot_tormentor_kill_players(
                     colour = colour_cache[ward.player.steamID]
                 except KeyError:
                     usable_time = t - replay.creepSpawn
-                    print(f"KeyError retrieving {ward.player.steamID}")
-                    print(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
-                    print(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
-                    print(f"Colour cache:{colour_cache}")
+                    LOG.error(f"KeyError retrieving {ward.player.steamID}")
+                    LOG.debug(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
+                    LOG.debug(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
+                    LOG.debug(f"Colour cache:{colour_cache}")
                     if ward.ward_type == WardType.OBSERVER:
-                        print("Ward is an obs ward!")
+                        LOG.error("Ward is an obs ward!")
                         raise
                     continue
 
                 axis.plot((x1, x2), (y1, y2), color=colour, linestyle='--')
             else:
-                print(f"Failed to find player for ward {x1}, {y1} at {t}")
+                LOG.error(f"Failed to find player for ward {x1}, {y1} at {t}")
 
     data = build_ward_table(wards, session, team_session, team)
 
@@ -117,7 +117,7 @@ def plot_tormentor_kill_players(
         w = wards.filter(Ward.ward_type == w_type)
         data = build_ward_table(w, session, team_session, team)
         if data.empty and w_type == WardType.OBSERVER:
-            # print(f"Ward table for {w_type} empty!")
+            LOG.debug(f"Ward table for {w_type} empty!")
             continue
         w_icon = w_icons[w_type]
         w_icon.thumbnail(ward_size)
