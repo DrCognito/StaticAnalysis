@@ -1,4 +1,3 @@
-import logging.handlers
 from sqlalchemy.orm import sessionmaker
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from StaticAnalysis.lib.team_info import InitTeamDB
@@ -6,17 +5,21 @@ from StaticAnalysis.replays.Replay import InitDB
 from pathlib import Path
 import tomllib
 from PIL import ImageFont
-import logging
+from loguru import logger as LOG
+from sys import stdout
+from tqdm import tqdm
 
-LOG = logging.getLogger(__name__)
-console_handler = logging.StreamHandler()
-console_handler.setLevel("INFO")
-file_handler = logging.handlers.RotatingFileHandler(
-    "app.log", mode="a", encoding="utf-8",
-    maxBytes=5000000, backupCount=0)
-file_handler.setLevel("DEBUG")
-LOG.addHandler(console_handler)
-LOG.addHandler(file_handler)
+LOG.remove()
+LOG.add(lambda msg: tqdm.write(msg, end=""), format="{time} {level} {message}", colorize=True, level='INFO')
+LOG.add("file_1.log", rotation="500 MB", level='DEBUG')
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel("INFO")
+# file_handler = logging.handlers.RotatingFileHandler(
+#     "app.log", mode="a", encoding="utf-8",
+#     maxBytes=5000000, backupCount=0)
+# file_handler.setLevel("DEBUG")
+# LOG.addHandler(console_handler)
+# LOG.addHandler(file_handler)
 
 config_path = Path('setup.toml')
 try:
