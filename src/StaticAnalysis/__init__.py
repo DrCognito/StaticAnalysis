@@ -6,17 +6,17 @@ from StaticAnalysis.replays.Replay import InitDB
 from pathlib import Path
 import tomllib
 from PIL import ImageFont
-from logging
+import logging
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 console_handler = logging.StreamHandler()
 console_handler.setLevel("INFO")
 file_handler = logging.handlers.RotatingFileHandler(
     "app.log", mode="a", encoding="utf-8",
     maxBytes=5000000, backupCount=0)
 file_handler.setLevel("DEBUG")
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
+LOG.addHandler(console_handler)
+LOG.addHandler(file_handler)
 
 config_path = Path('setup.toml')
 try:
