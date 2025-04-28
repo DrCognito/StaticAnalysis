@@ -23,8 +23,8 @@ try:
     with open(config_path, 'rb') as f:
         CONFIG = tomllib.load(f)
 except FileNotFoundError:
-    print("Failed to load toml config file.")
-    print(f"Expected path is {config_path.resolve()}")
+    LOG.error("Failed to load toml config file.")
+    LOG.error(f"Expected path is {config_path.resolve()}")
     exit
 
 DB_PATH = CONFIG['database']['PARSED_DB_PATH']
