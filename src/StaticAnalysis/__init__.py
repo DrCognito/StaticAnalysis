@@ -11,15 +11,7 @@ from tqdm import tqdm
 
 LOG.remove()
 LOG.add(lambda msg: tqdm.write(msg, end=""), format="{time} {level} {message}", colorize=True, level='INFO')
-LOG.add("file_1.log", rotation="500 MB", level='DEBUG')
-# console_handler = logging.StreamHandler()
-# console_handler.setLevel("INFO")
-# file_handler = logging.handlers.RotatingFileHandler(
-#     "app.log", mode="a", encoding="utf-8",
-#     maxBytes=5000000, backupCount=0)
-# file_handler.setLevel("DEBUG")
-# LOG.addHandler(console_handler)
-# LOG.addHandler(file_handler)
+LOG.add("app.log", rotation="5 MB", level='DEBUG')
 
 config_path = Path('setup.toml')
 try:
