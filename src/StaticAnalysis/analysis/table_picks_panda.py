@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from pandas import DataFrame
+from StaticAnalysis import LOG
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.replays.TeamSelections import TeamSelections, PickBans
 from StaticAnalysis import session, team_session
@@ -166,7 +167,7 @@ def draw_cell_image(heroes: Counter, table_setup: TableProperties, width_scale: 
             icon = HeroIconPrefix / convertName(h, HeroIDType.NPC_NAME,
                                                 HeroIDType.ICON_FILENAME)
         except (ValueError, KeyError):
-            print("Unable to find hero icon for (table): " + h)
+            LOG.error("Unable to find hero icon for (table): " + h)
             continue
         # Paste it in
         h_icon = Image.open(icon)
@@ -267,7 +268,7 @@ def verify_fix_order(df_in: DataFrame, order: list):
     if broken.empty:
         return
     r_ids = broken.loc[:, 'replayID'].unique()
-    print(f"Broken pick ban pattern in: {r_ids}")
+    LOG.debug(f"Broken pick ban pattern in: {r_ids}")
 
     for r in r_ids:
         section = df_in.loc[df_in['replayID'] == r, 'order']
@@ -310,7 +311,7 @@ def process_df(first_df: DataFrame, second_df: DataFrame,
             continue
         for icol in c.columns:
             if icol not in pick_df.columns:
-                print(f"Missing column for {icol} in pick table.")
+                LOG.debug(f"Missing column for {icol} in pick table.")
                 pick_df[icol] = [Counter() for _ in range(pick_df.shape[0])]
         out_df[c.name] = pick_df.loc[:, c.columns].sum(axis=1)
 
