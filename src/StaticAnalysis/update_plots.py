@@ -64,7 +64,7 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
 from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players
 import StaticAnalysis
-from StaticAnalysis import session, team_session, pub_session
+from StaticAnalysis import session, team_session, pub_session, LOG
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times, wisdom_rune_table, build_wisdom_rune_summary, plot_wisdom_table
 from math import isnan
 from typing import List
@@ -73,6 +73,8 @@ from StaticAnalysis.vis.flex_vis import plot_flexstack, combine_pub_comp, get_fl
 from propubs.libs import TIME_LABELS
 from propubs.libs.vis_comp import process_team_portraits
 from sqlalchemy.orm import Query
+from tqdm import tqdm, trange
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 import warnings
 warnings.filterwarnings(
@@ -82,10 +84,6 @@ warnings.filterwarnings(
 
 
 PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
-
-# TIME_CUT = [ImportantTimes['PreviousMonth'], ]
-TIME_CUT = {}
-END_TIME = []
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
 
@@ -152,7 +150,7 @@ def get_create_metadata(team: TeamInfo, dataset="default"):
     team_path = Path(PLOT_BASE_PATH) / team.name
     dataset_path: Path = team_path / dataset
     if not team_path.exists():
-        print("Adding new team {}.".format(team.name))
+        LOG.debug("Adding new team {}.".format(team.name))
         # Will make the whole tree up to path
         team_path.mkdir(parents=True, exist_ok=True)
         mkdir(team_path / 'wards')
@@ -245,33 +243,26 @@ def do_positioning(team: TeamInfo, r_query,
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
 
-    for pos in positions:
+    for pos in (posbar := tqdm(positions, position=3, leave=False)):
         if pos >= len(team.players):
-            print("Position {} is out of range for {}"
+            LOG.error("Position {} is out of range for {}"
                   .format(pos, team.name))
         p_name = team.players[pos].name
+        posbar.set_description(p_name)
         metadata['player_names'].append(p_name)
-        print("Processing {}({}).".format(p_name, team.name), end=" ")
         (pos_dire, pos_dire_limited),\
             (pos_radiant, pos_radiant_limited) = player_position(session, r_query, team,
                                                                  player_slot=pos,
                                                                  start=start, end=end,
                                                                  recent_limit=recent_limit)
         if update_dire:
-            # if pos_dire.count() == 0:
-            # if pos_dire.first() is None:
-            #     print("No data for {} on Dire.".format(team.players[pos].name))
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'dire' / (p_name + '.jpg')
-            # dire_ancient_filter = location_filter(dire_ancient_cords,
-            #                                       PlayerStatus)
-            # pos_dire = pos_dire.filter(dire_ancient_filter)
-            # pos_dire_limited = pos_dire_limited.filter(dire_ancient_filter)
 
             pos_dire_df = dataframe_xy(pos_dire, PlayerStatus, session)
             if pos_dire_df.empty:
-                print("No data for {} on Dire.".format(team.players[pos].name))
+                LOG.warning("No data for {} on Dire.".format(team.players[pos].name))
             vmin, vmax = get_binning_percentile_xy(pos_dire_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_dire_df,
@@ -280,7 +271,7 @@ def do_positioning(team: TeamInfo, r_query,
 
             pos_dire_limited_df = dataframe_xy(pos_dire_limited, PlayerStatus, session)
             if pos_dire_limited_df.empty and not pos_dire_df.empty:
-                print(f"No data for {team.players[pos].name} on Dire for limited ({recent_limit}).")
+                LOG.warning(f"No data for {team.players[pos].name} on Dire for limited ({recent_limit}).")
             vmin, vmax = get_binning_percentile_xy(pos_dire_limited_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_dire_limited_df,
@@ -296,19 +287,13 @@ def do_positioning(team: TeamInfo, r_query,
             fig.clf()
 
         if update_radiant:
-            # if pos_radiant.count() == 0:
-            # if pos_radiant.first() is None:
-            #     print("No data for {} on Radiant.".format(team.players[pos].name))
             fig, axes = plt.subplots(1, 2, figsize=(15, 10))
 
             output = team_path / 'radiant' / (p_name + '.jpg')
-            # axes = fig.subplots(1, 2)
-            # ancient_filter = location_filter(radiant_ancient_cords,
-            #                                  PlayerStatus)
-            # pos_radiant = pos_radiant.filter(ancient_filter)
+
             pos_radiant_df = dataframe_xy(pos_radiant, PlayerStatus, session)
             if pos_radiant_df.empty:
-                print("No data for {} on Radiant.".format(team.players[pos].name))
+                LOG.warning("No data for {} on Radiant.".format(team.players[pos].name))
             vmin, vmax = get_binning_percentile_xy(pos_radiant_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_radiant_df,
@@ -318,7 +303,7 @@ def do_positioning(team: TeamInfo, r_query,
             # pos_radiant_limited = pos_radiant_limited.filter(ancient_filter)
             pos_radiant_limited_df = dataframe_xy(pos_radiant_limited, PlayerStatus, session)
             if pos_radiant_limited_df.empty and not pos_radiant_df.empty:
-                print(f"No data for {team.players[pos].name} on Radiant for limited ({recent_limit}).")
+                LOG.warning(f"No data for {team.players[pos].name} on Radiant for limited ({recent_limit}).")
             vmin, vmax = get_binning_percentile_xy(pos_radiant_limited_df)
             vmin = max(1.0, vmin)
             axis = plot_object_position(pos_radiant_limited_df,
@@ -383,7 +368,7 @@ def do_draft(team: TeamInfo, metadata,
             try:
                 plot_path.unlink()
             except FileNotFoundError:
-                print(f"Plot not found! {plot_path}")
+                LOG.warning(f"Plot not found! {plot_path}")
 
     if update_dire:
         if per_side_limit is not None:
@@ -516,12 +501,12 @@ def do_wards_separate(team: TeamInfo, r_query,
                                            side=side,
                                            start=-2*60, end=20*60)
         except LookupError as e:
-            print(f"Failed to process slice! wards for. Error:\n{e}")
+            LOG.error(f"Failed to process slice! wards for. Error:\n{e}")
         wards = wards.filter(Ward.ward_type == WardType.OBSERVER)
 
         data = build_ward_table(wards, session, team_session, team)
         if data.empty:
-            # print(f"Ward table empty! {replay_id}: {side}")
+            LOG.debug(f"Ward table empty! {replay_id}: {side}")
             return None
         # fig, ax = plt.subplots(figsize=(10, 13))
         if fixed_width is None:
@@ -713,24 +698,7 @@ def do_smoke(team: TeamInfo, r_query, metadata: dict,
         axis.set_title(title)
 
     def _process_side(query, side: Team):
-        # data = dataframe_xy_time_smoke(query, Smoke, session)
         fig, axList = plt.subplots(1, 2, figsize=(12, 6))
-        # if data.empty:
-        #     print("No smoke data for {}.".format(side))
-        #     return
-
-        # (ax1, ax2) = axList
-        # try:
-        #     _plot_time_slice(time_pairs[0], time_titles[0], data, ax1)
-        #     _plot_time_slice(time_pairs[1], time_titles[1], data, ax2)
-        #     # _plot_time_slice(time_pairs[2], time_titles[2], data, ax3)
-        #     # _plot_time_slice(time_pairs[3], time_titles[3], data, ax4)
-        #     # _plot_time_slice(time_pairs[4], time_titles[4], data, ax5)
-        # except ValueError as e:
-        #     print(e)
-        #     print(data)
-        #     return
-        # ax6.axis('off')
 
         for tpair, title, axe in zip(time_pairs, time_titles, axList):
             df = get_smoke_table_replays(
@@ -1079,7 +1047,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     for r in r_query:
         rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
         if isnan(rune_max):
-            print(f"No wisdom rune results for {r.replayID}")
+            LOG.debug(f"No wisdom rune results for {r.replayID}")
             continue
         # Check to see if we should process this replay
         out_path = positions / f"{r.replayID}.png"
@@ -1100,7 +1068,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
         table['team'] = table['steamID'].map(r.player_side_map)
         side = r.get_side(team)
         if side is None:
-            print(f"[Rune] Could not determine side for {team.name} in {r.replayID}")
+            LOG.error(f"[Rune] Could not determine side for {team.name} in {r.replayID}")
         axis = fig.subplots()
         add_map(axis, extent=EXTENT)
         plot_player_routes(table, team, axis)
@@ -1157,7 +1125,7 @@ def do_statistics(team: TeamInfo, r_query, table=True):
     win_rate_df = win_rate_table(r_query, team)
     win_rate_df = win_rate_df.fillna(0)
     win_rate_df = win_rate_df.round(2)
-    # print(win_rate_df)
+
     main_str = [
         f"{win_rate_df.loc['Radiant']['All']:.0f} games Radiant ({win_rate_df.loc['Radiant']['All Percent']}% win rate)<br>",
         f"{win_rate_df.loc['Dire']['All']:.0f} games Dire ({win_rate_df.loc['Dire']['All Percent']}% win rate)<br>",
@@ -1215,10 +1183,10 @@ def do_tormentor_routes(
                 tormentor_spawns: List[TormentorSpawn] = list(r.tormentor_spawns)
                 tormentor_kills: List[TormentorKill] = list(r.tormentor_kills)
                 if not tormentor_kills:
-                    print(f"No tormentor kills registered for {r.replayID}")
+                    LOG.debug(f"No tormentor kills registered for {r.replayID}")
                     continue
                 if not tormentor_spawns:
-                    print(f"No tormentor spawns registered for {r.replayID}")
+                    LOG.debug(f"No tormentor spawns registered for {r.replayID}")
                     continue
                 tspawn = tormentor_spawns[0].game_time
                 tkill = tormentor_kills[0].game_time
@@ -1316,8 +1284,8 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
-        print(e)
-        print("Failed to retrieve replays for team {}".format(team.name))
+        LOG.error("Failed to retrieve replays for team {}".format(team.name), exc_info=True)
+        # LOG.error(e)
         quit()
 
     return do_statistics(team, r_query, table=False)
@@ -1610,7 +1578,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                  scrim_list=None):
 
     if len(team.players) != 5:
-        print(f"Team {team.name} ({team.team_id}) has incorrect number of players ({len(team.players)})! Skipping!")
+        LOG.error(f"Team {team.name} ({team.team_id}) has incorrect number of players ({len(team.players)})! Skipping!")
         return
 
     reprocess = args.reprocess
@@ -1632,8 +1600,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
-        print(e)
-        print("Failed to retrieve replays for team {}".format(team.name))
+        LOG.error("Failed to retrieve replays for team {}".format(team.name), exc_info=True)
+        LOG.error(e)
         quit()
 
     # start = t.process_time()
@@ -1646,7 +1614,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                      metadata.get('drafts_only_dire'), has_picks)
     new_draft_radiant, radiant_drafts = is_updated(session, r_query, team, Team.RADIANT,
                                      metadata.get('drafts_only_radiant'), has_picks)
-    # print(f"Processed replay info in {t.process_time() - start}")
+
     try:
         last_update_time = datetime.fromtimestamp(metadata['last_update_time'])
     except KeyError:
@@ -1664,37 +1632,40 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             new_draft_radiant = True
             new_draft_dire = True
         elif extra_replay_list is not None:
-            print(f"Could not reprocess scrims for {team.name}, no replays found in list:")
-            # print(replay_list)
+            LOG.info(f"Could not reprocess scrims for {team.name}, no replays found in list:")
         # Still do pubs!
         pubs_updated = True
     # Disable pubs for forseeable future
     pubs_updated = args.pubs_updated
     if not new_dire and not new_radiant and not new_draft_dire and not new_draft_radiant:
-        print("No new updates for {}".format(team.name))
+        LOG.info("No new updates for {}".format(team.name))
         if pubs_updated:
             if metadata['name'] == 'Scrims' and r_query.count() == 0:
-                print("Skipping forced pubs for zero replay Scrims dataset.")
+                LOG.debug("Skipping forced pubs for zero replay Scrims dataset.")
                 return metadata
-            print("Pub data update true, remaking hero picks.")
+            LOG.debug("Pub data update true, remaking hero picks.")
             # No need to do limit plots as they are without pubs.
             # metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
             # metadata = do_flex_pubs(team, metadata, time, end_time)
+            pub_bar = tqdm(total=3, position=2, desc='Portrait Picks', leave=False)
             metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
-
+            pub_bar.update()
+            pub_bar.set_description('Reports')
             metadata['last_update_time'] = datetime.timestamp(datetime.now())
             path = store_metadata(team, metadata)
-            print("Metadata file updated at {}".format(str(path)))
+            LOG.debug("Metadata file updated at {}".format(str(path)))
             plt.close('all')
 
-            print("Making PDF report.")
+            LOG.debug("Making PDF report.")
             report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
             mini_report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
             make_report(team, metadata, report_path)
+            pub_bar.update()
             make_mini_report(team, metadata, mini_report_path)
+            pub_bar.update()
 
             path = store_metadata(team, metadata)
-            print("Metadata file updated at {}".format(str(path)))
+            LOG.debug("Metadata file updated at {}".format(str(path)))
 
             return metadata
 
@@ -1704,6 +1675,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
     metadata['drafts_only_radiant'] = list(radiant_drafts)
+    LOG.debug(dire_list)
+    LOG.debug(radiant_list)
 
     metadata['last_update_time'] = datetime.timestamp(datetime.now())
     # A nice string for the time
@@ -1711,18 +1684,21 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     if end_time is not None:
         metadata['time_string'] += f" to {end_time.astimezone(pytz.timezone('CET')).strftime('%Y-%m-%d')}"
 
-    print("Process {}.".format(team.name))
+    LOG.debug("Process {}.".format(team.name))
+    tp_bar = tqdm(total=12, position=2, desc='Draft', leave=False)
     if args.draft:
         plt.close('all')
-        print("Processing drafts.", end=" ")
+        LOG.debug("Processing drafts.")
         start = t.process_time()
         metadata = do_draft(
             team, metadata, new_draft_dire, new_draft_radiant,
             r_filter, scrim_list=scrim_list)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Positioning')
     if args.positioning:
-        print("Processing positioning.", end=" ")
+        LOG.debug("Processing positioning.")
         start = t.process_time()
         metadata = do_positioning(team, r_query,
                                   -2*60, 10*60,
@@ -1730,56 +1706,71 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                   new_dire, new_radiant
                                   )
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Wards')
     if args.wards:
-        print("Processing wards.", end=" ")
+        LOG.debug("Processing wards.")
         start = t.process_time()
         metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Individual Wards')
     if args.wards_separate:
-        print("Processing individual ward replays.", end=" ")
+        LOG.debug("Processing individual ward replays.")
         start = t.process_time()
         metadata = do_wards_separate(team, r_query, metadata, new_dire,
                                     new_radiant)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Positioning')
     if args.pregame_positioning:
-        print("Processing pregame positioning.", end=" ")
+        LOG.debug("Processing pregame positioning.")
         start = t.process_time()
         metadata = do_pregame_routes(team, r_query, metadata, new_dire,
                                      new_radiant, cache=True)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Smoke')
     if args.smoke:
-        print("Processing smoke.", end=" ")
+        LOG.debug("Processing smoke.")
         start = t.process_time()
         metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Scans')
     if args.scans:
-        print("Processing scans.", end=" ")
+        LOG.debug("Processing scans.")
         start = t.process_time()
         metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Runes')
     if args.runes:
-        print("Processing runes", end=" ")
+        LOG.debug("Processing runes")
         start = t.process_time()
         metadata = do_runes(team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Tormentors')
     if args.tormentors:
-        print("Processing tormentors", end=" ")
+        LOG.debug("Processing tormentors")
         start = t.process_time()
         metadata = do_tormentor_routes(
             team, r_query, metadata, new_dire,
             new_radiant, cache=True)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
-    
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Summary')
     if args.summary:
-        print("Processing summary.", end=" ")
+        LOG.debug("Processing summary.")
         start = t.process_time()
         metadata = do_summary(team, r_query, metadata, r_filter)
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
@@ -1791,27 +1782,32 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
         metadata = do_stacks(team, r_query, metadata)
         plt.close('all')
-        print(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Priority Picks')
     if args.prioritypicks:
         if new_dire or new_radiant:
-            print("Processing priority picks.", end=" ")
+            LOG.debug("Processing priority picks.")
             start = t.process_time()
             metadata = do_priority_picks(team, r_query, metadata)
             plt.close('all')
-            print(f"Processed in {t.process_time() - start}")
+            LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Counters')
     if args.counters:
         if new_dire or new_radiant:
-            print("Processing counter picks.", end=" ")
+            LOG.debug("Processing counter picks.")
             start = t.process_time()
             metadata = do_counters(team, r_query, metadata)
-            print(f"Processed in {t.process_time() - start}")
-
-    print("Processing statistics.", end=" ")
+            LOG.debug(f"Processed in {t.process_time() - start}")
+    tp_bar.update()
+    tp_bar.set_description('Reports and misc')
+    LOG.debug("Processing statistics.")
     start = t.process_time()
     metadata['stat_win_rate'] = do_statistics(team, r_query)
-    print(f"Processed in {t.process_time() - start}")
+    LOG.debug(f"Processed in {t.process_time() - start}")
 
-    print("Making PDF report.")
+    LOG.debug("Making PDF report.")
     report_path = Path(PLOT_BASE_PATH) / team.name
     report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}.pdf"
     mini_report_path = Path(PLOT_BASE_PATH) / team.name / metadata['name'] / f"{team.name}_{metadata['name']}_mini.pdf"
@@ -1820,7 +1816,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     path = store_metadata(team, metadata)
 
-    print("Metadata file updated at {}".format(str(path)))
+    LOG.debug("Metadata file updated at {}".format(str(path)))
+    tp_bar.update()
 
     return metadata
 
@@ -1834,7 +1831,7 @@ def get_team(name):
 
 def do_datasummary(r_filter=None):
     # Wards
-    print("Processing ward win rates for dataset.")
+    LOG.debug("Processing ward win rates for dataset.")
     w_filter = (Ward.ward_type == WardType.OBSERVER,)
     if r_filter is not None:
         w_filter = (*w_filter, *r_filter)
@@ -1855,8 +1852,7 @@ def do_datasummary(r_filter=None):
         try:
             ward_frame = read_sql(team_wards.statement, session.bind)
         except SQLAlchemyError as e:
-            print(e)
-            print("Failed to retrieve replays for filter {}".format(w_filter))
+            LOG.error("Failed to retrieve replays for filter {}".format(w_filter), exc_info=True)
             quit()
 
         ward_frame['tbin'] = IntervalIndex(cut(ward_frame['game_time'],
@@ -1954,17 +1950,21 @@ def do_datasummary(r_filter=None):
     plt.close(fig)
 
 
-if __name__ == "__main__":
+
+def main(arguments):
     args = arguments.parse_args()
-    print(args)
+    LOG.debug(args)
+    # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
+    TIME_CUT = {}
+    END_TIME = []
 
     if args.use_time is not None:
         for time in args.use_time:
             try:
                 TIME_CUT[time] = ImportantTimes[time]
             except ValueError:
-                print("--use_time must correspond to a time in ImportantTimes:")
-                print(*(k for k in ImportantTimes.keys()))
+                LOG.info("--use_time must correspond to a time in ImportantTimes:")
+                LOG.info(*(k for k in ImportantTimes.keys()))
                 exit()
     if args.custom_time is not None:
         TIME_CUT = {"custom": datetime.utcfromtimestamp(args.custom_time),}
@@ -1972,23 +1972,23 @@ if __name__ == "__main__":
     if args.end_time is not None:
         for time in args.end_time:
             if time not in ImportantTimes:
-                print("--end_time must correspond to a time in ImportantTimes:")
-                print(*(k for k in ImportantTimes.keys()))
+                LOG.info("--end_time must correspond to a time in ImportantTimes:")
+                LOG.info(*(k for k in ImportantTimes.keys()))
                 exit()
             END_TIME.append(ImportantTimes[time])
     else:
         END_TIME = [None] * len(TIME_CUT)
 
     if len(END_TIME) != len(TIME_CUT):
-        print("If defined --end_time must have an end time for all --use_time and the custom time if set.")
-        print(f"{args.end_time}")
-        print(f"{args.use_time} + {args.custom_time}")
+        LOG.info("If defined --end_time must have an end time for all --use_time and the custom time if set.")
+        LOG.info(f"{args.end_time}")
+        LOG.info(f"{args.use_time} + {args.custom_time}")
         exit()
 
     if args.scrim_endtime is not None:
         if args.scrim_endtime not in ImportantTimes:
-            print("--end_time must correspond to a time in ImportantTimes:")
-            print(*(k for k in ImportantTimes.keys()))
+            LOG.info("--end_time must correspond to a time in ImportantTimes:")
+            LOG.info(*(k for k in ImportantTimes.keys()))
             exit()
     # if args.use_dataset:
     #     data_set_name = args.use_dataset
@@ -2028,18 +2028,20 @@ if __name__ == "__main__":
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)
     except IOError:
-        print(f"Failed to read scrim_list {scims_json}")
+        LOG.error(f"Failed to read scrim_list {scims_json}", exc_info=True)
+        raise
 
     if args.process_teams is not None:
-        for proc_team in args.process_teams:
+        for proc_team in (team_bar := tqdm(args.process_teams, position=0, desc='Team')):
             if args.extra_stackid is not None and len(args.process_teams) > 1:
-                print("Extra stack id only supported with one team.")
+                LOG.error("Extra stack id only supported with one team.")
                 exit()
             team = get_team(proc_team)
             if team is None:
-                print("Unable to find team {} in database!"
+                LOG.error("Unable to find team {} in database!"
                       .format(proc_team))
                 continue
+            team_bar.set_description(team.name)
 
             if args.statistic_time:
                 # Add scrims if we have them
@@ -2063,9 +2065,13 @@ if __name__ == "__main__":
                 scrim_list = list(team_scrims.keys())
             else:
                 scrim_list = None
-            for time, end in zip(TIME_CUT, END_TIME):
+
+            for time, end in (ttime_bar := tqdm(
+                list(zip(TIME_CUT, END_TIME)), position=1, desc='Team')):
                 data_set_name = time
                 metadata = get_create_metadata(team, data_set_name)
+                ttime_bar.set_description(f'Time {time}')
+                LOG.debug(f'{team.name} ({time})')
                 metadata['time_cut'] = TIME_CUT[time].timestamp()
 
                 process_team(team, metadata, TIME_CUT[time], args, end_time=end,
@@ -2075,13 +2081,15 @@ if __name__ == "__main__":
                 done_scrims = True
 
                 if team_scrims is None:
-                    print(f"No scrims for {team.name}. Skipping.")
+                    LOG.info(f"No scrims for {team.name}. Skipping.")
                 else:
                     end_time = None
                     if args.scrim_endtime is not None:
                         end_time = ImportantTimes[args.scrim_endtime]
                     metadata = get_create_metadata(team, "Scrims")
                     metadata['time_cut'] = ImportantTimes[args.scrim_time].timestamp()
+                    team_bar.set_description(f'{team.name} (Scrims @ {args.scrim_time})')
+                    LOG.debug(f'{team.name} (Scrims @ {args.scrim_time}')
                     process_team(team, metadata, ImportantTimes[args.scrim_time],
                                  args, end_time=end_time, extra_replay_list=scrim_list,
                                  scrim_list=scrim_list)
@@ -2094,3 +2102,7 @@ if __name__ == "__main__":
 
     # if not args.skip_datasummary:
     #     do_datasummary()
+
+if __name__ == "__main__":
+    with logging_redirect_tqdm():
+        main(arguments)
