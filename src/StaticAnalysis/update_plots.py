@@ -1675,8 +1675,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
     metadata['drafts_only_radiant'] = list(radiant_drafts)
-    LOG.debug(dire_list)
-    LOG.debug(radiant_list)
+    LOG.debug(f'Dire replays: {dire_list}')
+    LOG.debug(f'Radiant replays: {radiant_list}')
 
     metadata['last_update_time'] = datetime.timestamp(datetime.now())
     # A nice string for the time
@@ -2061,7 +2061,7 @@ def main(arguments):
                 scrim_list = None
 
             for time, end in (ttime_bar := tqdm(
-                list(zip(TIME_CUT, END_TIME)), position=1, desc='Team')):
+                list(zip(TIME_CUT, END_TIME)), position=1, desc='Time', leave=False)):
                 data_set_name = time
                 metadata = get_create_metadata(team, data_set_name)
                 ttime_bar.set_description(f'Time {time}')
