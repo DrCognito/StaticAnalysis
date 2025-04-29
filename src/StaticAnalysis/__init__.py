@@ -10,7 +10,7 @@ from sys import stdout
 from tqdm import tqdm
 
 LOG.remove()
-LOG.add(lambda msg: tqdm.write(msg, end=""), format="{time} {level} {message}", colorize=True, level='INFO')
+LOG.add(lambda msg: tqdm.write(msg, end=""), format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <level>{level}</level> {message}", colorize=True, level='INFO')
 LOG.add("app.log", rotation="5 MB", level='DEBUG')
 
 config_path = Path('setup.toml')
