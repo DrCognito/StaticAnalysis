@@ -1284,7 +1284,7 @@ def do_general_stats(team: TeamInfo, time: datetime, args: argparse.Namespace,
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
-        LOG.error("Failed to retrieve replays for team {}".format(team.name), exc_info=True)
+        LOG.opt(exception=True).error("Failed to retrieve replays for team {}".format(team.name))
         # LOG.error(e)
         quit()
 
@@ -1600,8 +1600,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
-        LOG.error("Failed to retrieve replays for team {}".format(team.name), exc_info=True)
-        LOG.error(e)
+        LOG.opt(exception=True).error("Failed to retrieve replays for team {}".format(team.name))
         quit()
 
     # start = t.process_time()
@@ -1846,7 +1845,7 @@ def do_datasummary(r_filter=None):
         try:
             ward_frame = read_sql(team_wards.statement, session.bind)
         except SQLAlchemyError as e:
-            LOG.error("Failed to retrieve replays for filter {}".format(w_filter), exc_info=True)
+            LOG.opt(exception=True).error("Failed to retrieve replays for filter {}".format(w_filter))
             quit()
 
         ward_frame['tbin'] = IntervalIndex(cut(ward_frame['game_time'],
@@ -2022,7 +2021,7 @@ def main(arguments):
         with open(scims_json) as file:
             SCRIM_REPLAY_DICT = json.load(file)
     except IOError:
-        LOG.error(f"Failed to read scrim_list {scims_json}", exc_info=True)
+        LOG.opt(exception=True).error(f"Failed to read scrim_list {scims_json}")
         raise
 
     if args.process_teams is not None:
