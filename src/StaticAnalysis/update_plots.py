@@ -1688,17 +1688,15 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     tp_bar = tqdm(total=12, position=2, desc='Draft', leave=False)
     if args.draft:
         plt.close('all')
-        LOG.debug("Processing drafts.")
         start = t.process_time()
         metadata = do_draft(
             team, metadata, new_draft_dire, new_draft_radiant,
             r_filter, scrim_list=scrim_list)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed drafts in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Positioning')
     if args.positioning:
-        LOG.debug("Processing positioning.")
         start = t.process_time()
         metadata = do_positioning(team, r_query,
                                   -2*60, 10*60,
@@ -1706,15 +1704,14 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                   new_dire, new_radiant
                                   )
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed positioning in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Wards')
     if args.wards:
-        LOG.debug("Processing wards.")
         start = t.process_time()
         metadata = do_wards(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed wards in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Individual Wards')
     if args.wards_separate:
@@ -1727,85 +1724,82 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     tp_bar.update()
     tp_bar.set_description('Positioning')
     if args.pregame_positioning:
-        LOG.debug("Processing pregame positioning.")
         start = t.process_time()
         metadata = do_pregame_routes(team, r_query, metadata, new_dire,
                                      new_radiant, cache=True)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed positioning in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Smoke')
     if args.smoke:
-        LOG.debug("Processing smoke.")
         start = t.process_time()
         metadata = do_smoke(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed smoke in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Scans')
     if args.scans:
-        LOG.debug("Processing scans.")
         start = t.process_time()
         metadata = do_scans(team, r_query, metadata, new_dire, new_radiant)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed scans in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Runes')
     if args.runes:
-        LOG.debug("Processing runes")
         start = t.process_time()
         metadata = do_runes(team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed runes in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Tormentors')
     if args.tormentors:
-        LOG.debug("Processing tormentors")
         start = t.process_time()
         metadata = do_tormentor_routes(
             team, r_query, metadata, new_dire,
             new_radiant, cache=True)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed tormentors in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Summary')
     if args.summary:
-        LOG.debug("Processing summary.")
         start = t.process_time()
         metadata = do_summary(team, r_query, metadata, r_filter)
         metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
+        LOG.debug(f"Processed summary in {t.process_time() - start}")
+        start = t.process_time()
         metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
         metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
                                    mintime=stat_time, maxtime=end_time)
+        LOG.debug(f"Processed player picks in {t.process_time() - start}")
         # metadata = do_flex_pubs(team, metadata, time, end_time)
+        start = t.process_time()
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
+        LOG.debug(f"Processed portrait picks in {t.process_time() - start}")
+        start = t.process_time()
         metadata = do_stacks(team, r_query, metadata)
+        LOG.debug(f"Processed stacks in {t.process_time() - start}")
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Priority Picks')
     if args.prioritypicks:
         if new_dire or new_radiant:
-            LOG.debug("Processing priority picks.")
             start = t.process_time()
             metadata = do_priority_picks(team, r_query, metadata)
             plt.close('all')
-            LOG.debug(f"Processed in {t.process_time() - start}")
+            LOG.debug(f"Processed priority picks in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Counters')
     if args.counters:
         if new_dire or new_radiant:
-            LOG.debug("Processing counter picks.")
             start = t.process_time()
             metadata = do_counters(team, r_query, metadata)
-            LOG.debug(f"Processed in {t.process_time() - start}")
+            LOG.debug(f"Processed counter picks in {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Reports and misc')
-    LOG.debug("Processing statistics.")
     start = t.process_time()
     metadata['stat_win_rate'] = do_statistics(team, r_query)
-    LOG.debug(f"Processed in {t.process_time() - start}")
+    LOG.debug(f"Processed statistics in {t.process_time() - start}")
 
     LOG.debug("Making PDF report.")
     report_path = Path(PLOT_BASE_PATH) / team.name
