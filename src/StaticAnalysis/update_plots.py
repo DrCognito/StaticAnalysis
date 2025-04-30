@@ -10,6 +10,8 @@ from pathlib import Path
 
 import matplotlib.image as mpimg
 import matplotlib.patheffects as PathEffects
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF, Align
@@ -75,6 +77,7 @@ from propubs.libs.vis_comp import process_team_portraits
 from sqlalchemy.orm import Query
 from tqdm import tqdm, trange
 from tqdm.contrib.logging import logging_redirect_tqdm
+import concurrent.futures
 
 import warnings
 warnings.filterwarnings(
@@ -1035,55 +1038,66 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
 
-    fig = plt.figure()
 
     # This MUST be cast to into or sqlalchemy can not filter with it and effectively imposes no limit!
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     rune_table = wisdom_rune_table(r_query, max_time=13*60)
     rune_table = build_wisdom_rune_summary(rune_table, team_session)
 
-    fig.set_size_inches(8.27, 8.27)
-    r: Replay
-    for r in r_query:
-        rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
-        if isnan(rune_max):
-            LOG.debug(f"No wisdom rune results for {r.replayID}")
-            continue
-        # Check to see if we should process this replay
-        out_path = positions / f"{r.replayID}.png"
-        if out_path.exists() and not reprocess:
-            continue
-        # Get the table of positions
-        rune_min = int(rune_times[rune_times["replayID"] == r.replayID]["game_time"].min()) - 30
-        rune_max = int(rune_max)
-        table = player_position_replay_id(
-            session, r.replayID,
-            start=rune_min, end=rune_max
-            )
-        # team_id_map = lambda x: r.get_team_id_player(x['steamID'])
-        if table.empty:
-            # No position data
-            continue
-        table['team_id'] = table['steamID'].map(r.get_team_id_player)
-        table['team'] = table['steamID'].map(r.player_side_map)
-        side = r.get_side(team)
-        if side is None:
-            LOG.error(f"[Rune] Could not determine side for {team.name} in {r.replayID}")
-        axis = fig.subplots()
-        add_map(axis, extent=EXTENT)
-        plot_player_routes(table, team, axis)
-        
-        df = rune_table.loc[rune_table.loc[:,'replayID'] == r.replayID].drop('replayID', axis=1)
-        plot_wisdom_table(df, axis)
-
+    def _plot_clean(fig, path):
         fig.tight_layout()
-        fig.savefig(out_path)
+        fig.savefig(path)
         fig.clf()
-    
-        if side == Team.DIRE:
-            (metadata.get("rune_routes_7m_dire", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
-        elif side == Team.RADIANT:
-            (metadata.get("rune_routes_7m_radiant", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+        plt.close(fig)
+        LOG.debug(f"Executor finished.")
+
+    r: Replay
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for r in r_query:
+            # fig = plt.figure(figsize=(8.27, 8.27))
+            fig, axis = plt.subplots()
+            fig.set_size_inches(8.27, 8.27)
+            rune_max = rune_times[rune_times['replayID'] == r.replayID]['game_time'].max()
+            if isnan(rune_max):
+                LOG.debug(f"No wisdom rune results for {r.replayID}")
+                continue
+            # Check to see if we should process this replay
+            out_path = positions / f"{r.replayID}.png"
+            if out_path.exists() and not reprocess:
+                continue
+            # Get the table of positions
+            rune_min = int(rune_times[rune_times["replayID"] == r.replayID]["game_time"].min()) - 30
+            rune_max = int(rune_max)
+            table = player_position_replay_id(
+                session, r.replayID,
+                start=rune_min, end=rune_max
+                )
+            # team_id_map = lambda x: r.get_team_id_player(x['steamID'])
+            if table.empty:
+                # No position data
+                continue
+            table['team_id'] = table['steamID'].map(r.get_team_id_player)
+            table['team'] = table['steamID'].map(r.player_side_map)
+            side = r.get_side(team)
+            if side is None:
+                LOG.error(f"[Rune] Could not determine side for {team.name} in {r.replayID}")
+            # axis = fig.subplots()
+            add_map(axis, extent=EXTENT)
+            plot_player_routes(table, team, axis)
+            
+            df = rune_table.loc[rune_table.loc[:,'replayID'] == r.replayID].drop('replayID', axis=1)
+            plot_wisdom_table(df, axis)
+            LOG.debug(f"Submitting rune plot to executor for {r.replayID} total figures: {len(plt.get_fignums())}")
+            executor.submit(_plot_clean, (fig, out_path))
+            # fig.tight_layout()
+            # fig.savefig(out_path)
+            # fig.clf()
+        
+            if side == Team.DIRE:
+                (metadata.get("rune_routes_7m_dire", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+            elif side == Team.RADIANT:
+                (metadata.get("rune_routes_7m_radiant", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+    LOG.debug(f"Remaining figures: {len(plt.get_fignums())}")
 
     return metadata
 
@@ -1746,7 +1760,11 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     tp_bar.set_description('Runes')
     if args.runes:
         start = t.process_time()
-        metadata = do_runes(team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess)
+        # Needed due to parallel plotting
+        with matplotlib.rc_context({'figure.max_open_warning': 0}):
+            metadata = do_runes(
+                team, r_query, metadata, new_dire, new_radiant, reprocess=args.reprocess
+                )
         plt.close('all')
         LOG.debug(f"Processed runes in {t.process_time() - start}")
     tp_bar.update()
@@ -1945,6 +1963,7 @@ def do_datasummary(r_filter=None):
 
 
 def main(arguments):
+    plt.ioff()
     args = arguments.parse_args()
     LOG.debug(args)
     # TIME_CUT = [ImportantTimes['PreviousMonth'], ]
