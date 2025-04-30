@@ -1025,6 +1025,15 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     return metadata
 
 
+def exector_plot_fig_path(fig, path):
+    fig.tight_layout()
+    fig.savefig(path)
+    fig.clf()
+    plt.close(fig)
+    LOG.debug(f"Executor finished {path}.")
+    return
+
+
 def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radiant: bool,
             reprocess: bool = False) -> dict:
     if not new_dire and not new_radiant:
@@ -1044,15 +1053,9 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     rune_table = wisdom_rune_table(r_query, max_time=13*60)
     rune_table = build_wisdom_rune_summary(rune_table, team_session)
 
-    def _plot_clean(fig, path):
-        fig.tight_layout()
-        fig.savefig(path)
-        fig.clf()
-        plt.close(fig)
-        LOG.debug(f"Executor finished.")
 
     r: Replay
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
         for r in r_query:
             # fig = plt.figure(figsize=(8.27, 8.27))
             fig, axis = plt.subplots()
@@ -1088,7 +1091,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             df = rune_table.loc[rune_table.loc[:,'replayID'] == r.replayID].drop('replayID', axis=1)
             plot_wisdom_table(df, axis)
             LOG.debug(f"Submitting rune plot to executor for {r.replayID} total figures: {len(plt.get_fignums())}")
-            executor.submit(_plot_clean, (fig, out_path))
+            executor.submit(exector_plot_fig_path, fig, out_path)
             # fig.tight_layout()
             # fig.savefig(out_path)
             # fig.clf()
