@@ -1,3 +1,4 @@
+import logging.handlers
 from sqlalchemy.orm import sessionmaker
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from StaticAnalysis.lib.team_info import InitTeamDB
@@ -9,9 +10,38 @@ from loguru import logger as LOG
 from sys import stdout
 from tqdm import tqdm
 
+import logging
+import inspect
+class InterceptHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        # Get corresponding Loguru level if it exists.
+        try:
+            level: str | int = LOG.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message.
+        frame, depth = inspect.currentframe(), 0
+        while frame:
+            filename = frame.f_code.co_filename
+            is_logging = filename == logging.__file__
+            is_frozen = "importlib" in filename and "_bootstrap" in filename
+            if depth > 0 and not (is_logging or is_frozen):
+                break
+            frame = frame.f_back
+            depth += 1
+
+        LOG.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+# logging.basicConfig()
+# sql_log = logging.getLogger("sqlalchemy.engine")
+# sql_log.setLevel(logging.INFO)
+# sql_log.propagate = False
+# sql_log.addHandler(InterceptHandler())
+
 LOG.remove()
 LOG.add(lambda msg: tqdm.write(msg, end=""), format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <level>{level}</level> {message}", colorize=True, level='INFO')
-LOG.add("app.log", rotation="5 MB", level='DEBUG')
+LOG.add("app.log", rotation="5 MB", level='DEBUG', retention=0)
 
 config_path = Path('setup.toml')
 try:
