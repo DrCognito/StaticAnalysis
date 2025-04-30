@@ -1090,7 +1090,7 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             
             df = rune_table.loc[rune_table.loc[:,'replayID'] == r.replayID].drop('replayID', axis=1)
             plot_wisdom_table(df, axis)
-            LOG.debug(f"Submitting rune plot to executor for {r.replayID} total figures: {len(plt.get_fignums())}")
+            LOG.debug(f"Submitting rune plot to executor for {r.replayID}")
             executor.submit(exector_plot_fig_path, fig, out_path)
             # fig.tight_layout()
             # fig.savefig(out_path)
@@ -1100,7 +1100,6 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
                 (metadata.get("rune_routes_7m_dire", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
             elif side == Team.RADIANT:
                 (metadata.get("rune_routes_7m_radiant", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
-    LOG.debug(f"Remaining figures: {len(plt.get_fignums())}")
 
     return metadata
 
