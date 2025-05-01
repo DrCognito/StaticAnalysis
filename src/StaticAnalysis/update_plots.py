@@ -1097,9 +1097,13 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             # fig.clf()
         
             if side == Team.DIRE:
-                (metadata.get("rune_routes_7m_dire", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+                if "rune_routes_7m_dire" not in metadata:
+                    metadata['rune_routes_7m_dire'] = []
+                metadata['rune_routes_7m_dire'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
             elif side == Team.RADIANT:
-                (metadata.get("rune_routes_7m_radiant", [])).append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+                if "rune_routes_7m_radiant" not in metadata:
+                    metadata['rune_routes_7m_radiant'] = []
+                metadata['rune_routes_7m_radiant'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
 
     return metadata
 
