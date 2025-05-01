@@ -509,7 +509,7 @@ def do_wards_separate(team: TeamInfo, r_query,
 
         data = build_ward_table(wards, session, team_session, team)
         if data.empty:
-            LOG.debug(f"Ward table empty! {replay_id}: {side}")
+            LOG.warning(f"Ward table empty! {replay_id}: {side}")
             return None
         # fig, ax = plt.subplots(figsize=(10, 13))
         if fixed_width is None:
