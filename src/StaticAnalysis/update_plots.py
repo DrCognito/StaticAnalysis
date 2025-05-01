@@ -932,95 +932,114 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
-    fig = plt.figure()
-    draft_summary_df = draft_summary(session, r_query, team, limit=limit)
-    fig, extra = plot_draft_summary(*draft_summary_df, fig)
-    output = team_path / f'draft_summary{postfix}.png'
-    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    fig.subplots_adjust(wspace=0.1, hspace=0.25)
-    fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_draft_summary{postfix}'] = relpath
-
-    def _is_flex(*args):
-        pass_count = 0
-        for p in args:
-            if p >= 1:
-                pass_count += 1
-        return pass_count
-    flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
-    flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
-    flex_picks = flex_picks.query('Counts > 1')
-    with ChainedAssignment():
-        flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
-        flex_picks['Name'] = flex_picks.index.map(FullNameMap)
-    # flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
-    flex_picks = flex_picks.sort_values(['Name'], ascending=False)
-    fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
-    output = team_path / f'hero_flex{postfix}.png'
-    fig.savefig(output, bbox_extra_artists=extra,
-                bbox_inches='tight', dpi=150)
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_hero_flex{postfix}'] = relpath
-
-    pick_pair_df = pair_rate(session, r_query, team, limit=limit)
-    if pick_pair_df:
-        fig, extra = plot_pick_pairs(pick_pair_df, fig)
-        output = team_path / f'pick_pairs{postfix}.png'
-        fig.tight_layout(h_pad=1.5)
-        fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-        fig.clf()
+    with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+        fig = plt.figure()
+        draft_summary_df = draft_summary(session, r_query, team, limit=limit)
+        fig, extra = plot_draft_summary(*draft_summary_df, fig)
+        output = team_path / f'draft_summary{postfix}.png'
+        # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+        fig.subplots_adjust(wspace=0.1, hspace=0.25)
+        thread = executor.submit(
+            fig.savefig, output, bbox_extra_artists=extra, bbox_inches='tight')
+        # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+        # fig.clf()
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[f'plot_pair_picks{postfix}'] = relpath
+        metadata[f'plot_draft_summary{postfix}'] = relpath
 
-    if not draft_summary_df[0].empty:
-        fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
-        output = team_path / f'pick_context{postfix}.png'
+        def _is_flex(*args):
+            pass_count = 0
+            for p in args:
+                if p >= 1:
+                    pass_count += 1
+            return pass_count
+        flex_picks = player_heroes(session, team, r_filt=r_filter, limit=limit, nHeroes=200)
+        flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
+        flex_picks = flex_picks.query('Counts > 1')
+        with ChainedAssignment():
+            flex_picks['std'] = flex_picks.iloc[:, 0:-1].std(axis=1)
+            flex_picks['Name'] = flex_picks.index.map(FullNameMap)
+        # flex_picks = flex_picks.sort_values(['Counts', 'std'], ascending=True)
+        flex_picks = flex_picks.sort_values(['Name'], ascending=False)
+        fig = plt.figure()
+        fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
+        output = team_path / f'hero_flex{postfix}.png'
+        # fig.savefig(output, bbox_extra_artists=extra,
+        #             bbox_inches='tight', dpi=150)
+        # fig.clf()
+        thread = executor.submit(fig.savefig,
+            output, bbox_extra_artists=extra,
+            bbox_inches='tight', dpi=150)
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata[f'plot_hero_flex{postfix}'] = relpath
+
+        pick_pair_df = pair_rate(session, r_query, team, limit=limit)
+        if pick_pair_df:
+            fig = plt.figure()
+            fig, extra = plot_pick_pairs(pick_pair_df, fig)
+            output = team_path / f'pick_pairs{postfix}.png'
+            fig.tight_layout(h_pad=1.5)
+            # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+            # fig.clf()
+            thread = executor.submit(fig.savefig,
+                output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata[f'plot_pair_picks{postfix}'] = relpath
+
+        if not draft_summary_df[0].empty:
+            fig = plt.figure()
+            fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
+            output = team_path / f'pick_context{postfix}.png'
+            # fig.tight_layout(h_pad=3.0)
+            # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
+            # fig.clf()
+            thread = executor.submit(fig.savefig,
+                output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata[f'plot_pick_context{postfix}'] = relpath
+
+        hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
+        fig = plt.figure()
+        fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
+        output = team_path / f'hero_win_rate{postfix}.png'
         # fig.tight_layout(h_pad=3.0)
-        fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=800)
-        fig.clf()
+        # fig.savefig(output, bbox_inches='tight', dpi=300)
+        # fig.clf()
+        thread = executor.submit(fig.savefig,
+                output, bbox_inches='tight', dpi=300)
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[f'plot_pick_context{postfix}'] = relpath
+        metadata[f'plot_win_rate{postfix}'] = relpath
 
-    hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
-    fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
-    output = team_path / f'hero_win_rate{postfix}.png'
-    # fig.tight_layout(h_pad=3.0)
-    fig.savefig(output, bbox_inches='tight', dpi=300)
-    fig.clf()
-    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    metadata[f'plot_win_rate{postfix}'] = relpath
+        rune_df = get_rune_control(r_query, team, limit=limit)
+        # One line
+        one_line = len(rune_df) == 1
+        # All that line is 0
+        zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0, 0, 0, 0, 0]).to_list())
+        if not one_line and not zeroed:
+            fig = plt.figure()
+            fig, _ = plot_runes(rune_df, team, fig)
+            output = team_path / f'rune_control{postfix}.png'
+            fig.tight_layout()
+            fig.subplots_adjust(hspace=0.35)
+            # fig.savefig(output, bbox_inches='tight', dpi=200)
+            # fig.clf()
+            thread = executor.submit(fig.savefig,
+                output, bbox_inches='tight', dpi=200)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata[f'plot_rune_control{postfix}'] = relpath
 
-    rune_df = get_rune_control(r_query, team, limit=limit)
-    # One line
-    one_line = len(rune_df) == 1
-    # All that line is 0
-    zeroed = all((rune_df.iloc[0] == [0, 0, 0, 0, 0, 0, 0, 0]).to_list())
-    if not one_line and not zeroed:
-        fig, _ = plot_runes(rune_df, team, fig)
-        output = team_path / f'rune_control{postfix}.png'
-        fig.tight_layout()
-        fig.subplots_adjust(hspace=0.35)
-        fig.savefig(output, bbox_inches='tight', dpi=200)
-        fig.clf()
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[f'plot_rune_control{postfix}'] = relpath
+        # if limit is not None:
+        #     output = team_path / "pick_tables.png"
+        #     table_image = create_tables(r_query, session, team)
+        #     table_image.save(output)
+        #     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        #     metadata['plot_picktables'] = relpath
 
-    # if limit is not None:
-    #     output = team_path / "pick_tables.png"
-    #     table_image = create_tables(r_query, session, team)
-    #     table_image.save(output)
-    #     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-    #     metadata['plot_picktables'] = relpath
-
-    if limit is not None:
-        output = team_path / "pick_tables.png"
-        table_image = create_tables(r_query, team)
-        table_image.save(output)
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata['plot_picktables'] = relpath
+        if limit is not None:
+            output = team_path / "pick_tables.png"
+            table_image = create_tables(r_query, team)
+            table_image.save(output)
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata['plot_picktables'] = relpath
 
     return metadata
 
