@@ -1735,7 +1735,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_wards_separate(team, r_query, metadata, new_dire,
                                     new_radiant)
         plt.close('all')
-        LOG.debug(f"Processed in {t.process_time() - start}")
+        LOG.debug(f"Processed individual wards {t.process_time() - start}")
     tp_bar.update()
     tp_bar.set_description('Positioning')
     if args.pregame_positioning:
