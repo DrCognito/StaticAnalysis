@@ -89,6 +89,9 @@ warnings.filterwarnings(
 PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
+# Make sure were also logging libraries
+LOG.enable('herotools')
+LOG.enable('propubs')
 
 #region argparse
 arguments = ArgumentParser()
@@ -1047,10 +1050,14 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
 
-
     # This MUST be cast to into or sqlalchemy can not filter with it and effectively imposes no limit!
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     rune_table = wisdom_rune_table(r_query, max_time=13*60)
+    if rune_table.empty:
+        LOG.warning(f"No rune data for {team.name}")
+        metadata['rune_routes_7m_dire'] = []
+        metadata['rune_routes_7m_radiant'] = []
+        return metadata
     rune_table = build_wisdom_rune_summary(rune_table, team_session)
 
 
@@ -1689,7 +1696,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             return metadata
 
         return metadata
-
+    LOG.info("Processing updates for {} @ {}".format(team.name, time))
     metadata['replays_dire'] = list(dire_list)
     metadata['drafts_only_dire'] = list(dire_drafts)
     metadata['replays_radiant'] = list(radiant_list)
