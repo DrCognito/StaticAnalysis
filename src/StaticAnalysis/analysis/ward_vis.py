@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 import StaticAnalysis
+from StaticAnalysis import LOG
 from StaticAnalysis.analysis.draft_vis import (add_draft_axes,
                                                process_team_portrait)
 from StaticAnalysis.analysis.visualisation import make_image_annotation2
@@ -370,7 +371,7 @@ def plot_drafts_above(r_query: Query, ax_in: Axes,
     extra_ents = []
     for t in replay.teams:
         if len(t.draft) == 0:
-            print(f"No draft for {t.team} in {replay.replayID}")
+            LOG.WARNING(f"No draft for {t.team} in {replay.replayID}")
             continue
         if t.team == Team.RADIANT:
             rdraft = process_team_portrait(replay, t)
