@@ -326,7 +326,7 @@ def plot_flex_picks(data: DataFrame, fig: Figure):
     axe2.set_xbound(axe.get_xbound())
     axe2.xaxis.set_major_locator(MaxNLocator(integer=True))
     # axe2.xaxis.set_major_formatter(FormatStrFormatter('%i'))
-    fig.subplots_adjust(left=0.2)
+    # fig.subplots_adjust(left=0.2)
 
     return fig, extra_artists
 
