@@ -164,7 +164,7 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             metadata[f'plot_rune_control{postfix}'] = relpath
             executor.submit(rune_control, team, rune_df, output)
 
-        if limit is not None:
+        if limit is None:
             output = team_path / "pick_tables.png"
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_picktables'] = relpath
