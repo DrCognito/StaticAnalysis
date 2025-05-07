@@ -3,7 +3,7 @@ from datetime import datetime
 
 from herotools.HeroTools import HeroIDType, convertName
 from sqlalchemy import (BigInteger, Column, DateTime, Integer, create_engine,
-                        or_)
+                        or_, Index)
 from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.types import Enum
 
@@ -227,6 +227,7 @@ class Replay(Base):
 
         return "Unknown"
 
+replay_time_index = Index("idx_replay_endtime", Replay.replayID, Replay.endTimeUTC)
 
 def InitDB(path):
     engine = create_engine(path, echo=False)
