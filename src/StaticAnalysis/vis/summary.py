@@ -1,4 +1,5 @@
 import StaticAnalysis
+from StaticAnalysis import LOG
 from StaticAnalysis.lib.Common import ChainedAssignment
 from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.analysis.Player import player_heroes
@@ -14,6 +15,8 @@ from StaticAnalysis.analysis.visualisation import (
 from herotools.HeroTools import FullNameMap
 
 from pathlib import Path
+from matplotlib.figure import Figure
+from PIL import Image
 import matplotlib.pyplot as plt
 from sqlalchemy.orm import Query, Session
 from pandas import DataFrame
@@ -22,29 +25,26 @@ import concurrent.futures
 
 PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 
-def draft_summary_plot(draft_summary_df, output: str):
-    fig = plt.figure(constrained_layout=True)
-    fig, extra = plot_draft_summary(*draft_summary_df, fig)
-    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-    # fig.subplots_adjust(wspace=0.1, hspace=0.25)
-    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight')
+def _save_plot(fig: Figure, output: str):
     fig.savefig(output)
     fig.clf()
-    return
 
-
-def pick_context(team: TeamInfo, r_query: Query, limit, draft_summary_df, output: str):
+def draft_summary_plot(draft_summary_df) -> Figure:
     fig = plt.figure(constrained_layout=True)
-    # fig.tight_layout(h_pad=3.0)
-    fig, _, extra = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
-    # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=100)
-    fig.savefig(output)
-    fig.clf()
-    return
+    fig, _ = plot_draft_summary(*draft_summary_df, fig)
+
+    return fig
+
+
+def pick_context(team: TeamInfo, r_query: Query, limit, draft_summary_df):
+    fig = plt.figure(constrained_layout=True)
+    fig, _, _ = plot_pick_context(draft_summary_df[0], team, r_query, fig, limit=limit)
+
+    return fig
 
 
 def hero_flex(
-    team: TeamInfo, r_query: Query, output: str, r_filter, limit=None):
+    team: TeamInfo, r_filter, limit=None) -> Figure:
     def _is_flex(*args):
         pass_count = 0
         for p in args:
@@ -60,63 +60,50 @@ def hero_flex(
         flex_picks['Name'] = flex_picks.index.map(FullNameMap)
     flex_picks = flex_picks.sort_values(['Name'], ascending=False)
     fig = plt.figure(constrained_layout=True)
-    fig, extra = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
-    # fig.savefig(output, bbox_extra_artists=extra,
-    #             bbox_inches='tight', dpi=150)
-    fig.savefig(output)
-    fig.clf()
-    return
+    fig, _ = plot_flex_picks(flex_picks.iloc[:, 0:-3], fig)
+
+    return fig
 
 
 def pick_pairs(
-    team: TeamInfo, r_query: Query, output: str, limit=None
-    ):
+    team: TeamInfo, r_query: Query, limit=None
+    ) -> Figure:
     pick_pair_df = pair_rate(StaticAnalysis.session, r_query, team, limit=limit)
     if pick_pair_df:
         fig = plt.figure(constrained_layout=True)
-        fig, extra = plot_pick_pairs(pick_pair_df, fig)
-        # fig.tight_layout(h_pad=1.5)
-        # fig.savefig(output, bbox_extra_artists=extra, bbox_inches='tight', dpi=400)
-        fig.savefig(output)
-        fig.clf()
+        fig, _ = plot_pick_pairs(pick_pair_df, fig)
+        return fig
 
-    return
+    return None
 
 
-def hero_win_rate_plot(
-    team: TeamInfo, r_query: Query, output: str, limit=None
-    ):
+def hero_win_rate_plot(team: TeamInfo, r_query: Query, limit=None):
     fig = plt.figure(constrained_layout=True)
     hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
     fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
-    # fig.savefig(output, bbox_inches='tight', dpi=300)
-    fig.savefig(output)
-    fig.clf()
 
-    return
+    return fig
 
 
-def rune_control(
-    team: TeamInfo, rune_df: DataFrame, output: str
-    ):
+def rune_control(team: TeamInfo, rune_df: DataFrame) -> Figure:
     fig = plt.figure(constrained_layout=True)
     fig, _ = plot_runes(rune_df, team, fig)
-    # fig.tight_layout()
-    # fig.subplots_adjust(hspace=0.35)
-    # fig.savefig(output, bbox_inches='tight', dpi=200)
-    fig.savefig(output)
-    fig.clf()
+    return fig
+
+
+def pick_tables(team: TeamInfo, r_query: Query) -> Image:
+    return create_tables(r_query, team)
+
+
+def log_future(future: concurrent.futures.Future):
+    try:
+        future.result()
+    except Exception as esc:
+        LOG.opt(exception=True).error("Thread failed")
+    else:
+        LOG.debug("Summary save plot thread finished.")
+
     return
-
-
-def pick_tables(
-    team: TeamInfo, r_query: Query, output: str
-    ):
-    table_image = create_tables(r_query, team)
-    table_image.save(output)
-    
-    return
-
 
 def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
     '''Plots draft summary, player picks, pick pairs and hero win rates
@@ -130,28 +117,39 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
         output = team_path / f'draft_summary{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_draft_summary{postfix}'] = relpath
-        executor.submit(draft_summary_plot, draft_summary_df, output)
-
+        fig = draft_summary_plot(draft_summary_df)
+        fortiden = executor.submit(_save_plot, fig, output)
+        fortiden.add_done_callback(log_future)
+        
         if not draft_summary_df[0].empty:
             output = team_path / f'pick_context{postfix}.png'
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata[f'plot_pick_context{postfix}'] = relpath
-            executor.submit(pick_context, team, r_query, limit, draft_summary_df, output)
+            fig = pick_context(team, r_query, limit, draft_summary_df)
+            fortiden = executor.submit(_save_plot, fig, output)
+            fortiden.add_done_callback(log_future)
 
         output = team_path / f'hero_flex{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_hero_flex{postfix}'] = relpath
-        executor.submit(hero_flex, team, r_query, output, r_filter, limit)
+        fig = hero_flex(team, r_filter, limit)
+        fortiden = executor.submit(_save_plot, fig, output)
+        fortiden.add_done_callback(log_future)
 
         output = team_path / f'pick_pairs{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_pair_picks{postfix}'] = relpath
-        executor.submit(pick_pairs, team, r_query, output, limit)
+        fig = pick_pairs(team, r_query, limit)
+        if fig is not None:
+            fortiden = executor.submit(_save_plot, fig, output)
+            fortiden.add_done_callback(log_future)
 
         output = team_path / f'hero_win_rate{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_win_rate{postfix}'] = relpath
-        executor.submit(hero_win_rate_plot, team, r_query, output, limit)
+        fig = hero_win_rate_plot(team, r_query, limit)
+        fortiden = executor.submit(_save_plot, fig, output)
+        fortiden.add_done_callback(log_future)
 
         rune_df = get_rune_control(r_query, team, limit=limit)
         # One line
@@ -162,12 +160,16 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             output = team_path / f'rune_control{postfix}.png'
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata[f'plot_rune_control{postfix}'] = relpath
-            executor.submit(rune_control, team, rune_df, output)
+            fig = rune_control(team, rune_df)
+            fortiden = executor.submit(_save_plot, fig, output)
+            fortiden.add_done_callback(log_future)
 
         if limit is None:
             output = team_path / "pick_tables.png"
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_picktables'] = relpath
-            executor.submit(pick_tables, team, r_query, output)
+            table = pick_tables(team, r_query)
+            fortiden = executor.submit(table.save, output)
+            fortiden.add_done_callback(log_future)
     
     return metadata
