@@ -16,7 +16,7 @@ from herotools.HeroTools import FullNameMap
 
 from pathlib import Path
 from matplotlib.figure import Figure
-from PIL import Image
+from PIL.Image import Image
 import matplotlib.pyplot as plt
 from sqlalchemy.orm import Query, Session
 from pandas import DataFrame
@@ -169,7 +169,6 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_picktables'] = relpath
             table = pick_tables(team, r_query)
-            fortiden = executor.submit(table.save, output)
-            fortiden.add_done_callback(log_future)
-    
+            table.save(output)
+
     return metadata
