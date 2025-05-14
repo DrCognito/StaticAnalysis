@@ -119,10 +119,10 @@ def get_player_dataframes(
             )
         # p_df['face'] = p_df['is_smoked'].replace({True:alpha_color, False:1})
 
-        p_df['location'] = p_df.apply(
-        lambda x: get_player_location(x['xCoordinate'], x['yCoordinate']),
-        axis=1
-        )
+        # p_df['location'] = p_df.apply(
+        # lambda x: get_player_location(x['xCoordinate'], x['yCoordinate']),
+        # axis=1
+        # )
 
         positions.append(p_df)
 
