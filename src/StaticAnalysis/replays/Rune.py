@@ -43,7 +43,7 @@ class Rune(Base):
     replayID = Column(BigInteger, ForeignKey("Replays.replayID"),
                       primary_key=True)
     id = Column(Integer, primary_key=True)
-    time = Column(Integer)
+    game_time = Column(Integer)
     team = Column(Enum(Team), primary_key=True)
     steamID = Column(BigInteger, ForeignKey(Player.steamID))
 
@@ -57,15 +57,15 @@ class Rune(Base):
         self.replayID = replay_in.replayID
 
     @hybrid_property
-    def game_time(self):
-        return self.time - self.replay.creepSpawn
+    def time(self):
+        return self.game_time + self.replay.creepSpawn
 
-    @game_time.expression
-    def game_time(self):
+    @time.expression
+    def time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).scalar_subquery()
-        return self.time - creepSpawn
+        return self.game_time + creepSpawn
 
 
 def populate_from_JSON(json, replay_in, session):
@@ -85,7 +85,7 @@ def populate_from_JSON(json, replay_in, session):
             print(f"Failed to add rune due to unknown unit at {r['time']}")
             continue
         new_rune.steamID = new_rune.player.steamID
-        new_rune.time = r['time']
+        new_rune.game_time = r['time'] - replay_in.creepSpawn
         new_rune.runeType = RuneID(r['runeValue'])
 
         if r['team'] == 'DIRE':

@@ -23,14 +23,14 @@ class Ward(PositionTimeBase, Base):
 
     @hybrid_property
     def from_smoke(self):
-        return self.player.is_smoked_at(self.time)
+        return self.player.is_smoked_at(self.game_time)
 
     @from_smoke.expression
     def from_smoke(self):
         is_smoked = select(PlayerStatus.is_smoked)\
                         .where(PlayerStatus.replayID == self.replayID)\
                         .where(PlayerStatus.steamID == self.steamID)\
-                        .where(PlayerStatus.time == self.time)\
+                        .where(PlayerStatus.game_time == self.game_time)\
                         .scalar_subquery()
 
         return is_smoked
@@ -58,7 +58,7 @@ def populate_from_JSON(json, replay_in, session):
             new_ward.steamID = None
         else:
             new_ward.steamID = new_ward.player.steamID
-        new_ward.time = w['time']
+        new_ward.game_time = w['time'] - replay_in.creepSpawn
         new_ward.xCoordinate = w['preciseX']
         new_ward.yCoordinate = w['preciseY']
 

@@ -23,21 +23,21 @@ class PositionTimeBase():
         return Column(Integer, ForeignKey("Replays.replayID"),
                       primary_key=True)
     id = Column(Integer, primary_key=True)
-    time = Column(Integer)
+    game_time = Column(Integer)
     team = Column(Enum(Team), primary_key=True)
     xCoordinate = Column(Float)
     yCoordinate = Column(Float)
 
     @hybrid_property
-    def game_time(self):
-        return self.time - self.replay.creepSpawn
+    def time(self):
+        return self.game_time + self.replay.creepSpawn
 
-    @game_time.expression
-    def game_time(self):
+    @time.expression
+    def time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).scalar_subquery()
-        return self.time - creepSpawn
+        return self.game_time + creepSpawn
 
     @hybrid_property
     def winner(self):

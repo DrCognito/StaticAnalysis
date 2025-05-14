@@ -42,7 +42,7 @@ def populate_from_JSON(json, replay_in, session):
 
         new_scan.player = replay_in.get_player_by_hero(hero)
         new_scan.steamID = new_scan.player.steamID
-        new_scan.time = time
+        new_scan.game_time = time - replay_in.creepSpawn
         new_scan.xCoordinate = x
         new_scan.yCoordinate = y
 
