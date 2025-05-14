@@ -142,7 +142,7 @@ class PlayerStatus(Base):
     replayID = Column(BigInteger, ForeignKey("Replays.replayID"),
                       primary_key=True)
     steamID = Column(BigInteger, ForeignKey(Player.steamID), primary_key=True)
-    time = Column(Integer, primary_key=True)
+    game_time = Column(Integer, primary_key=True)
 
     xCoordinate = Column(Float)
     yCoordinate = Column(Float)
@@ -150,12 +150,14 @@ class PlayerStatus(Base):
     is_smoked = Column(Boolean)
     is_alive = Column(Boolean)
 
+    team_id = Column(Integer)
+
     @hybrid_property
-    def game_time(self):
+    def time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).scalar_subquery()
-        return self.time - creepSpawn
+        return self.game_time + creepSpawn
 
     @hybrid_property
     def hero(self) -> str:
@@ -180,23 +182,23 @@ class PlayerStatus(Base):
         # self.player = player_in
         self.replayID = player_in.replayID
 
-player_status_index = Index("idx_playerstatus_primaries", PlayerStatus.replayID, PlayerStatus.steamID, PlayerStatus.time)
+player_status_index = Index("idx_playerstatus_primaries", PlayerStatus.replayID, PlayerStatus.steamID, PlayerStatus.game_time)
 
 class NetWorth(Base):
     __tablename__ = "networth"
     replayID = Column(BigInteger, ForeignKey(Player.replayID),
                       primary_key=True)
     steamID = Column(BigInteger, ForeignKey(Player.steamID), primary_key=True)
-    time = Column(Integer, primary_key=True)
+    game_time = Column(Integer, primary_key=True)
 
     networth = Column(Integer)
 
     @hybrid_property
-    def game_time(self):
+    def time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
             where(self.replayID == Replay.replayID).scalar_subquery()
-        return self.time - creepSpawn
+        return self.game_time + creepSpawn
 
     @hybrid_property
     def hero(self) -> str:
@@ -245,15 +247,15 @@ class CumulativePlayerStatus():
         return Column(BigInteger, ForeignKey(Player.steamID),
                       primary_key=True)
 
-    time = Column(Integer, primary_key=True)
+    game_time = Column(Integer, primary_key=True)
     increment = Column(Integer)
 
     @hybrid_property
-    def game_time(self):
+    def time(self):
         from .Replay import Replay
         creepSpawn = select(Replay.creepSpawn).\
-            where(self.replay_ID == Replay.replayID).scalar_subquery()
-        return self.time - creepSpawn
+            where(self.replayID == Replay.replayID).scalar_subquery()
+        return self.game_time + creepSpawn
 
 
 class Kills(CumulativePlayerStatus, Base):
@@ -281,17 +283,24 @@ def populate_from_JSON(json, replay_in, session):
     players_out = list()
     pick_ban = get_pick_ban(json)
 
-    def _positions(player, json):
+    def _positions(player, json, radiant_id, dire_id):
         status_out = list()
         for t, (x, y, smoked, alive) in enumerate(get_player_status(
                                                   player.hero, json)):
             new_status = PlayerStatus(player)
             session.add(new_status)
-            new_status.time = t + player.created_at
+            new_status.game_time = t + player.created_at - replay_in.creepSpawn
             new_status.xCoordinate = x
             new_status.yCoordinate = y
             new_status.is_smoked = smoked
             new_status.is_alive = alive
+            
+            if player.team == Team.RADIANT:
+                new_status.team_id = radiant_id
+            elif player.team == Team.DIRE:
+                new_status.team_id = dire_id
+            else:
+                raise ValueError(f"No team id for player {player.steamID}, {replay_in.replayID}")
 
             status_out.append(new_status)
 
@@ -303,7 +312,7 @@ def populate_from_JSON(json, replay_in, session):
             new_class = NetWorth(player)
             session.add(new_class)
             new_class.steamID = player.steamID
-            new_class.time = t + player.created_at
+            new_class.game_time = t + player.created_at - replay_in.creepSpawn
             new_class.networth = gp
 
             net_worth.append(new_class)
@@ -323,7 +332,7 @@ def populate_from_JSON(json, replay_in, session):
             session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
-            new_class.time = int(v)
+            new_class.game_time = int(v) - replay_in.creepSpawn
             new_class.increment = list_in["assists"][v]
             # new_class.player = player
 
@@ -334,7 +343,7 @@ def populate_from_JSON(json, replay_in, session):
             session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
-            new_class.time = int(v)
+            new_class.game_time = int(v) - replay_in.creepSpawn
             new_class.increment = list_in["deaths"][v]
             # new_class.player = player
 
@@ -345,7 +354,7 @@ def populate_from_JSON(json, replay_in, session):
             session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
-            new_class.time = int(v)
+            new_class.game_time = int(v) - replay_in.creepSpawn
             new_class.increment = list_in["denies"][v]
             # new_class.player = player
 
@@ -356,7 +365,7 @@ def populate_from_JSON(json, replay_in, session):
             session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
-            new_class.time = int(v)
+            new_class.game_time = int(v) - replay_in.creepSpawn
             new_class.increment = list_in["kills"][v]
             # new_class.player = player
 
@@ -367,7 +376,7 @@ def populate_from_JSON(json, replay_in, session):
             session.add(new_class)
             new_class.replay_ID = player.replayID
             new_class.steam_ID = player.steamID
-            new_class.time = int(v)
+            new_class.game_time = int(v) - replay_in.creepSpawn
             new_class.increment = list_in["last_hits"][v]
             # new_class.player = player
 
@@ -376,6 +385,11 @@ def populate_from_JSON(json, replay_in, session):
         return {'assists': assists, 'deaths': deaths, 'denies': denies,
                 'kills': kills, 'last_hits': last_hits}
 
+    for ts in replay_in.teams:
+        if ts.team == Team.RADIANT:
+            radiant_id = ts.teamID
+        elif ts.team == Team.DIRE:
+            dire_id = ts.teamID
     for hero, steam_ID in zip(pick_ban['playerHero'], pick_ban['steamID']):
         new_player = Player(replay_in)
         session.add(new_player)
@@ -384,7 +398,7 @@ def populate_from_JSON(json, replay_in, session):
         new_player.created_at = get_player_created(hero, json)
         new_player.team = get_player_team(hero, json)
 
-        new_player.status = _positions(new_player, json)
+        new_player.status = _positions(new_player, json, radiant_id, dire_id)
         # new_player.smokes = _smokes(new_player, json)
         accumulators = _accumulating_stats(new_player, json)
         new_player.assists = accumulators['assists']
@@ -405,19 +419,19 @@ def InitDB(path):
     # My understanding of how this works is retrieving the team has to be from a second instance of PlayerStatus
     # This is p_status.
     # p_status also has to be "set" to the current PlayerStatus with the first two lines or it uses first result (Alliance)
-    p_status: PlayerStatus = aliased(PlayerStatus)
-    inspect(PlayerStatus).add_property(
-        "team_id",
-        column_property(
-            select(TeamSelections.teamID)
-            .where(p_status.replayID == PlayerStatus.replayID)
-            .where(p_status.steamID == PlayerStatus.steamID)
-            .where(TeamSelections.replay_ID == p_status.replayID)
-            .where(TeamSelections.team == p_status.team)
-            .scalar_subquery()
-            .label("team_id")
-        )
-    )
+    # p_status: PlayerStatus = aliased(PlayerStatus)
+    # inspect(PlayerStatus).add_property(
+    #     "team_id",
+    #     column_property(
+    #         select(TeamSelections.teamID)
+    #         .where(p_status.replayID == PlayerStatus.replayID)
+    #         .where(p_status.steamID == PlayerStatus.steamID)
+    #         .where(TeamSelections.replay_ID == p_status.replayID)
+    #         .where(TeamSelections.team == p_status.team)
+    #         .scalar_subquery()
+    #         .label("team_id")
+    #     )
+    # )
     engine = create_engine(path, echo=False)
     Base.metadata.create_all(engine)
     # player_status_index.create(bind=engine)
