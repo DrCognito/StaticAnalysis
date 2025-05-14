@@ -280,6 +280,9 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         working_replay.winner = JSONProcess.get_winner(jsonFile)
         working_replay.league_ID = JSONProcess.get_league_id(jsonFile)
 
+        working_replay.teams = TeamSelections.populate_from_JSON(jsonFile,
+                                                                 working_replay,
+                                                                 session)
         working_replay.players = Player.populate_from_JSON(jsonFile,
                                                            working_replay,
                                                            session)
@@ -297,9 +300,6 @@ def populate_from_JSON_file(path, session, skip_existing=True):
                                                                 working_replay,
                                                                 session)
 
-        working_replay.teams = TeamSelections.populate_from_JSON(jsonFile,
-                                                                 working_replay,
-                                                                 session)
         
         working_replay.tormentor_spawns, working_replay.tormentor_kills = Tormentor.populate_from_JSON(
             jsonFile, working_replay, session
