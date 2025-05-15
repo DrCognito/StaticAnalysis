@@ -92,49 +92,46 @@ class Player(Base):
         self.replayID = replay_in.replayID
         self.replay = replay_in
 
-    def get_position_at(self, time, relative_to_match_time=False):
+    def get_position_at(self, time, relative_to_match_time=True):
         ''' Get player position (x, y) at a global game time. '''
         # Array index starts from created_at
-        if relative_to_match_time:
-            time = time + self.replay.creepSpawn
+        if not relative_to_match_time:
+            time = time - self.replay.creepSpawn
 
-        pos = self.status.filter(PlayerStatus.time == time).one_or_none()
+        pos = self.status.filter(PlayerStatus.game_time == time).one_or_none()
         if pos is None:
             print("No entry for player at time {} trying + 1".format(time))
-            pos = self.status.filter(PlayerStatus.time == time + 1).one_or_none()
+            pos = self.status.filter(PlayerStatus.game_time == time + 1).one_or_none()
         if pos is None:
             print("No entry for player at time {} trying - 1".format(time + 1))
-            pos = self.status.filter(PlayerStatus.time == time - 1).one_or_none()
+            pos = self.status.filter(PlayerStatus.game_time == time - 1).one_or_none()
         if pos is None:
             print("No entry for player at time {} using created time.".format(time - 1))
-            pos = self.status.filter(PlayerStatus.time == self.created_at).one()
+            pos = self.status.filter(PlayerStatus.game_time == self.created_at).one()
         return pos
 
-    def get_position_range(self, t1, t2, relative_to_match_time=False):
+    def get_position_range(self, t1, t2, relative_to_match_time=True):
         ''' Get player position (x, y) for a global
             game time between t1 and t2.
             Time is inclusive.
             relative_to_match_time should be True for times based around the
             actual game. False is for times including picking etc.'''
         assert(t1 <= t2)
-        if relative_to_match_time:
-            t1 = t1 + self.replay.creepSpawn
-            t2 = t2 + self.replay.creepSpawn
+        if not relative_to_match_time:
+            t1 = t1 - self.replay.creepSpawn
+            t2 = t2 - self.replay.creepSpawn
 
         # Time is inclusive
-        return self.status.filter(PlayerStatus.time >= t1,
-                                  PlayerStatus.time <= t2)
+        return self.status.filter(PlayerStatus.game_time >= t1,
+                                  PlayerStatus.game_time <= t2)
 
-    def is_smoked_at(self, time, relative_to_match_time=False):
+    def is_smoked_at(self, time, relative_to_match_time=True):
         if relative_to_match_time:
-            time = time + self.replay.creepSpawn
+            time = time - self.replay.creepSpawn
         if time < self.created_at:
             return False
-        return self.status.filter(PlayerStatus.time == time).one().is_smoked
-        # if self.smokes.filter(PlayerSmoke.start_time <= time,
-        #                       PlayerSmoke.end_time >= time).count():
-        #     return True
-        # return False
+        return self.status.filter(PlayerStatus.game_time == time).one().is_smoked
+
 
 
 class PlayerStatus(Base):
