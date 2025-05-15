@@ -333,7 +333,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     for ward in wards:
         x1 = ward.xCoordinate
         y1 = ward.yCoordinate
-        t = ward.time
+        t = ward.game_time
 
         if ward.player is not None:
             x2 = ward.player.get_position_at(t).xCoordinate
@@ -341,7 +341,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
             try:
                 colour = colour_cache[ward.player.steamID]
             except KeyError:
-                usable_time = t - replay.creepSpawn
+                usable_time = t
                 LOG.error(f"KeyError retrieving {ward.player.steamID}")
                 LOG.debug(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
                 LOG.debug(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
@@ -448,8 +448,8 @@ def get_summary_table(
     def _player_pos_dict(row, player_map) -> dict:
         p: Player
         p = player_map[row.steam_ID]
-        x = p.get_position_at(row.game_time, True).xCoordinate
-        y = p.get_position_at(row.game_time, True).yCoordinate
+        x = p.get_position_at(row.game_time).xCoordinate
+        y = p.get_position_at(row.game_time).yCoordinate
         return {'xCoordinate': x, 'yCoordinate': y}
     stat_query = session.query(stat.game_time, stat.steam_ID).filter(
         stat.replay_ID == replay.replayID, stat.game_time <= max_time)
