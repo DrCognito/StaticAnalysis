@@ -86,8 +86,8 @@ class SmokedPlayers(Base):
         self.replayID = smoke_in.replayID
         self.id = smoke_in.id
 
-    def get_position_at(self, time):
-        return self.player.get_position_at(time)
+    def get_position_at(self, time, relative_to_match_time=True):
+        return self.player.get_position_at(time, relative_to_match_time)
 
 
 def populate_from_JSON(json, replay_in, session):
@@ -97,6 +97,7 @@ def populate_from_JSON(json, replay_in, session):
         players = list(replay_in.get_players(team))
 
         smoke_startend = get_smoke_summary(json, team)
+        # Note times from this are not absolute time
         if smoke_startend is None:
             return smoke_summaries
 
@@ -111,7 +112,7 @@ def populate_from_JSON(json, replay_in, session):
             id += 1
             player_list = list()
             for p in players:
-                if p.is_smoked_at(start) or p.is_smoked_at(start+1):
+                if p.is_smoked_at(start, False) or p.is_smoked_at(start+1, False):
                     new_player = SmokedPlayers(new_smoke)
                     new_player.steam_id = p.steamID
                     new_player.player = p
@@ -128,12 +129,16 @@ def populate_from_JSON(json, replay_in, session):
                 new_smoke.averageYCoordinateEnd = None
 
             else:
-                cords_start = ((p.get_position_at(start).xCoordinate,
-                                p.get_position_at(start).yCoordinate)
-                               for p in player_list)
-                cords_end = ((p.get_position_at(end).xCoordinate,
-                              p.get_position_at(end).yCoordinate)
-                             for p in player_list)
+                cords_start = (
+                    (p.get_position_at(start, relative_to_match_time=False).xCoordinate,
+                    p.get_position_at(start, relative_to_match_time=False).yCoordinate)
+                    for p in player_list
+                    )
+                cords_end = (
+                    (p.get_position_at(end, relative_to_match_time=False).xCoordinate,
+                    p.get_position_at(end, relative_to_match_time=False).yCoordinate)
+                    for p in player_list
+                    )
 
                 x, y = average_coorinates(cords_start)
                 new_smoke.averageXCoordinateStart = x
