@@ -517,7 +517,7 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
     for ward in wards:
         x1 = ward.xCoordinate
         y1 = ward.yCoordinate
-        t = ward.time
+        t = ward.game_time
 
         if ward.player is not None:
             x2 = ward.player.get_position_at(t).xCoordinate
@@ -525,7 +525,7 @@ def plot_pregame_sing(replay: Replay, team: TeamInfo,
             try:
                 colour = colour_cache[ward.player.steamID]
             except KeyError:
-                usable_time = t - replay.creepSpawn
+                usable_time = t
                 LOG.error(f"KeyError retrieving {ward.player.steamID}")
                 LOG.debug(f"Replay {replay.replayID}, side {ward.player.team} vs {ward.team}")
                 LOG.debug(f"At {t} ({usable_time}), {x1}, {y1}, type: {ward.ward_type}")
