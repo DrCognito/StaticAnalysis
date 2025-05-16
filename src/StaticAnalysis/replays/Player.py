@@ -126,9 +126,9 @@ class Player(Base):
                                   PlayerStatus.game_time <= t2)
 
     def is_smoked_at(self, time, relative_to_match_time=True):
-        if relative_to_match_time:
+        if not relative_to_match_time:
             time = time - self.replay.creepSpawn
-        if time < self.created_at:
+        if time + self.replay.creepSpawn < self.created_at:
             return False
         return self.status.filter(PlayerStatus.game_time == time).one().is_smoked
 
