@@ -123,6 +123,7 @@ def plot_player_positions(table: DataFrame, main_team: TeamInfo, fig: Figure):
 
 
 def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
+    from StaticAnalysis import LOG
     colours = ["tab:blue", "tab:orange", "yellow", "tab:red", "tab:purple",
                "lime", "tab:pink", "black", "tab:olive", "tab:cyan",]
     grp = table.groupby(['steamID', 'team_id']).agg({'xCoordinate': list, 'yCoordinate': list,
@@ -135,7 +136,7 @@ def plot_player_routes(table: DataFrame, main_team: TeamInfo, axis: Axis):
     radiant_positions = []
     replay_id = table['replayID'].iloc[0]
     if main_team.team_id not in table['team_id'].unique():
-        print(f"Missing main team in {replay_id}")
+        LOG.info(f"Missing main team in {replay_id}")
 
     for (p, t_id), c in zip(grp.index, colours):
         player = get_player_simple(p, team_session)
