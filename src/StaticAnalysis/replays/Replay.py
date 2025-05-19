@@ -286,6 +286,10 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         working_replay.players = Player.populate_from_JSON(jsonFile,
                                                            working_replay,
                                                            session)
+        # Fix the stackID
+        for t in working_replay.teams:
+            t.stackID = TeamSelections.get_stack_id(working_replay, t.team)
+            session.merge(t)
 
         working_replay.wards = Ward.populate_from_JSON(jsonFile,
                                                        working_replay, session)
