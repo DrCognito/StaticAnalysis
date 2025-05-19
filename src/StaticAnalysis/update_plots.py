@@ -951,14 +951,14 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
 
     positions = team_path / 'positions'
     positions.mkdir(parents=True, exist_ok=True)
+    metadata['rune_routes_7m_dire'] = []
+    metadata['rune_routes_7m_radiant'] = []
 
     # This MUST be cast to into or sqlalchemy can not filter with it and effectively imposes no limit!
     rune_times = wisdom_rune_times(r_query, max_time=13 * 60)
     rune_table = wisdom_rune_table(r_query, max_time=13*60)
     if rune_table.empty:
         LOG.warning(f"No rune data for {team.name}")
-        metadata['rune_routes_7m_dire'] = []
-        metadata['rune_routes_7m_radiant'] = []
         return metadata
     rune_table = build_wisdom_rune_summary(rune_table, team_session)
 
@@ -975,7 +975,16 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
                 continue
             # Check to see if we should process this replay
             out_path = positions / f"{r.replayID}.png"
+            side = r.get_side(team)
+            if side == Team.DIRE:
+                metadata['rune_routes_7m_dire'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
+            elif side == Team.RADIANT:
+                metadata['rune_routes_7m_radiant'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
             if out_path.exists() and not reprocess:
+                if side == Team.DIRE:
+                    assert(str(out_path.relative_to(Path(PLOT_BASE_PATH))) in metadata['rune_routes_7m_dire'])
+                elif side == Team.RADIANT:
+                    assert(str(out_path.relative_to(Path(PLOT_BASE_PATH))) in metadata['rune_routes_7m_radiant'])
                 continue
             # Get the table of positions
             rune_min = int(rune_times[rune_times["replayID"] == r.replayID]["game_time"].min()) - 30
@@ -1005,14 +1014,6 @@ def do_runes(team: TeamInfo, r_query, metadata: dict, new_dire: bool, new_radian
             # fig.savefig(out_path)
             # fig.clf()
         
-            if side == Team.DIRE:
-                if "rune_routes_7m_dire" not in metadata:
-                    metadata['rune_routes_7m_dire'] = []
-                metadata['rune_routes_7m_dire'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
-            elif side == Team.RADIANT:
-                if "rune_routes_7m_radiant" not in metadata:
-                    metadata['rune_routes_7m_radiant'] = []
-                metadata['rune_routes_7m_radiant'].append(str(out_path.relative_to(Path(PLOT_BASE_PATH))))
 
     return metadata
 
