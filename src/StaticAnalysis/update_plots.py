@@ -942,7 +942,8 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
         team, axes, pub_session,
         mintime=pro_pub_time, maxtime=end_time,)
     output = team_path / f'hero_pubs.png'
-    fig.savefig(output, bbox_inches='tight')
+    fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
+    fig.savefig(output)
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'hero_pubs'] = relpath
 
