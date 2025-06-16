@@ -941,6 +941,7 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     plot_team_pubs_timesplit(
         team, axes, pub_session,
         mintime=pro_pub_time, maxtime=end_time,)
+    axes[0].set_title('Pubs')
     output = team_path / f'hero_pubs.png'
     fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
     fig.savefig(output)
