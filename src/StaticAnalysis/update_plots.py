@@ -910,7 +910,7 @@ def do_player_picks(team: TeamInfo, metadata: dict,
 
     return metadata
 
-def do_flex_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time: datetime = None):
+def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time: datetime = None):
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
@@ -922,10 +922,29 @@ def do_flex_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time: d
     output = team_path / f'hero_flex_pubs.png'
     fig = plt.figure()
     fig = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig)
-    fig.savefig(output, bbox_inches='tight', dpi=150)
+    # fig.savefig(output, bbox_inches='tight', dpi=150)
+    fig.savefig(output, bbox_inches='tight')
     fig.clf()
     relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
     metadata[f'plot_flex_pubs'] = relpath
+    
+    # Normal picks
+    fig.clf()
+    fig.set_size_inches(8.27, 11.69)
+    axes = fig.subplots(5)
+    # Limit max time to a month or Important time
+    pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > min_time else min_time
+    # plot_team_pubs_timesplit(
+    #     team, axes_second, pub_session,
+    #     mintime=pro_pub_time, maxtime=maxtime,
+    #     pos_requirements=strict_pos)
+    plot_team_pubs_timesplit(
+        team, axes, pub_session,
+        mintime=pro_pub_time, maxtime=end_time,)
+    output = team_path / f'hero_pubs.png'
+    fig.savefig(output, bbox_inches='tight')
+    relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+    metadata[f'hero_pubs'] = relpath
 
     return metadata
 
@@ -1575,7 +1594,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             LOG.debug("Pub data update true, remaking hero picks.")
             # No need to do limit plots as they are without pubs.
             # metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
-            # metadata = do_flex_pubs(team, metadata, time, end_time)
+            metadata = do_player_pubs(team, metadata, time, end_time)
             pub_bar = tqdm(total=3, position=2, desc='Portrait Picks', leave=False)
             metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
             pub_bar.update()
@@ -1705,7 +1724,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
                                    mintime=stat_time, maxtime=end_time)
         LOG.debug(f"Processed player picks in {t.process_time() - start} ({metadata['name']})")
-        metadata = do_flex_pubs(team, metadata, time, end_time)
+        metadata = do_player_pubs(team, metadata, time, end_time)
         LOG.debug(f"Processed player picks in {t.process_time() - start} ({metadata['name']})")
         start = t.process_time()
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
