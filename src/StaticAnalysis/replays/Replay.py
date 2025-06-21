@@ -312,6 +312,7 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         working_replay.player_stacks = Stacks.populate_from_JSON(jsonFile, working_replay, session)
 
     session.merge(working_replay)
+    session.commit()
     return working_replay
 
 
