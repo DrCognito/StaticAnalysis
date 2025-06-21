@@ -60,4 +60,8 @@ replays = r_query.join(TeamSelections, TeamSelections.replay_ID == Replay.replay
 new_cut_time = MAIN_TIME
 t_filter = (Replay.endTimeUTC >= new_cut_time)
 test = session.query(Replay).filter(t_filter).order_by(Replay.replayID)
-print(f"MAIN_TIME ({MAIN_TIME}) first replay: {test.first().replayID}")
+if test.first() is not None:
+    print(f"MAIN_TIME ({MAIN_TIME}) first replay: {test.first().replayID}")
+else:
+    test = session.query(Replay).order_by(Replay.replayID.desc())
+    print(f"No replays newer than {MAIN_TIME}, last replay: {test.first().replayID} @ {test.first().endTimeUTC}")
