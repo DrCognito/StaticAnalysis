@@ -31,7 +31,7 @@ def remap_team(
         session.rollback()
         exit(2)
 
-remap_team(9017006, 36, session)
+# remap_team(9017006, 36, session)
 
 def stack_stats(stack_id: TeamInfo | str, team_match: TeamInfo | int):
     if type(stack_id) is TeamInfo:
