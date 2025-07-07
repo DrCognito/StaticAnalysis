@@ -15,7 +15,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF, Align
-from herotools.important_times import ImportantTimes, nice_time_names
+from herotools.important_times import ImportantTimes, nice_time_names, default_time_list
 from herotools.HeroTools import FullNameMap
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
@@ -811,6 +811,7 @@ def do_priority_picks(team, r_query, metadata):
     return metadata
 
 
+from functools import partial
 def do_portrait_picks(
     team: TeamInfo, metadata: dict, r_query: Query, use_team=False,
     min_time: datetime = None
@@ -818,41 +819,47 @@ def do_portrait_picks(
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
     
+    # Set our comp post proc with a minimum time!
+    # This sets the limit for table, 14 days, 31 days etc.
+    hero_proc = partial(_heroes_post_process, min_time=default_time_list[0])
     table_cols = [Player.hero, Player.win, Player.endGameTime]
     if use_team:
         comp_df = get_team_dataframes_rquery(
             team, r_query,
-            table_cols, session, _heroes_post_process
+            table_cols, session, hero_proc
         )
     else:
         comp_df = get_team_dataframes(
             team, table_cols, min_time,
-            session, _heroes_post_process
+            session, hero_proc
         )
 
     def add_extra_cols(
         player: TeamPlayer | int, df: DataFrame, session: Session = session,
-        r_query: Query = None) -> DataFrame:
+        r_query: Query = None, time_list=default_time_list) -> DataFrame:
         if df.empty:
             return df
-
-        df['0to7 winrate'] = df.index.map(
+        # Currently hardcoded as:
+        # 0: Oldest, 1: Mid value: 2: Now
+        df['1bin winrate'] = df.index.map(
             lambda x : get_hero_winrate(
                 player, x, session,
-                ImportantTimes['PreviousWeek'], ImportantTimes['Now'],
+                time_list[1], time_list[2],
                 r_query
                 )
         )
-        df['0to7 picks'] = df.index.map(
+        df['1bin picks'] = df.index.map(
         lambda x : get_hero_picks(
-            player, x, session, ImportantTimes['PreviousWeek'], ImportantTimes['Now'], r_query
+            player, x, session,
+            time_list[1], time_list[2],
+            r_query
             )
         )
         
-        df['0to14 winrate'] = df.index.map(
+        df['2bin winrate'] = df.index.map(
             lambda x : get_hero_winrate(
                 player, x, session,
-                ImportantTimes['PreviousFortnight'], ImportantTimes['Now'],
+                time_list[0], time_list[2],
                 r_query
                 )
         )
