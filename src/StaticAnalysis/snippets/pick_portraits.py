@@ -26,6 +26,7 @@ tundra = get_team(8291895)
 gladiators = get_team(8599101)
 spirit = get_team(7119388)
 falcons = get_team(9247354)
+execration = get_team(8254145)
 r_query = spirit.get_replays(session).filter(r_filter)
 
 # player_stats = session.query(Player.hero, Player.win, Player.endGameTime).join(r_query.subquery()).filter(Player.steamID == bzm.player_id)
