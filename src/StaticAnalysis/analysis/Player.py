@@ -86,6 +86,7 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
             p_res.sort_values(ascending=False, inplace=True)
             p_res = p_res[:nHeroes + 1]
         else:
+            p_res.sort_values(ascending=False, inplace=True)
             p_res = p_res.head(nHeroes)
 
         player_series.append(p_res)
@@ -377,12 +378,12 @@ def get_team_dataframes(
     return out_dict
 
 
-def _heroes_post_process(df: DataFrame):
+def _heroes_post_process(df: DataFrame, min_time=ImportantTimes['PreviousFortnight']):
     '''
     Post processing helper for the team
     '''
     df['count'] = 1
-    df = df.loc[df.loc[:, 'endGameTime'] >= ImportantTimes['PreviousFortnight']]
+    df = df.loc[df.loc[:, 'endGameTime'] >= min_time]
     df = df[['hero', 'count', 'win']].groupby(['hero']).sum()
 
     return df
