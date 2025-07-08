@@ -52,6 +52,7 @@ from StaticAnalysis.analysis.ward_vis import (build_ward_table,
                                               plot_drafts_above,
                                               plot_eye_scatter)
 from StaticAnalysis.analysis.smoke_vis import get_smoked_player_table, get_smoke_table_replays
+from StaticAnalysis.analysis.picks import do_loss_opp_picks
 from StaticAnalysis.lib.Common import (ChainedAssignment, location_filter,
                                        prepare_retrieve_figure, add_map, EXTENT)
 from StaticAnalysis.lib.metadata import (has_picks, is_full_replay, is_updated,
@@ -90,6 +91,8 @@ warnings.filterwarnings(
 PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
 # Figure dpi output
 rcParams['savefig.dpi'] = 100
+# Supress open fig warning
+rcParams.update({'figure.max_open_warning': 0})
 # Make sure were also logging libraries
 LOG.enable('herotools')
 LOG.enable('propubs')

@@ -679,11 +679,52 @@ def plot_hero_winrates(data: DataFrame, fig: Figure, mingames=3, min_rate=0.6):
     if not subset.empty:
         _do_plot(axes[1], subset)
 
+    axes[0].set_title('Win Rate')
     axes[0].set_ylabel('All')
     axes[1].set_ylabel('Min {} games'.format(mingames))
 
     return fig, axes
 
+
+def plot_hero_lossrates(data: DataFrame, fig: Figure, mingames=3, max_rate=0.5):
+    '''Plots hero win rate over all and with a minimum games required.'''
+
+    fig.set_size_inches(10, 10)
+    axes = fig.subplots(2)
+    data.rename(heroShortName, inplace=True)
+
+    def _do_plot(ax_in, data):
+        sub_set: DataFrame = data.loc[data['Rate'] < max_rate]\
+            .sort_values(['Rate', 'Total'], ascending=True,)
+
+        if sub_set.empty:
+            ax_in.text(0.5, 0.5, "No Data", fontsize=14,
+                       horizontalalignment='center',
+                       verticalalignment='center')
+            ax_in.yaxis.set_major_locator(MaxNLocator(integer=True))
+            return
+        bar_plot = sub_set['Rate'].plot.bar(ax=ax_in)
+
+        # for bar, label in zip(bar_plot.patches, sub_set['Total'].iteritems()):
+        for bar, label in zip(bar_plot.patches, sub_set['Total'].items()):
+            y = bar.get_height()
+            x = bar.get_x() + bar.get_width() / 2
+            ax_in.text(s=int(label[1]), x=x, y=y,
+                       ha='center', va='bottom',
+                       color='black')
+        ax_in.set_ylim([0.0, max_rate])
+
+    _do_plot(axes[0], data)
+
+    subset = data.loc[data['Total'] > mingames]
+    if not subset.empty:
+        _do_plot(axes[1], subset)
+
+    axes[0].set_title('Win Rate (<50%)')
+    axes[0].set_ylabel('All')
+    axes[1].set_ylabel('Min {} games'.format(mingames))
+
+    return fig, axes
 
 def plot_object_position_scatter(query_data: DataFrame, size=700,
                                  fig_in=None, ax_in=None):

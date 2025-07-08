@@ -9,8 +9,9 @@ from StaticAnalysis.analysis.Replay import (
 from StaticAnalysis.analysis.table_picks_panda import create_tables
 from StaticAnalysis.analysis.visualisation import (
     plot_draft_summary, plot_flex_picks, plot_pick_pairs, plot_pick_context, plot_hero_winrates, 
-    plot_runes
+    plot_runes, plot_hero_lossrates
     )
+from StaticAnalysis.analysis.picks import do_loss_opp_picks
 
 from herotools.HeroTools import FullNameMap
 
@@ -78,11 +79,14 @@ def pick_pairs(
 
 
 def hero_win_rate_plot(team: TeamInfo, r_query: Query, limit=None):
-    fig = plt.figure(constrained_layout=True)
     hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
-    fig, _ = plot_hero_winrates(hero_win_rate_df, fig)
+    
+    win = plt.figure(constrained_layout=True)
+    win, _ = plot_hero_winrates(hero_win_rate_df, win)
+    loss = plt.figure(constrained_layout=True)
+    loss, _ = plot_hero_lossrates(hero_win_rate_df, loss)
 
-    return fig
+    return win, loss
 
 
 def rune_control(team: TeamInfo, rune_df: DataFrame) -> Figure:
@@ -118,38 +122,44 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_draft_summary{postfix}'] = relpath
         fig = draft_summary_plot(draft_summary_df)
-        fortiden = executor.submit(_save_plot, fig, output)
-        fortiden.add_done_callback(log_future)
+        fremtiden = executor.submit(_save_plot, fig, output)
+        fremtiden.add_done_callback(log_future)
         
         if not draft_summary_df[0].empty:
             output = team_path / f'pick_context{postfix}.png'
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata[f'plot_pick_context{postfix}'] = relpath
             fig = pick_context(team, r_query, limit, draft_summary_df)
-            fortiden = executor.submit(_save_plot, fig, output)
-            fortiden.add_done_callback(log_future)
+            fremtiden = executor.submit(_save_plot, fig, output)
+            fremtiden.add_done_callback(log_future)
 
         output = team_path / f'hero_flex{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_hero_flex{postfix}'] = relpath
         fig = hero_flex(team, r_filter, limit)
-        fortiden = executor.submit(_save_plot, fig, output)
-        fortiden.add_done_callback(log_future)
+        fremtiden = executor.submit(_save_plot, fig, output)
+        fremtiden.add_done_callback(log_future)
 
         output = team_path / f'pick_pairs{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_pair_picks{postfix}'] = relpath
         fig = pick_pairs(team, r_query, limit)
         if fig is not None:
-            fortiden = executor.submit(_save_plot, fig, output)
-            fortiden.add_done_callback(log_future)
+            fremtiden = executor.submit(_save_plot, fig, output)
+            fremtiden.add_done_callback(log_future)
 
         output = team_path / f'hero_win_rate{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
         metadata[f'plot_win_rate{postfix}'] = relpath
-        fig = hero_win_rate_plot(team, r_query, limit)
-        fortiden = executor.submit(_save_plot, fig, output)
-        fortiden.add_done_callback(log_future)
+        win, loss = hero_win_rate_plot(team, r_query, limit)
+        fremtiden = executor.submit(_save_plot, win, output)
+        fremtiden.add_done_callback(log_future)
+
+        output = team_path / f'hero_loss_rate{postfix}.png'
+        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+        metadata[f'plot_loss_rate{postfix}'] = relpath
+        fremtiden = executor.submit(_save_plot, loss, output)
+        fremtiden.add_done_callback(log_future)
 
         rune_df = get_rune_control(r_query, team, limit=limit)
         # One line
@@ -161,8 +171,8 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata[f'plot_rune_control{postfix}'] = relpath
             fig = rune_control(team, rune_df)
-            fortiden = executor.submit(_save_plot, fig, output)
-            fortiden.add_done_callback(log_future)
+            fremtiden = executor.submit(_save_plot, fig, output)
+            fremtiden.add_done_callback(log_future)
 
         if limit is None:
             output = team_path / "pick_tables.png"
@@ -170,5 +180,17 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             metadata['plot_picktables'] = relpath
             table = pick_tables(team, r_query)
             table.save(output)
+            
+            fig = do_loss_opp_picks(
+                r_query, team
+            )
+            if fig is None:
+                metadata['lossvs_opp'] = None
+            else:
+                output = team_path / "lossvs_opp.png"
+                relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+                metadata['lossvs_opp'] = relpath
+                fremtiden = executor.submit(_save_plot, fig, output)
+                fremtiden.add_done_callback(log_future)
 
     return metadata
