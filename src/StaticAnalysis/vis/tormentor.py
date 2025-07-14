@@ -20,6 +20,84 @@ from typing import Tuple
 from pandas import DataFrame
 from PIL.Image import open as Image_open
 import matplotlib.patheffects as PathEffects
+from matplotlib.patches import Rectangle
+from sqlalchemy import and_, or_
+from pandas import concat, read_sql
+
+
+mag_x = EXTENT[1] - EXTENT[0]
+mag_y = EXTENT[3] - EXTENT[2]
+bottom_right = Rectangle(
+    xy=(EXTENT[0] + 0.81*mag_x, EXTENT[2]),
+    width = mag_x*0.15,
+    height = mag_y*0.15,
+    alpha=0.5
+)
+top_left = Rectangle(
+    xy=(EXTENT[0], EXTENT[2] + 0.8*mag_y),
+    width = mag_x*0.15,
+    height = mag_y*0.15,
+    alpha=0.5
+)
+# Filter for the tormentor corners
+tormie_corners = or_(
+    and_(
+        Ward.xCoordinate >= bottom_right.get_x(),
+        Ward.yCoordinate <= bottom_right.get_y() + bottom_right.get_height()
+    ),
+    and_(
+        Ward.xCoordinate <= top_left.get_x() + top_left.get_width(),
+        Ward.yCoordinate >= top_left.get_y()
+    )
+)
+
+
+def plot_tormentor_sentries(
+    team: TeamInfo, r_query, fig, session
+    ):
+    '''
+    Plot the sentries around the tormentor as defined by the constants top_left and bottom_right.
+    '''
+    # Per side replays
+    d_replays = r_query.filter(Replay.get_side_filter(team, Team.DIRE)).subquery()
+    r_replays = r_query.filter(Replay.get_side_filter(team, Team.RADIANT)).subquery()
+    # Apply ward team, type and region filters
+    dire_wards = session.query(Ward).filter(
+        Ward.team == Team.DIRE, Ward.ward_type == WardType.SENTRY, tormie_corners
+        ).join(d_replays)
+    radiant_wards = session.query(Ward).filter(
+        Ward.team == Team.RADIANT, Ward.ward_type == WardType.SENTRY, tormie_corners
+        ).join(r_replays)
+    # Get the dataframe
+    dire_df = read_sql(dire_wards.statement, session.bind)
+    radiant_df = read_sql(radiant_wards.statement, session.bind)
+    combined_df = concat((radiant_df, dire_df), ignore_index=True)
+    # Fig setup
+    ax_t, ax_b = fig.subplots(ncols=2)
+    # fig.set_size_inches(8, 4)
+    # Add the maps
+    add_map(ax_t, extent=EXTENT)
+    ax_t.axis('off')
+    add_map(ax_b, extent=EXTENT)
+    ax_b.axis('off')
+    # Plot the combined df scatter
+    ax_t.scatter(
+        x=combined_df['xCoordinate'], y=combined_df['yCoordinate'],
+        alpha=1.0, marker='o', s=50, edgecolors='black'
+    )
+    ax_b.scatter(
+        x=combined_df['xCoordinate'], y=combined_df['yCoordinate'],
+        alpha=1.0, marker='o', s=50, edgecolors='black'
+    )
+    # Set top axis limits
+    ax_t.set_ylim(top_left.get_y(), top_left.get_y() + top_left.get_height())
+    ax_t.set_xlim(top_left.get_x(), top_left.get_x() + top_left.get_width())
+    # Set bottom axis limits
+    ax_b.set_ylim(bottom_right.get_y(), bottom_right.get_y() + bottom_right.get_height())
+    ax_b.set_xlim(bottom_right.get_x(), bottom_right.get_x() + bottom_right.get_width())
+    
+    return fig
+
 
 def plot_tormentor_kill_players(
     replay: Replay, team: TeamInfo, side: Team,
