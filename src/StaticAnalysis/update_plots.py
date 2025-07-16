@@ -65,7 +65,7 @@ from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
-from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players, plot_tormentor_sentries
+from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players, plot_tormentor_sentries, plot_tormie_sentries_heatmap
 from StaticAnalysis.vis.summary import do_summary
 import StaticAnalysis
 from StaticAnalysis import session, team_session, pub_session, LOG
@@ -1184,8 +1184,8 @@ def do_tormentor_sentries(
     team_path: Path = plot_base / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
     
-    fig = plt.figure(figsize=(8, 4), layout="constrained")
-    fig = plot_tormentor_sentries(team, r_query, fig, session)
+    fig = plt.figure(figsize=(10, 6), layout="constrained")
+    fig = plot_tormie_sentries_heatmap(team, r_query, fig, session)
     # Save plot
     output = team_path / 'tormentor_sentries.png'
     fig.suptitle('Tormentor Sentry Ward Placement')

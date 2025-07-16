@@ -23,33 +23,163 @@ import matplotlib.patheffects as PathEffects
 from matplotlib.patches import Rectangle
 from sqlalchemy import and_, or_
 from pandas import concat, read_sql
+import numpy as np
+from functools import partial
 
 
 mag_x = EXTENT[1] - EXTENT[0]
 mag_y = EXTENT[3] - EXTENT[2]
-bottom_right = Rectangle(
-    xy=(EXTENT[0] + 0.81*mag_x, EXTENT[2]),
-    width = mag_x*0.15,
-    height = mag_y*0.15,
+# Drawing area
+top_left = Rectangle(
+    xy=(EXTENT[0], EXTENT[2] + 0.75*mag_y),
+    width = mag_x*0.2,
+    height = mag_y*0.2,
     alpha=0.5
 )
-top_left = Rectangle(
+bottom_right = Rectangle(
+    xy=(EXTENT[0] + 0.76*mag_x, EXTENT[2]),
+    width = mag_x*0.2,
+    height = mag_y*0.2,
+    alpha=0.5
+)
+
+# Ward sample area
+top_left_wards = Rectangle(
     xy=(EXTENT[0], EXTENT[2] + 0.8*mag_y),
     width = mag_x*0.15,
     height = mag_y*0.15,
     alpha=0.5
 )
-# Filter for the tormentor corners
-tormie_corners = or_(
-    and_(
-        Ward.xCoordinate >= bottom_right.get_x(),
-        Ward.yCoordinate <= bottom_right.get_y() + bottom_right.get_height()
-    ),
-    and_(
-        Ward.xCoordinate <= top_left.get_x() + top_left.get_width(),
-        Ward.yCoordinate >= top_left.get_y()
-    )
+bottom_right_wards = Rectangle(
+    xy=(EXTENT[0] + 0.81*mag_x, EXTENT[2]),
+    width = mag_x*0.15,
+    height = mag_y*0.15,
+    alpha=0.5
 )
+# Filter for the tormentor corners
+bottom_right_filter = and_(
+    Ward.xCoordinate >= bottom_right_wards.get_x(),
+    Ward.yCoordinate <= bottom_right_wards.get_y() + bottom_right_wards.get_height()
+)
+top_left_filter = and_(
+    Ward.xCoordinate <= top_left_wards.get_x() + top_left_wards.get_width(),
+    Ward.yCoordinate >= top_left_wards.get_y()
+)
+tormie_corners = or_(
+    top_left_filter,
+    bottom_right_filter
+    )
+
+
+def _get_mesh(rect: Rectangle, bins: int):
+    '''
+    Cut up a patch Rectangle ROI into n bins in x and y.
+    Returns 2D arrays that map each bin in x and y (see numpy.meshgrid)
+    '''
+    x_dist = np.linspace(rect.get_x(), rect.get_x() + rect.get_width(), bins)
+    y_dist = np.linspace(rect.get_y(), rect.get_y() + rect.get_height(), bins)
+    
+    return np.meshgrid(x_dist, y_dist)
+
+
+def _count_within_dist(row, comparisons: DataFrame, max_dist: float):
+    dist_sq = max_dist * max_dist
+    total = 0
+    for idx, c in comparisons.iterrows():
+        dist = (c['xCoordinate'] - row['xCoordinate'])**2
+        dist += (c['yCoordinate'] - row['yCoordinate'])**2
+        
+        if dist < dist_sq:
+            total += 1
+    
+    return total
+
+
+def heatmap(df: DataFrame, ax, 
+    rect: Rectangle, bins = 100, add_scatter=True):
+    # check we have data
+    if df.empty:
+        ax.text(0.5, 0.5, "No Data", fontsize=18,
+                    horizontalalignment='center',
+                    verticalalignment='center')
+        ax.yaxis.set_ticks([])
+        ax.xaxis.set_ticks([])
+        return ax
+    # Build our coordinate system and dfs
+    # Note as its lower and upper bounds it should be +1 for 100x100 data displayed bins!
+    coord_x, coord_y = _get_mesh(rect, bins+1)
+    mesh_df = DataFrame({
+    'xCoordinate': np.reshape(coord_x, (bins+1)*(bins+1)),
+    'yCoordinate': np.reshape(coord_y, (bins+1)*(bins+1))
+    })
+    # Count our ward overlaps for each point
+    # cc_t = partial(circle_counter, circles = df_t['circle'])
+    dc_t = partial(_count_within_dist, comparisons=df, max_dist=1050)
+    mesh_df['count'] = mesh_df.apply(dc_t, axis=1)
+
+    # Add the maps
+    add_map(ax, extent=EXTENT)
+    ax.axis('off')
+    # Fix the weights
+    coord_z = mesh_df['count'].values.reshape(bins+1,bins+1).T
+    coord_z = np.ma.masked_array(coord_z, coord_z < 1)
+
+    # Add the colour meshes
+    # These have to be transposed but I am not sure...
+    ax.pcolormesh(
+        coord_x.T,
+        coord_y.T,
+        coord_z,
+        alpha=0.5)
+    
+    # Do the scatter if we want!
+    if add_scatter:
+        ax.scatter(
+            x=df['xCoordinate'], y=df['yCoordinate'],
+            alpha=1.0, marker='o', s=25, edgecolors='black'
+        )
+    # Set top axis limits
+    ax.set_ylim(rect.get_y(), rect.get_y() + rect.get_height())
+    ax.set_xlim(rect.get_x(), rect.get_x() + rect.get_width())
+    
+    return ax
+
+
+def plot_tormie_sentries_heatmap(
+    team: TeamInfo, r_query, fig, session
+    ):
+    # Filter by side to get team only wards
+    d_replays = r_query.filter(Replay.get_side_filter(team, Team.DIRE)).subquery()
+    r_replays = r_query.filter(Replay.get_side_filter(team, Team.RADIANT)).subquery()
+    dire_wards = session.query(Ward).filter(
+        Ward.team == Team.DIRE, Ward.ward_type == WardType.SENTRY
+        ).join(d_replays)
+    radiant_wards = session.query(Ward).filter(
+        Ward.team == Team.RADIANT, Ward.ward_type == WardType.SENTRY
+        ).join(r_replays)
+
+    # Build the dfs for the corners from the team wards
+    top_df = [
+        read_sql(dire_wards.filter(top_left_filter).statement, session.bind),
+        read_sql(radiant_wards.filter(top_left_filter).statement, session.bind)]
+    try:
+        top_df = concat([df for df in top_df if not df.empty], ignore_index=True)
+    except ValueError:
+        top_df = DataFrame()
+    bottom_df = [
+        read_sql(dire_wards.filter(bottom_right_filter).statement, session.bind),
+        read_sql(radiant_wards.filter(bottom_right_filter).statement, session.bind)
+    ]
+    try:
+        bottom_df = concat([df for df in bottom_df if not df.empty], ignore_index=True)
+    except ValueError:
+        bottom_df = DataFrame()
+
+    ax_t, ax_b = fig.subplots(ncols=2)
+    heatmap(top_df, ax_t, top_left, add_scatter=True)
+    heatmap(bottom_df, ax_b, bottom_right, add_scatter=True)
+    
+    return fig
 
 
 def plot_tormentor_sentries(
