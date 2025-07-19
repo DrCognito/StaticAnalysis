@@ -15,7 +15,7 @@ description = "Data analytics for Dota 2 replay data."
 authors = ["Matthew Chadwick"]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <4.0"
+python = ">=3.11, <4.0"
 adjusttext = "1.*"
 "dogpile.cache" = "1.*"
 flake8 = "7.*"
@@ -34,3 +34,7 @@ herotools = {path = "E:/Python/HeroTools", develop = true}
 pylluvial = "^1.1.1"
 tqdm = "^4.67.1"
 loguru = "^0.7.3"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^9.4.0"
+
