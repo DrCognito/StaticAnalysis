@@ -367,18 +367,63 @@ bottom_df = concat((
     read_sql(radiant_wards.filter(bottom_right_filter).statement, session.bind)
     ), ignore_index=True)
 (ax_1, ax_2) = fig.subplots(ncols=2)
-heatmap(
-    top_df,
-    ax_1, top_left,)
-heatmap(
-    bottom_df,
-    ax_2, bottom_right)
-ax_1.scatter(
-        x=top_df['xCoordinate'], y=top_df['yCoordinate'],
-        alpha=1.0, marker='o', s=25, edgecolors='black'
-    )
-ax_2.scatter(
-    x=bottom_df['xCoordinate'], y=bottom_df['yCoordinate'],
-    alpha=1.0, marker='o', s=25, edgecolors='black'
+# heatmap(
+#     top_df,
+#     ax_1, top_left,)
+# heatmap(
+#     bottom_df,
+#     ax_2, bottom_right)
+# ax_1.scatter(
+#         x=top_df['xCoordinate'], y=top_df['yCoordinate'],
+#         alpha=1.0, marker='o', s=25, edgecolors='black'
+#     )
+# ax_2.scatter(
+#     x=bottom_df['xCoordinate'], y=bottom_df['yCoordinate'],
+#     alpha=1.0, marker='o', s=25, edgecolors='black'
+# )
+# fig.savefig("tormentor_sentry_heatmap.png")
+
+# The canvas
+np.zeros((100,100), 'uint8')
+
+def generate_circle(coord_radius: float, bins: int, coverage_area: Rectangle, ax):
+    x_dist = np.linspace(0, top_left.get_width(), bins+1)
+    y_dist = np.linspace(0, top_left.get_height(), bins+1)
+    xx, yy = np.meshgrid(x_dist, y_dist)
+    # Put it in the top left
+    radii2 = (xx - coverage_area.get_width() / 2) ** 2 + (yy - coverage_area.get_height() / 2 ) ** 2
+    circle = radii2 < coord_radius**2
+    circle = circle.astype('uint8')
+    circle = np.ma.masked_array(circle, circle < 1)
+    
+    # Add the maps
+    add_map(ax, extent=EXTENT)
+    ax.axis('off')
+    # Add circle
+    coord_x, coord_y = get_mesh(coverage_area, bins+1)
+    ax.pcolormesh(
+        coord_x.T,
+        coord_y.T,
+        circle.T,
+        alpha=0.5)
+    
+    # Set top axis limits
+    ax.set_ylim(coverage_area.get_y(), coverage_area.get_y() + coverage_area.get_height())
+    ax.set_xlim(coverage_area.get_x(), coverage_area.get_x() + coverage_area.get_width())
+    
+
+(ax_1, ax_2) = fig.subplots(ncols=2)
+generate_circle(
+    coord_radius=1050,
+    bins=100,
+    coverage_area=top_left,
+    ax=ax_1
 )
-fig.savefig("tormentor_sentry_heatmap.png")
+
+x_dist = np.linspace(0, top_left.get_width(), bins)
+y_dist = np.linspace(0, top_left.get_height(), bins)
+xx, yy = np.meshgrid(x_dist, y_dist)
+# Put it in the top left
+radii2 = (xx - 1050) ** 2 + (yy - 1050) ** 2
+circle = radii2 < 1050**2
+circle = circle.astype('uint8')
