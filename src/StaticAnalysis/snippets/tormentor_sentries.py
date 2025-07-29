@@ -4,7 +4,7 @@ from StaticAnalysis.lib.team_info import TeamInfo
 from StaticAnalysis.lib.Common import EXTENT, add_map
 from StaticAnalysis.replays.Replay import Replay
 from StaticAnalysis.replays.Common import Team, WardType
-from pandas import DataFrame, read_sql
+from pandas import DataFrame, read_sql, Series
 from herotools.important_times import MAIN_TIME
 from sqlalchemy import or_, and_
 from StaticAnalysis.analysis.ward_vis import plot_image_scatter
@@ -412,18 +412,75 @@ def generate_circle(coord_radius: float, bins: int, coverage_area: Rectangle, ax
     ax.set_xlim(coverage_area.get_x(), coverage_area.get_x() + coverage_area.get_width())
     
 
+def numpy_circler(
+    ward: Series,
+    x_mesh, y_mesh, circ_radius,
+    coverage_area: Rectangle):
+    # Adjust the coordinates to fit in our spacial region
+    x_cord = ward['xCoordinate'] - coverage_area.get_x()
+    y_cord = ward['yCoordinate'] - coverage_area.get_y()
+    # Make the radius map
+    radii2 = (x_mesh - x_cord) ** 2 + (y_mesh - y_cord) ** 2
+    # Limit it to our ward radius
+    circle = radii2 < circ_radius**2
+    circle = circle.astype('uint8')
+    
+    return circle
+
+
+def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=1000):
+    # Setup coordinate spaces
+    x_dist = np.linspace(0, rect.get_width(), bins+1)
+    y_dist = np.linspace(0, rect.get_height(), bins+1)
+    xx, yy = np.meshgrid(x_dist, y_dist)
+    # Partial func for the circles
+    circler = partial(
+        numpy_circler,
+        x_mesh=xx, y_mesh=yy, circ_radius=1050, coverage_area=rect
+    )
+    # Generate the circles
+    df['circles'] = df.apply(circler, axis=1)
+    coord_z = sum(df['circles'])
+    # Cut zeroes
+    coord_z = np.ma.masked_array(coord_z, coord_z < 1)
+    # Add the maps
+    add_map(ax, extent=EXTENT)
+    ax.axis('off')
+    # Add circle
+    coord_x, coord_y = get_mesh(rect, bins+1)
+    ax.pcolormesh(
+        coord_x.T,
+        coord_y.T,
+        coord_z.T,
+        alpha=0.5)
+    
+    # Set top axis limits
+    ax.set_ylim(rect.get_y(), rect.get_y() + rect.get_height())
+    ax.set_xlim(rect.get_x(), rect.get_x() + rect.get_width())
+    
+    return ax
+
+
 (ax_1, ax_2) = fig.subplots(ncols=2)
-generate_circle(
-    coord_radius=1050,
-    bins=100,
-    coverage_area=top_left,
-    ax=ax_1
+# generate_circle(
+#     coord_radius=1050,
+#     bins=100,
+#     coverage_area=top_left,
+#     ax=ax_1
+# )
+heatmap_numpy(
+    top_df, ax_1, top_left
+)
+heatmap_numpy(
+    bottom_df, ax_2, bottom_right
 )
 
-x_dist = np.linspace(0, top_left.get_width(), bins)
-y_dist = np.linspace(0, top_left.get_height(), bins)
+# Top left test
+x_dist = np.linspace(0, top_left.get_width(), bins+1)
+y_dist = np.linspace(0, top_left.get_height(), bins+1)
 xx, yy = np.meshgrid(x_dist, y_dist)
-# Put it in the top left
-radii2 = (xx - 1050) ** 2 + (yy - 1050) ** 2
-circle = radii2 < 1050**2
-circle = circle.astype('uint8')
+
+top_circler = partial(
+    numpy_circler,
+    x_mesh=xx, y_mesh=yy, circ_radius=1050, coverage_area=top_left
+)
