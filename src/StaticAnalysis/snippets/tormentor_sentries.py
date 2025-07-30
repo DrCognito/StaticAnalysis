@@ -428,7 +428,7 @@ def numpy_circler(
     return circle
 
 
-def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=1000):
+def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=500):
     # Setup coordinate spaces
     x_dist = np.linspace(0, rect.get_width(), bins+1)
     y_dist = np.linspace(0, rect.get_height(), bins+1)
@@ -445,7 +445,6 @@ def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=1000):
     coord_z = np.ma.masked_array(coord_z, coord_z < 1)
     # Add the maps
     add_map(ax, extent=EXTENT)
-    ax.axis('off')
     # Add circle
     coord_x, coord_y = get_mesh(rect, bins+1)
     ax.pcolormesh(
@@ -457,9 +456,35 @@ def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=1000):
     # Set top axis limits
     ax.set_ylim(rect.get_y(), rect.get_y() + rect.get_height())
     ax.set_xlim(rect.get_x(), rect.get_x() + rect.get_width())
+    ax.axis('off')
     
     return ax
 
+
+def full_plot_test(
+    fig,
+    top_df: DataFrame, top_rect: Rectangle,
+    bottom_df: DataFrame, bottom_rect: Rectangle,
+    output: str = 'tormentor_sents.png'
+    ):
+    (ax_1, ax_2) = fig.subplots(ncols=2)
+    heatmap_numpy(
+        top_df,
+        ax_1, top_rect,)
+    heatmap_numpy(
+        bottom_df,
+        ax_2, bottom_rect)
+    ax_1.scatter(
+            x=top_df['xCoordinate'], y=top_df['yCoordinate'],
+            alpha=1.0, marker='o', s=25, edgecolors='black'
+        )
+    ax_2.scatter(
+        x=bottom_df['xCoordinate'], y=bottom_df['yCoordinate'],
+        alpha=1.0, marker='o', s=25, edgecolors='black'
+    )
+    fig.tight_layout()
+    fig.savefig(output)
+    fig.clf()
 
 (ax_1, ax_2) = fig.subplots(ncols=2)
 # generate_circle(
