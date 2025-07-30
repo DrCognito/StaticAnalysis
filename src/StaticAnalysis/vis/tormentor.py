@@ -22,7 +22,7 @@ from PIL.Image import open as Image_open
 import matplotlib.patheffects as PathEffects
 from matplotlib.patches import Rectangle
 from sqlalchemy import and_, or_
-from pandas import concat, read_sql
+from pandas import concat, read_sql, Series
 import numpy as np
 from functools import partial
 
@@ -119,7 +119,7 @@ def heatmap(df: DataFrame, ax,
 
     # Add the maps
     add_map(ax, extent=EXTENT)
-    ax.axis('off')
+    ax.set_axis_off()
     # Fix the weights
     coord_z = mesh_df['count'].values.reshape(bins+1,bins+1).T
     coord_z = np.ma.masked_array(coord_z, coord_z < 1)
@@ -141,6 +141,62 @@ def heatmap(df: DataFrame, ax,
     # Set top axis limits
     ax.set_ylim(rect.get_y(), rect.get_y() + rect.get_height())
     ax.set_xlim(rect.get_x(), rect.get_x() + rect.get_width())
+    
+    return ax
+
+
+def numpy_circler(
+    ward: Series,
+    x_mesh, y_mesh, circ_radius,
+    coverage_area: Rectangle):
+    # Adjust the coordinates to fit in our spacial region
+    x_cord = ward['xCoordinate'] - coverage_area.get_x()
+    y_cord = ward['yCoordinate'] - coverage_area.get_y()
+    # Make the radius map
+    radii2 = (x_mesh - x_cord) ** 2 + (y_mesh - y_cord) ** 2
+    # Limit it to our ward radius
+    circle = radii2 < circ_radius**2
+    circle = circle.astype('uint8')
+    
+    return circle
+
+
+def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=500, add_scatter=True):
+    # Setup coordinate spaces
+    x_dist = np.linspace(0, rect.get_width(), bins+1)
+    y_dist = np.linspace(0, rect.get_height(), bins+1)
+    xx, yy = np.meshgrid(x_dist, y_dist)
+    # Partial func for the circles
+    circler = partial(
+        numpy_circler,
+        x_mesh=xx, y_mesh=yy, circ_radius=1050, coverage_area=rect
+    )
+    # Generate the circles
+    df['circles'] = df.apply(circler, axis=1)
+    coord_z = sum(df['circles'])
+    # Cut zeroes
+    coord_z = np.ma.masked_array(coord_z, coord_z < 1)
+    # Add the maps
+    add_map(ax, extent=EXTENT)
+    # Add circle
+    coord_x, coord_y = _get_mesh(rect, bins+1)
+    ax.pcolormesh(
+        coord_x.T,
+        coord_y.T,
+        coord_z.T,
+        alpha=0.5)
+    
+    # Set top axis limits
+    ax.set_ylim(rect.get_y(), rect.get_y() + rect.get_height())
+    ax.set_xlim(rect.get_x(), rect.get_x() + rect.get_width())
+    ax.axis('off')
+    
+    # Do the scatter if we want!
+    if add_scatter:
+        ax.scatter(
+            x=df['xCoordinate'], y=df['yCoordinate'],
+            alpha=1.0, marker='o', s=25, edgecolors='black'
+        )
     
     return ax
 
@@ -176,8 +232,10 @@ def plot_tormie_sentries_heatmap(
         bottom_df = DataFrame()
 
     ax_t, ax_b = fig.subplots(ncols=2)
-    heatmap(top_df, ax_t, top_left, add_scatter=True)
-    heatmap(bottom_df, ax_b, bottom_right, add_scatter=True)
+    # heatmap(top_df, ax_t, top_left, add_scatter=True)
+    # heatmap(bottom_df, ax_b, bottom_right, add_scatter=True)
+    heatmap_numpy(top_df, ax_t, top_left, add_scatter=True)
+    heatmap_numpy(bottom_df, ax_b, bottom_right, add_scatter=True)
     
     return fig
 
