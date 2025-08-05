@@ -7,8 +7,10 @@ from sqlalchemy import (BigInteger, Column, DateTime, Integer, create_engine,
 from sqlalchemy.orm import relationship, Session, reconstructor
 from sqlalchemy.types import Enum
 
-from StaticAnalysis.replays import (Base, JSONProcess, Player, Rune, Scan,
-                                    Smoke, TeamSelections, Ward, Tormentor, Stacks)
+from StaticAnalysis.replays import (
+    Base, JSONProcess, Player, Rune, Scan,
+    Smoke, TeamSelections, Ward, Tormentor, Stacks,
+    TwinGate)
 from StaticAnalysis.replays.Common import Team
 from collections import Counter
 
@@ -68,6 +70,10 @@ class Replay(Base):
                                  cascade="all, delete-orphan",
                                  #single_parent=True, passive_deletes='all'
                                  )
+    twin_gates = relationship(
+        TwinGate.TwinGate, back_populates="replay",
+        lazy="dynamic",cascade="all, delete-orphan",
+        )
 
     def get_player_by_hero(self, hero, nameType=HeroIDType.NPC_NAME):
         if nameType != HeroIDType.NPC_NAME:
@@ -240,6 +246,7 @@ def InitDB(path):
     Scan.InitDB(path)
     Rune.InitDB(path)
     Tormentor.InitDB(path)
+    TwinGate.InitDB(path)
 
     return engine
 
@@ -310,7 +317,7 @@ def populate_from_JSON_file(path, session, skip_existing=True):
         )
         
         working_replay.player_stacks = Stacks.populate_from_JSON(jsonFile, working_replay, session)
-
+        working_replay.twin_gates = TwinGate.populate_from_JSON(jsonFile, working_replay)
     session.merge(working_replay)
     session.commit()
     return working_replay
