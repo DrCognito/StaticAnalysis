@@ -157,6 +157,13 @@ def get_tormentor_summary(json_in):
     return {}
 
 
+def get_twin_gates(json_in):
+    for x in json_in:
+        if x['type'] == 'TwinGates':
+            return x['gateChannels']
+    return []
+
+
 def get_league_id(json_in):
     pick_ban = get_pick_ban(json_in)
 
