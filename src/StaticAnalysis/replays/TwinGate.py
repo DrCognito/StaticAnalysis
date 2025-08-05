@@ -42,7 +42,7 @@ def get_gate_pos(yPos: float) -> Team:
     return Team.DIRE if diffMax < diffMin else Team.RADIANT
 
 
-def populate_from_JSON(json, replay_in, session) -> List[TwinGate]:
+def populate_from_JSON(json, replay_in) -> List[TwinGate]:
     summary = get_twin_gates(json)
     gates = []
 
