@@ -15,6 +15,8 @@ import time
 from datetime import timedelta
 from statistics import fmean
 
+from loguru import logger as LOG
+
 # Main
 json_set = StaticAnalysis.CONFIG['json']
 # Testing
@@ -29,21 +31,19 @@ DRAFT_ARCHIVE_PATH = json_set['DRAFT_JSON_ARCHIVE']
 def drafts_to_db(skip_existing=True, json_files:list[Path]=[]):
     # json_files = list(Path(base_path).glob('*.json'))
     for j in json_files:
-        print(j)
+        LOG.info(j)
         archive = Path(DRAFT_ARCHIVE_PATH) / j.name
         if archive.exists():
-            print(f"File already processed and exists in archive! {archive}")
+            LOG.info(f"File already processed and exists in archive! {archive}")
             continue
         try:
             populate_from_JSON_file(j, session, skip_existing)
         except SQLAlchemyError as e:
-            print(e)
-            print("Failed to process {}".format(j))
+            LOG.opt(exception=True).error("Failed to process {}".format(j))
             session.rollback()
             exit(2)
         except IOError as e:
-            print(e)
-            print("IOError reading {}".format(j))
+            LOG.opt(exception=True).error("IOError reading {}".format(j))
             session.rollback()
             exit(3)
         if not archive.exists():
@@ -60,32 +60,30 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
 
         archive = Path(ARCHIVE_PATH) / j.name
         if archive.exists():
-            print(f"File already processed and exists in archive! {archive}")
+            LOG.info(f"File already processed and exists in archive! {archive}")
             continue
         try:
             populate_from_JSON_file(j, session, skip_existing=skip_existing)
         except SQLAlchemyError as e:
-            print(e)
-            print("Failed to process {}".format(j))
+            LOG.opt(exception=True).error("Failed to process {}".format(j))
             session.rollback()
             exit(2)
         except IOError as e:
-            print(e)
-            print("IOError reading {}".format(j))
+            LOG.opt(exception=True).error("IOError reading {}".format(j))
             session.rollback()
             exit(3)
         if not archive.exists():
             rename(j, archive)
 
-        print(f"{j} ({time.perf_counter() - j_start})")
+        LOG.info(f"{j} ({time.perf_counter() - j_start})")
         replay_times.append(time.perf_counter() - j_start)
 
     if replay_times:
-        print(
+        LOG.info(
             f"Average time per replay: {fmean(replay_times)}. Maximum: {max(replay_times)}"
-            )
+        )
     total_seconds = time.perf_counter() - replays_start
-    print(f"Total time taken: {timedelta(seconds = total_seconds)}")
+    LOG.info(f"Total time taken: {timedelta(seconds = total_seconds)}")
     session.commit()
 
 
@@ -95,17 +93,15 @@ def reprocess_replay(replays):
 
         process_file = Path(ARCHIVE_PATH) / file
         if process_file.exists():
-            print("Reprocessing ", process_file)
+            LOG.info("Reprocessing ", process_file)
             try:
                 populate_from_JSON_file(process_file, session, skip_existing=False)
             except SQLAlchemyError as e:
-                print(e)
-                print("Failed to process {}".format(r))
+                LOG.opt(exception=True).error("Failed to process {}".format(j))
                 session.rollback()
                 exit(2)
             except IOError as e:
-                print(e)
-                print("IOError reading {}".format(r))
+                LOG.opt(exception=True).error("IOError reading {}".format(j))
                 session.rollback()
                 exit(3)
         session.commit()
@@ -152,12 +148,12 @@ if __name__ == '__main__':
         json_draft = []
         for j in list(Path(DRAFT_PROCESSING_PATH).glob('*.json')):
             if j.name in file_names:
-                print(f"Skipping draft for {j.name} as it has a full replay in processing.")
+                LOG.info(f"Skipping draft for {j.name} as it has a full replay in processing.")
                 archive = Path(DRAFT_ARCHIVE_PATH) / j.name
                 rename(j, archive)
                 continue
             if j.name in archive_files:
-                print(f"Skipping draft for {j.name} as it has a full replay in archive.")
+                LOG.info(f"Skipping draft for {j.name} as it has a full replay in archive.")
                 archive = Path(DRAFT_ARCHIVE_PATH) / j.name
                 rename(j, archive)
                 continue
@@ -168,7 +164,7 @@ if __name__ == '__main__':
         if args.full_reprocess:
             for j in list(Path(DRAFT_ARCHIVE_PATH).glob('*.json')):
                 if j.name in file_names:
-                    print(f"Skipping draft for {j.name} as it has a full replay.")
+                    LOG.info(f"Skipping draft for {j.name} as it has a full replay.")
                     continue
 
                 json_draft.append(j)
