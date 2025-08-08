@@ -6,21 +6,60 @@ from pandas import DataFrame, IntervalIndex, cut
 import matplotlib.pyplot as plt
 import seaborn as sns
 from StaticAnalysis.lib.Common import seconds_to_nice
+from StaticAnalysis.replays.Common import Team
+from StaticAnalysis.replays.Player import Player
+from itertools import chain
+
 falcons = get_team(9247354)
 spirit = get_team(7119388)
-team = spirit
+liquid = get_team(2163)
+team = liquid
 pids = [p.player_id for p in team.players]
 pid_map = {p.player_id:p.name for p in team.players}
 replays = session.query(Replay).filter(
     team.filter, Replay.endTimeUTC > MAIN_TIME 
 )
-n_replays = replays.count()
-q_gate = session.query(TwinGate).filter(TwinGate.steamID.in_(pids)).join(replays.subquery())
-gate_list = [
-    {'steamID': p.steamID, 'time':p.channel_start, 'gate side':p.side_pos,
-     'name': pid_map[p.steamID] + f'\n{n_replays}'} for p in q_gate
-    ]
-test_df = DataFrame(gate_list)
+
+def build_dataframe(replays, team, session):
+    '''
+    Builds a set of gate transitions from the set of replays requiring team matching to team in
+    TwinGate so the team should be correct!
+    Returns DataFrame and team specific player game counts.
+    '''
+    pid_map = {p.player_id:p.name for p in team.players}
+    counts = {}
+    gate_list = []
+    for p in team.players:
+        counts[p.name] = 0
+        # Radiant
+        r_replays = replays.filter(Replay.get_side_filter(team, Team.RADIANT)).subquery()
+        r_gates = session.query(TwinGate).filter(
+            TwinGate.hero_team == Team.RADIANT, TwinGate.steamID == p.player_id
+        ).join(r_replays)
+        counts[p.name] += session.query(Player).filter(
+            Player.steamID == p.player_id, Player.team == Team.RADIANT).join(r_replays).count()
+        # Dire
+        d_replays = replays.filter(Replay.get_side_filter(team, Team.DIRE)).subquery()
+        d_gates = session.query(TwinGate).filter(
+            TwinGate.hero_team == Team.DIRE, TwinGate.steamID == p.player_id
+        ).join(d_replays)
+        counts[p.name] += session.query(Player).filter(
+            Player.steamID == p.player_id, Player.team == Team.DIRE).join(d_replays).count()
+
+        gate_list += [
+            {'steamID': g.steamID, 'time':g.channel_start, 'gate side':g.side_pos,
+            'name': pid_map[g.steamID]} for g in chain(r_gates, d_gates)
+        ]
+    return DataFrame(gate_list), counts
+
+
+# n_replays = replays.count()
+# q_gate = session.query(TwinGate).filter(TwinGate.steamID.in_(pids)).join(replays.subquery())
+# gate_list = [
+#     {'steamID': p.steamID, 'time':p.channel_start, 'gate side':p.side_pos,
+#      'name': pid_map[p.steamID] + f'\n{n_replays}'} for p in q_gate
+#     ]
+test_df, game_counts = build_dataframe(replays, team, session)
 
 time_binning = [
     (4*60, 8*60), # 4 to 8mins
@@ -57,12 +96,13 @@ fig = plt.figure(figsize=(18, 6), layout="constrained")
 (ax1, ax2) = fig.subplots(ncols=2)
 
 
-def add_count(ax, count: list[int]):
+def add_count(ax, count: dict[str, int]):
     # Add "games"
     ax.text(x=-0.1, y=-0.1, s='Games', ha='right', va='baseline')
     offset = -0.1
-    for c, p in zip(count, ax.get_xticks()):
-        ax.text(y=offset, x=p, s=c, ha='center')
+    for tex in ax.get_xticklabels():
+        c = count[tex.get_text()]
+        ax.text(y=offset, x=tex.get_position()[0], s=c, ha='center')
     
     return ax
 
@@ -72,18 +112,20 @@ ax1.xaxis.tick_top()
 ax1.set_xticks(ax1.get_xticks(), ax1.get_xticklabels(), rotation=0, ha='center')
 ax1.xaxis.set_tick_params(pad=25.0)
 ax1.xaxis.set_ticks_position('none')
-add_count(ax1, [n_replays]*5)
+add_count(ax1, game_counts)
 ax1.set_yticks(ax1.get_yticks(), ax1.get_yticklabels(), rotation=0, ha='right')
 ax1.set_title("Total", pad=20)
 
-test_frac = test_pivot/replays.count()
+test_frac = test_pivot
+for col in test_frac.columns:
+    test_frac[col] = test_frac[col] / game_counts[col]
 sns.heatmap(test_frac, annot=True, fmt=".2f", linewidths=.5, ax=ax2)
 ax2.set(xlabel="", ylabel="")
 ax2.xaxis.tick_top()
 ax2.set_xticks(ax2.get_xticks(), ax2.get_xticklabels(), rotation=0, ha='center')
 ax2.xaxis.set_ticks_position('none')
 ax2.xaxis.set_tick_params(pad=25.0)
-add_count(ax2, [n_replays]*5)
+add_count(ax2, game_counts)
 ax2.set_yticks(ax2.get_yticks(), ax2.get_yticklabels(), rotation=0, ha='right')
 ax2.set_title("Average", pad=20)
 
