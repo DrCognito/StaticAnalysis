@@ -23,6 +23,7 @@ class TwinGate(Base):
     channel_start = Column(Integer, primary_key=True)
     channel_end = Column(Integer, primary_key=True)
     hero = Column(String)
+    hero_team = Column(Enum(Team))
     side_pos = Column(Enum(Team))
 
     def __init__(self, replay_in):
@@ -55,12 +56,12 @@ def populate_from_JSON(json, replay_in, session) -> List[TwinGate]:
         gate.channel_end = s['end'] - replay_in.creepSpawn
         gate.side_pos = get_gate_pos(s['startY'])
         # Get the steam ID and channel position for tormie pos
-        for rp in replay_in.players:
-            if rp.hero == s['hero']:
-                gate.steamID = rp.steamID
-                break
-        if gate.steamID is None:
-            LOG.warning(f"Could not asign steamID for {gate.hero} in {gate.replayID} at start {s['start']}")
+        player = replay_in.get_player_by_hero(s['hero'])
+        if player is not None:
+            gate.steamID = player.steamID
+            gate.hero_team = player.team
+        else:
+            LOG.warning(f"Could not asign player for {gate.hero} in {gate.replayID} at start {s['start']}. Missing steamID and hero_team.")
 
         session.add(gate)
         gates.append(gate)
