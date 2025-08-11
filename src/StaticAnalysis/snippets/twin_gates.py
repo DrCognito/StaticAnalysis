@@ -14,7 +14,8 @@ from StaticAnalysis.vis.twin_gate import get_dataframe_counts
 falcons = get_team(9247354)
 spirit = get_team(7119388)
 liquid = get_team(2163)
-team = liquid
+aurora = get_team(9467224)
+team = aurora
 pids = [p.player_id for p in team.players]
 pid_map = {p.player_id:p.name for p in team.players}
 replays = session.query(Replay).filter(
@@ -91,11 +92,11 @@ test_pivot.columns = list(zip(*test_pivot.columns))[1]
 test_pivot = test_pivot.reindex(columns=[p.name for p in team.players])
 # test_pivot.columns = [p.name for p in team.players]
 test_pivot = test_pivot.fillna(0).astype(int)
-sns.set_theme(font_scale=1.5)
+sns.set_theme(font_scale=1.0)
 # Draw a heatmap with the numeric values in each cell
-fig = plt.figure(figsize=(18, 6), layout="constrained")
+fig = plt.figure(figsize=(8, 8), layout="compressed")
 # fig.set_layout_engine('compressed')
-(ax1, ax2) = fig.subplots(ncols=2)
+(ax1, ax2) = fig.subplots(nrows=2)
 
 
 def add_count(ax, count: dict[str, int]):
@@ -112,7 +113,7 @@ sns.heatmap(test_pivot, annot=True, fmt="d", linewidths=.5, ax=ax1)
 ax1.set(xlabel="", ylabel="")
 ax1.xaxis.tick_top()
 ax1.set_xticks(ax1.get_xticks(), ax1.get_xticklabels(), rotation=0, ha='center')
-ax1.xaxis.set_tick_params(pad=25.0)
+ax1.xaxis.set_tick_params(pad=15.0)
 ax1.xaxis.set_ticks_position('none')
 add_count(ax1, game_counts)
 ax1.set_yticks(ax1.get_yticks(), ax1.get_yticklabels(), rotation=0, ha='right')
@@ -126,10 +127,10 @@ ax2.set(xlabel="", ylabel="")
 ax2.xaxis.tick_top()
 ax2.set_xticks(ax2.get_xticks(), ax2.get_xticklabels(), rotation=0, ha='center')
 ax2.xaxis.set_ticks_position('none')
-ax2.xaxis.set_tick_params(pad=25.0)
+ax2.xaxis.set_tick_params(pad=20.0)
 add_count(ax2, game_counts)
 ax2.set_yticks(ax2.get_yticks(), ax2.get_yticklabels(), rotation=0, ha='right')
-ax2.set_title("Average", pad=20)
+ax2.set_title("Average", pad=15.0)
 
 fig.savefig("twin_gates.png")
 
