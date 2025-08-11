@@ -11,8 +11,10 @@ from itertools import chain
 from sqlalchemy.orm import Query, Session
 from pathlib import Path
 from StaticAnalysis import CONFIG
+import matplotlib.pyplot as plt
 
 PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
+sns.set_theme(font_scale=1.0)
 
 def get_dataframe_counts(r_query: Query, team, session) -> tuple[DataFrame, dict[str, int]]:
     '''
@@ -55,18 +57,23 @@ def add_count(ax: Axes, count: dict[str, int], offset = -0.1) -> Axes:
     Adds the counts in count to Axes ax at the offset.
     '''
     # Add "games"
-    ax.text(x=-0.1, y=-0.1, s='Games', ha='right', va='baseline')
+    y_font = ax.get_yticklabels()[0].get_fontproperties()
+    ax.text(
+        x=-0.1, y=-0.1, s='Games',
+        ha='right', va='baseline',
+        fontproperties=y_font)
     offset = -0.1
     for tex in ax.get_xticklabels():
         c = count[tex.get_text()]
-        ax.text(y=offset, x=tex.get_position()[0], s=c, ha='center')
+        fp = tex.get_fontproperties()
+        ax.text(y=offset, x=tex.get_position()[0], s=c, ha='center',
+            fontproperties=fp)
     
     return ax
 
 
-def plot_twingate_table(ax: Axes, df: DataFrame) -> Axes:
-    sns.set_theme(font_scale=1.5)
-    sns.heatmap(df, annot=True, fmt="d", linewidths=.5, ax=ax)
+def plot_twingate_table(ax: Axes, df: DataFrame, num_fmt: str) -> Axes:
+    sns.heatmap(df, annot=True, fmt=num_fmt, linewidths=.5, ax=ax)
     ax.set(xlabel="", ylabel="")
     ax.xaxis.tick_top()
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=0, ha='center')
@@ -95,8 +102,7 @@ tg_time_map = {k:v for k,v in zip(tg_time_binning, tg_time_names)}
 
 
 def do_twin_gates(
-    team: TeamInfo, r_query: Query, session: Session,
-    fig: Figure, metadata: dict) -> dict:
+    team: TeamInfo, r_query: Query, session: Session, metadata: dict) -> dict:
     # Initial plot setup
     plot_base = Path(PLOT_BASE_PATH)
     team_path: Path = plot_base / team.name / metadata['name']
@@ -105,7 +111,10 @@ def do_twin_gates(
     pid_map = {p.player_id:p.name for p in team.players}
     # Get data
     df, game_counts = get_dataframe_counts(r_query, team, session)
-    
+    if df.empty:
+        metadata['plot_twingate_move'] = None
+        return metadata
+
     # Setup the DataFrame
     df['tBin'] = cut(df['time'], tg_time_binning)
     # Labels wont work on IntervalIndex
@@ -125,20 +134,17 @@ def do_twin_gates(
     df = df.fillna(0).astype(int)
     
     # Figure setup
-    fig.set_figheight(18)
-    fig.set_figwidth(6)
-    fig.set_layout_engine('compressed')
+    fig = plt.figure(figsize=(18, 6), layout="compressed")
     (ax1, ax2) = fig.subplots(ncols=2)
-    
     # Do total
-    ax1 = plot_twingate_table(ax1, df)
+    ax1 = plot_twingate_table(ax1, df, "d")
     ax1 = add_count(ax1, game_counts)
     ax1.set_title("Total", pad=20)
     
     # Do fractional
     for col in df.columns:
         df[col] = df[col] / game_counts[col]
-    ax2 = plot_twingate_table(ax2, df)
+    ax2 = plot_twingate_table(ax2, df, ".2f")
     ax2 = add_count(ax2, game_counts)
     ax2.set_title("Average", pad=20)
     
