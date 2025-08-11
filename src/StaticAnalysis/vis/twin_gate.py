@@ -77,7 +77,7 @@ def plot_twingate_table(ax: Axes, df: DataFrame, num_fmt: str) -> Axes:
     ax.set(xlabel="", ylabel="")
     ax.xaxis.tick_top()
     ax.set_xticks(ax.get_xticks(), ax.get_xticklabels(), rotation=0, ha='center')
-    ax.xaxis.set_tick_params(pad=25.0)
+    ax.xaxis.set_tick_params(pad=15.0)
     ax.xaxis.set_ticks_position('none')
     ax.set_yticks(ax.get_yticks(), ax.get_yticklabels(), rotation=0, ha='right')
     
@@ -134,8 +134,8 @@ def do_twin_gates(
     df = df.fillna(0).astype(int)
     
     # Figure setup
-    fig = plt.figure(figsize=(18, 6), layout="compressed")
-    (ax1, ax2) = fig.subplots(ncols=2)
+    fig = plt.figure(figsize=(8, 8), layout="compressed")
+    (ax1, ax2) = fig.subplots(nrows=2)
     # Do total
     ax1 = plot_twingate_table(ax1, df, "d")
     ax1 = add_count(ax1, game_counts)
