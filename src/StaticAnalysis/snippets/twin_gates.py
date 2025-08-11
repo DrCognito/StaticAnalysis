@@ -9,6 +9,7 @@ from StaticAnalysis.lib.Common import seconds_to_nice
 from StaticAnalysis.replays.Common import Team
 from StaticAnalysis.replays.Player import Player
 from itertools import chain
+from StaticAnalysis.vis.twin_gate import get_dataframe_counts
 
 falcons = get_team(9247354)
 spirit = get_team(7119388)
@@ -59,7 +60,7 @@ def build_dataframe(replays, team, session):
 #     {'steamID': p.steamID, 'time':p.channel_start, 'gate side':p.side_pos,
 #      'name': pid_map[p.steamID] + f'\n{n_replays}'} for p in q_gate
 #     ]
-test_df, game_counts = build_dataframe(replays, team, session)
+test_df, game_counts = get_dataframe_counts(replays, team, session)
 
 time_binning = [
     (4*60, 8*60), # 4 to 8mins
@@ -78,7 +79,7 @@ time_names = [
 #t_binning = interval_range(0, 30*60, 3)
 time_binning = IntervalIndex.from_tuples(time_binning)
 time_map = {k:v for k,v in zip(time_binning, time_names)}
-test_df['tBin'] = cut(test_df['time'], time_binning)
+test_df['tBin'] = cut(test_df['time'], time_binning, labels=time_names)
 test_df['tBin'] = test_df['tBin'].map(time_map)
 test_df['name'] = test_df['steamID'].map(pid_map)
 test_df['count'] = 1
@@ -93,6 +94,7 @@ test_pivot = test_pivot.fillna(0).astype(int)
 sns.set_theme(font_scale=1.5)
 # Draw a heatmap with the numeric values in each cell
 fig = plt.figure(figsize=(18, 6), layout="constrained")
+# fig.set_layout_engine('compressed')
 (ax1, ax2) = fig.subplots(ncols=2)
 
 
