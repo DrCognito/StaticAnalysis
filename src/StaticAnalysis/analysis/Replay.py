@@ -10,6 +10,7 @@ from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Rune import RuneID
 from StaticAnalysis.replays.Smoke import Smoke
 from StaticAnalysis.replays.TeamSelections import PickBans
+from sqlalchemy.orm import Query, Session
 
 
 def win_rate_table(r_query, team):
@@ -94,7 +95,7 @@ def get_smoke(r_query, session, team: TeamInfo):
     return dire, radiant
 
 
-def get_side_replays(r_query, session, team: TeamInfo):
+def get_side_replays(r_query: Query, session: Session, team: TeamInfo):
     dire_filter = Replay.get_side_filter(team, Team.DIRE)
     radiant_filter = Replay.get_side_filter(team, Team.RADIANT)
 
