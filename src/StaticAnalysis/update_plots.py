@@ -67,6 +67,7 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
 from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players, plot_tormentor_sentries, plot_tormie_sentries_heatmap
 from StaticAnalysis.vis.summary import do_summary
+from StaticAnalysis.vis.twin_gate import do_twin_gates
 import StaticAnalysis
 from StaticAnalysis import session, team_session, pub_session, LOG
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times, wisdom_rune_table, build_wisdom_rune_summary, plot_wisdom_table
@@ -144,6 +145,7 @@ arguments.add_argument("--prioritypicks", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--runes", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--tormentors", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--twin_gates", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
 arguments.add_argument('--pubs_updated', action='store_true', default=False)
@@ -1665,7 +1667,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata['time_string'] += f" to {end_time.astimezone(pytz.timezone('CET')).strftime('%Y-%m-%d')}"
 
     LOG.debug("{} Process {}.".format(metadata['name'], team.name))
-    tp_bar = tqdm(total=12, position=2, desc='Draft', leave=False)
+    tp_bar = tqdm(total=13, position=2, desc='Draft', leave=False)
     if args.draft:
         plt.close('all')
         start = t.process_time()
@@ -1742,8 +1744,16 @@ def process_team(team: TeamInfo, metadata, time: datetime,
             team, r_query, metadata, new_dire,
             new_radiant, cache=True)
         metadata = do_tormentor_sentries(team, r_query, metadata)
-        plt.close('all')
         LOG.debug(f"Processed tormentors in {t.process_time() - start} ({metadata['name']})")
+        plt.close('all')
+    tp_bar.update()
+    tp_bar.set_description('Twin Gates')
+    if args.twin_gates:
+        start = t.process_time()
+        metadata = do_twin_gates(
+            team, r_query, session, metadata)
+        plt.close('all')
+        LOG.debug(f"Processed twin gates in {t.process_time() - start} ({metadata['name']})")
     tp_bar.update()
     tp_bar.set_description('Summary')
     if args.summary:
@@ -1930,7 +1940,6 @@ def do_datasummary(r_filter=None):
     plt.close(fig)
 
 
-
 def main(arguments):
     plt.ioff()
     args = arguments.parse_args()
@@ -2003,6 +2012,8 @@ def main(arguments):
         args.runes = default_process
     if args.tormentors is None:
         args.tormentors = default_process
+    if args.twin_gates is None:
+        args.twin_gates = default_process
 
     scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
     try:
