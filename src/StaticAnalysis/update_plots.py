@@ -1768,7 +1768,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
                                    mintime=stat_time, maxtime=end_time)
         LOG.debug(f"Processed player picks in {t.process_time() - start} ({metadata['name']})")
         metadata = do_player_pubs(team, metadata, time, end_time)
-        LOG.debug(f"Processed player picks in {t.process_time() - start} ({metadata['name']})")
+        LOG.debug(f"Processed player pubs in {t.process_time() - start} ({metadata['name']})")
         start = t.process_time()
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
         LOG.debug(f"Processed portrait picks in {t.process_time() - start} ({metadata['name']})")
