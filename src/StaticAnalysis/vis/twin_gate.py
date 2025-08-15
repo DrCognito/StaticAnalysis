@@ -32,17 +32,21 @@ def get_dataframe_counts(r_query: Query, team, session) -> tuple[DataFrame, dict
 
         # Radiant
         r_gates = session.query(TwinGate).filter(
-            TwinGate.hero_team == Team.RADIANT, TwinGate.steamID == p.player_id
+            TwinGate.hero_team == Team.RADIANT, TwinGate.steamID == p.player_id,
+            TwinGate.hero != 'npc_dota_hero_meepo'
         ).join(r_replays)
         counts[p.name] += session.query(Player).filter(
-            Player.steamID == p.player_id, Player.team == Team.RADIANT).join(r_replays).count()
+            Player.steamID == p.player_id, Player.team == Team.RADIANT,
+            Player.hero != 'npc_dota_hero_meepo').join(r_replays).count()
 
         # Dire
         d_gates = session.query(TwinGate).filter(
-            TwinGate.hero_team == Team.DIRE, TwinGate.steamID == p.player_id
+            TwinGate.hero_team == Team.DIRE, TwinGate.steamID == p.player_id,
+            TwinGate.hero != 'npc_dota_hero_meepo'
         ).join(d_replays)
         counts[p.name] += session.query(Player).filter(
-            Player.steamID == p.player_id, Player.team == Team.DIRE).join(d_replays).count()
+            Player.steamID == p.player_id, Player.team == Team.DIRE,
+            Player.hero != 'npc_dota_hero_meepo').join(d_replays).count()
 
         gate_list += [
             {'steamID': g.steamID, 'time':g.channel_start, 'gate side':g.side_pos,
