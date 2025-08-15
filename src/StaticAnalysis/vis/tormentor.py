@@ -162,6 +162,14 @@ def numpy_circler(
 
 
 def heatmap_numpy(df: DataFrame, ax, rect: Rectangle, bins=500, add_scatter=True):
+    # Check for missing data
+    if df.empty:
+        ax.text(0.5, 0.5, "No Data", fontsize=18,
+                    horizontalalignment='center',
+                    verticalalignment='center')
+        ax.yaxis.set_ticks([])
+        ax.xaxis.set_ticks([])
+        return ax
     # Setup coordinate spaces
     x_dist = np.linspace(0, rect.get_width(), bins+1)
     y_dist = np.linspace(0, rect.get_height(), bins+1)
