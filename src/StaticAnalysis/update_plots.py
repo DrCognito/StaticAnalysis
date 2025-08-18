@@ -874,7 +874,10 @@ def do_portrait_picks(
     for p in team.players:
         df = comp_df.get(p.name)
         if df is not None:
-            add_extra_cols(p, df, r_query=r_query)
+            if use_team:
+                add_extra_cols(p, df, r_query=r_query)
+            else:
+                add_extra_cols(p, df)
 
     # Uses MAIN_TIME to get the missing comp heroes
     update_df = get_team_dataframes(
