@@ -628,7 +628,7 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_dire'].append(str(relpath))
 
         p_out = output / 'wards_gt15.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15)],
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_dire'].append(str(relpath))
