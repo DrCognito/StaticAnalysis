@@ -1375,6 +1375,13 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
     if plot_hero_flex:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, y=0, keep_aspect_ratio=True, w=180, h=290)
+    # Pubs full plot
+    plot_hero_pubs = metadata.get('hero_pubs')
+    if plot_hero_pubs:
+        pdf.add_page()
+        pdf.image(
+            Path(PLOT_BASE_PATH) / plot_hero_pubs,
+            keep_aspect_ratio=True, y=5, w=180, h=290)
     # Flex pubs
     # plot_flex_pubs = metadata.get('plot_flex_pubs')
     # if plot_flex_pubs:
@@ -1519,6 +1526,13 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     if plot_hero_flex:
         pdf.add_page()
         pdf.image(Path(PLOT_BASE_PATH) / plot_hero_flex, keep_aspect_ratio=True, w=180, h=290)
+    # Pubs full plot
+    plot_hero_pubs = metadata.get('hero_pubs')
+    if plot_hero_pubs:
+        pdf.add_page()
+        pdf.image(
+            Path(PLOT_BASE_PATH) / plot_hero_pubs,
+            keep_aspect_ratio=True, y=5, w=180, h=290)
     # Win Rate
     # plot_win_rate = metadata.get('plot_win_rate')
     # if plot_win_rate:
