@@ -587,7 +587,7 @@ def do_wards(team: TeamInfo, r_query,
     wards_dire, wards_radiant = get_ptbase_tslice(session, r_query, team=team,
                                                   Type=Ward,
                                                   start=-2*60,
-                                                  end=12*60,
+                                                  end=None,
                                                   replay_limit=replay_limit)
     wards_dire = wards_dire.filter(Ward.ward_type == WardType.OBSERVER)
     wards_radiant = wards_radiant.filter(Ward.ward_type == WardType.OBSERVER)
@@ -658,7 +658,7 @@ def do_wards(team: TeamInfo, r_query,
         metadata['plot_ward_radiant'].append(str(relpath))
 
         p_out = output / 'wards_gt15.jpg'
-        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15)],
+        _plot_wards(ward_df.loc[(ward_df['game_time'] > 15*60)],
                     p_out)
         relpath = (p_out).relative_to(Path(PLOT_BASE_PATH))
         metadata['plot_ward_radiant'].append(str(relpath))
