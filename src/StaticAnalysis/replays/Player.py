@@ -14,9 +14,11 @@ from StaticAnalysis.replays.JSONProcess import (get_accumulating_lists,
                                                 get_player_created,
                                                 get_player_status,
                                                 get_player_team,
-                                                get_net_worth)
+                                                get_net_worth,
+                                                get_player_team_pb)
 from sqlalchemy.orm import aliased
 from sqlalchemy import inspect
+from loguru import logger as LOG
 # from StaticAnalysis.replays.Replay import Replay
 
 
@@ -305,14 +307,17 @@ def populate_from_JSON(json, replay_in, session):
 
     def _networth(player, json):
         net_worth = list()
-        for t, gp in enumerate(get_net_worth(player.hero, json)):
-            new_class = NetWorth(player)
-            session.add(new_class)
-            new_class.steamID = player.steamID
-            new_class.game_time = t + player.created_at - replay_in.creepSpawn
-            new_class.networth = gp
+        try:
+            for t, gp in enumerate(get_net_worth(player.hero, json)):
+                new_class = NetWorth(player)
+                session.add(new_class)
+                new_class.steamID = player.steamID
+                new_class.game_time = t + player.created_at - replay_in.creepSpawn
+                new_class.networth = gp
 
-            net_worth.append(new_class)
+                net_worth.append(new_class)
+        except ValueError:
+            LOG.warning(f"Missing networth data for {hero} in {replay_in.replayID}")
 
         return net_worth
 
@@ -324,60 +329,65 @@ def populate_from_JSON(json, replay_in, session):
         kills = list()
         last_hits = list()
 
-        for v in list_in["assists"]:
-            new_class = Assists()
-            session.add(new_class)
-            new_class.replay_ID = player.replayID
-            new_class.steam_ID = player.steamID
-            new_class.game_time = int(v) - replay_in.creepSpawn
-            new_class.increment = list_in["assists"][v]
-            # new_class.player = player
+        if list_in["assists"] is not None:
+            for v in list_in["assists"]:
+                new_class = Assists()
+                session.add(new_class)
+                new_class.replay_ID = player.replayID
+                new_class.steam_ID = player.steamID
+                new_class.game_time = int(v) - replay_in.creepSpawn
+                new_class.increment = list_in["assists"][v]
+                # new_class.player = player
 
-            assists.append(new_class)
+                assists.append(new_class)
         
-        for v in list_in["deaths"]:
-            new_class = Deaths()
-            session.add(new_class)
-            new_class.replay_ID = player.replayID
-            new_class.steam_ID = player.steamID
-            new_class.game_time = int(v) - replay_in.creepSpawn
-            new_class.increment = list_in["deaths"][v]
-            # new_class.player = player
+        if list_in["deaths"] is not None:
+            for v in list_in["deaths"]:
+                new_class = Deaths()
+                session.add(new_class)
+                new_class.replay_ID = player.replayID
+                new_class.steam_ID = player.steamID
+                new_class.game_time = int(v) - replay_in.creepSpawn
+                new_class.increment = list_in["deaths"][v]
+                # new_class.player = player
 
-            deaths.append(new_class)
+                deaths.append(new_class)
 
-        for v in list_in["denies"]:
-            new_class = Denies()
-            session.add(new_class)
-            new_class.replay_ID = player.replayID
-            new_class.steam_ID = player.steamID
-            new_class.game_time = int(v) - replay_in.creepSpawn
-            new_class.increment = list_in["denies"][v]
-            # new_class.player = player
+        if list_in["denies"] is not None:
+            for v in list_in["denies"]:
+                new_class = Denies()
+                session.add(new_class)
+                new_class.replay_ID = player.replayID
+                new_class.steam_ID = player.steamID
+                new_class.game_time = int(v) - replay_in.creepSpawn
+                new_class.increment = list_in["denies"][v]
+                # new_class.player = player
 
-            denies.append(new_class)
+                denies.append(new_class)
 
-        for v in list_in["kills"]:
-            new_class = Kills()
-            session.add(new_class)
-            new_class.replay_ID = player.replayID
-            new_class.steam_ID = player.steamID
-            new_class.game_time = int(v) - replay_in.creepSpawn
-            new_class.increment = list_in["kills"][v]
-            # new_class.player = player
+        if list_in["kills"] is not None:
+            for v in list_in["kills"]:
+                new_class = Kills()
+                session.add(new_class)
+                new_class.replay_ID = player.replayID
+                new_class.steam_ID = player.steamID
+                new_class.game_time = int(v) - replay_in.creepSpawn
+                new_class.increment = list_in["kills"][v]
+                # new_class.player = player
 
-            kills.append(new_class)
+                kills.append(new_class)
 
-        for v in list_in["last_hits"]:
-            new_class = LastHits()
-            session.add(new_class)
-            new_class.replay_ID = player.replayID
-            new_class.steam_ID = player.steamID
-            new_class.game_time = int(v) - replay_in.creepSpawn
-            new_class.increment = list_in["last_hits"][v]
-            # new_class.player = player
+        if list_in["last_hits"] is not None:
+            for v in list_in["last_hits"]:
+                new_class = LastHits()
+                session.add(new_class)
+                new_class.replay_ID = player.replayID
+                new_class.steam_ID = player.steamID
+                new_class.game_time = int(v) - replay_in.creepSpawn
+                new_class.increment = list_in["last_hits"][v]
+                # new_class.player = player
 
-            last_hits.append(new_class)
+                last_hits.append(new_class)
 
         return {'assists': assists, 'deaths': deaths, 'denies': denies,
                 'kills': kills, 'last_hits': last_hits}
@@ -393,7 +403,11 @@ def populate_from_JSON(json, replay_in, session):
         new_player.hero = hero
         new_player.steamID = steam_ID
         new_player.created_at = get_player_created(hero, json)
-        new_player.team = get_player_team(hero, json)
+        try:
+            new_player.team = get_player_team(hero, json)
+        except ValueError:
+            LOG.warning(f"Could not determine team from hero object for {hero} in {replay_in.replayID}")
+            new_player.team = get_player_team_pb(hero, json)
 
         new_player.status = _positions(new_player, json, radiant_id, dire_id)
         # new_player.smokes = _smokes(new_player, json)
