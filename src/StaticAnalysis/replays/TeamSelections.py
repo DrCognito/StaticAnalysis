@@ -7,7 +7,8 @@ from sqlalchemy.types import Enum
 
 from StaticAnalysis.replays import Base
 from StaticAnalysis.replays.Common import Team
-from StaticAnalysis.replays.JSONProcess import get_pick_ban, get_player_team
+from StaticAnalysis.replays.JSONProcess import get_pick_ban, get_player_team, get_player_team_pb
+from loguru import logger as LOG
 
 
 class TeamSelections(Base):
@@ -85,7 +86,7 @@ def populate_from_JSON(json, replay_in, session):
                 try:
                     hero = heroByID[int(id)]
                 except KeyError:
-                    print(f"Could not convert hero in pick ban list! {id}")
+                    LOG.warning(f"Could not convert hero in pick ban list! {id}")
             new_pb.hero = hero
             new_pb.is_pick = is_pick
 
@@ -95,10 +96,15 @@ def populate_from_JSON(json, replay_in, session):
             # No first pick info without pickbans so just pick one
             orders = CURRENT_PATCH.first_pick if team == Team.DIRE else CURRENT_PATCH.second_pick
             pick_order = 0
-            print(f"[TeamSelections] Could not populate PickBans from PicksAndBans in replay, using Player.")
+            LOG.warning(f"[TeamSelections] Could not populate PickBans from PicksAndBans in replay, using Player.")
 
             for hero in pick_ban['playerHero']:
                 p_team = get_player_team(hero, json)
+                try:
+                    p_team = get_player_team(hero, json)
+                except ValueError:
+                    LOG.warning(f"Could not determine team from hero object for {hero} in {replay_in.replayID}")
+                    p_team = get_player_team_pb(hero, json)
                 if p_team != team:
                     continue
                 new_pb = PickBans()
