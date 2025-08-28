@@ -2,6 +2,9 @@
    from processed replays in JSON format
 '''
 from StaticAnalysis.replays.Common import Team
+from typing import Literal
+from loguru import logger as LOG
+from herotools.HeroTools import heroByID
 
 
 def get_pick_ban(json_in):
@@ -99,6 +102,24 @@ def get_player_team(hero, json_in):
                          .format(team_name, hero))
 
     return team
+
+def get_player_team_pb(hero, json_in) -> Team:
+    '''
+    Function to get player team from PickBans and not Hero Entity
+    Useful when Hero Entity never spawned.
+    '''
+    pick_ban = get_pick_ban(json_in)
+    team_res = zip(pick_ban['cName'], pick_ban['team'], pick_ban['ID'])
+    for h, t, hid in team_res:
+        if h == "unknown_hero":
+            try:
+                h = heroByID[int(hid)]
+            except KeyError:
+                LOG.warning(f"Could not convert hero in pick ban list! {id}")
+
+        if h == hero:
+            return Team(t)
+    raise ValueError(f"Hero {h} could not be found on any team.")
 
 
 def get_scans(json_in):
