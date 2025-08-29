@@ -10,6 +10,13 @@ from StaticAnalysis import session, team_session
 from StaticAnalysis.lib.team_info import InitTeamDB, TeamInfo
 from StaticAnalysis.lib.team_info import get_team as id_to_team
 from StaticAnalysis.replays.Replay import InitDB, Replay, Team
+# Log setup
+from loguru import logger as LOG
+from tqdm import tqdm
+LOG.remove()
+LOG.add(lambda msg: tqdm.write(msg, end=""), format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <level>{level}</level> {message}", colorize=True, level='INFO')
+LOG.add("scrims.log", rotation="5 MB", level='DEBUG', retention=0)
+
 
 SCRIMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
 TEAMS_JSON_PATH = StaticAnalysis.CONFIG['scrims']['SCRIMS_TEAMS']
@@ -55,28 +62,28 @@ def get_team_id(name: str) -> int:
 
 def is_valid_replay(replay: Replay) -> bool:
     if len(replay.teams) != 2:
-        print(f"Warning invalid number of teams in {replay.replayID}.")
+        LOG.debug(f"Warning invalid number of teams in {replay.replayID}.")
         return False
     if replay.teams[0].teamID == 0:
-        print(f"{replay.replayID}: teams[0].teamID is 0!")
+        LOG.debug(f"{replay.replayID}: teams[0].teamID is 0!")
         return False
     if replay.teams[0].teamName == '':
-        print(f"{replay.replayID}: teams[0].teamName is ''")
+        LOG.debug(f"{replay.replayID}: teams[0].teamName is ''")
         return False
     if replay.teams[1].teamID == 0:
-        print(f"{replay.replayID}: teams[1].teamID is 0!")
+        LOG.debug(f"{replay.replayID}: teams[1].teamID is 0!")
         return False
     if replay.teams[1].teamName == '':
-        print(f"{replay.replayID}: teams[1].teamName is ''")
+        LOG.debug(f"{replay.replayID}: teams[1].teamName is ''")
         return False
     if replay.teams[0].teamID == replay.teams[1].teamID:
-        print(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
+        LOG.debug(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
         return False
     if replay.teams[0].teamName == replay.teams[1].teamName:
-        print(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
+        LOG.debug(f"{replay.replayID}: Found duplicate team for {replay.replayID}.")
         return False
     if replay.teams[0].teamID != main_team_id and replay.teams[1].teamID != main_team_id:
-        print(f"{replay.replayID}: Main team is missing.")
+        LOG.debug(f"{replay.replayID}: Main team is missing.")
         return False
 
     return True
@@ -87,10 +94,10 @@ def fix_replay_mainonly(replay: Replay) -> Replay:
     main_side = replay.get_side(main_team)
     team_dict = replay.get_team_dict()
     if main_side is not None:
-        print(f"Main team already asigned for {replay.replayID}!")
+        LOG.warning(f"Main team already asigned for {replay.replayID}!")
         team_dict[main_side].teamID = main_team.team_id
         team_dict[main_side].teamName = main_team.name
-        return Replay
+        return replay
     main_players = {p.player_id for p in main_team.players}
     n_dire = replay.matching_players(main_players, Team.DIRE)
     n_radiant = replay.matching_players(main_players, Team.RADIANT)
@@ -107,7 +114,7 @@ def fix_replay_mainonly(replay: Replay) -> Replay:
     return replay
 
 
-def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> Replay:
+def fix_replay(replay: Replay, opposition: TeamInfo, n_pmatch=3) -> bool:
     """"Attempt to correct the team info for a replay."""
 
     def _asign(main_s: Team, opp_s: Team):
@@ -179,15 +186,15 @@ team_names = scrim_sheet.get_col(2)
 scrim_ids = scrim_sheet.get_col(3)
 
 if len(team_names) != len(scrim_ids):
-    print("Warning: team names do not match scrim ids in length!")
+    LOG.warning("Sheet column for team names do not match scrim ids in length!")
 scrim_dict = {}
 
-for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
+for scrim_id, name in tqdm(zip(scrim_ids[2:], team_names[2:]), desc="Sheet"):
     if scrim_id == '':
         # Lots of trailing info in the columns.
         continue
     if len(scrim_id) != 10:
-        print(f"Skipping unusual scrim ID: '{scrim_id}'")
+        LOG.warning(f"Skipping unusual scrim ID: '{scrim_id}'")
         continue
     # Default to the string if its wrong
     name = name.strip()
@@ -224,7 +231,7 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
 
     # Not much we can do if we dont have a propper team to use
     if not propper_team:
-        print(f"Could not fix {scrim_id} (no propper team: {name})")
+        LOG.info(f"Could not fix {scrim_id} (no propper team: {name})")
         unfixed_replays.add(scrim_id)
         continue
 
@@ -235,12 +242,12 @@ for scrim_id, name in zip(scrim_ids[2:], team_names[2:]):
     if fixed:
         session.commit()
         fixed_replays.add(scrim_id)
-        print(f"Fixed {scrim_id}")
+        LOG.info(f"Fixed {scrim_id}")
     else:
         res_dict = get_matching_main(replay, opposition_team)
-        print(f"""Could not fix {scrim_id}, Main (d|r): {res_dict['main_dire']}|{res_dict['main_radiant']},
-              {opposition_team.name} (d|r):{res_dict['opp_dire']}|{res_dict['opp_radiant']}""")
-        print(is_valid_replay(replay))
+        LOG.info(
+            f"Could not fix {scrim_id}, Main (d|r): {res_dict['main_dire']}|{res_dict['main_radiant']},{opposition_team.name} (d|r):{res_dict['opp_dire']}|{res_dict['opp_radiant']}")
+        LOG.info(f"Validity: {is_valid_replay(replay)}")
         unfixed_replays.add(scrim_id)
 
 # Get scrims that are downloaded but not in the sheet
@@ -249,15 +256,22 @@ scrim_path = Path('E:\\Dota2\\dbScrim\\')
 scrim_files = list(scrim_path.glob("*.dem"))
 file_ids = {s.stem for s in scrim_files}
 # Check the ones we have that are new as above
-for scrim_id in file_ids.difference(scrim_ids[2:]):
+for scrim_id in tqdm(file_ids.difference(scrim_ids[2:]), desc="DIR only"):
     if not scrim_id.isnumeric():
-        print(f"Invalid scrim id from file {scrim_id}")
+        LOG.info(f"Invalid scrim id from file {scrim_id}")
         continue
-    print(f"Checking id {scrim_id} not present in sheet!")
+    LOG.debug(f"Checking id {scrim_id} not present in sheet!")
 
     replay: Replay = session.query(Replay).filter(Replay.replayID == scrim_id).one_or_none()
     if replay is None:
-        print(f"Missing {scrim_id} in processed db.")
+        LOG.debug(f"Missing {scrim_id} in processed db.")
+        continue
+    # Check to see if it has a league id, probably an official
+    if replay.league_ID is None:
+        LOG.warning(f"League ID for {scrim_id} is None, skipping.")
+        continue
+    if replay.league_ID != 0:
+        LOG.info(f"League ID for {scrim_id} is not 0, probably an official - skipping.")
         continue
     name = "unknown"
     for t in replay.teams:
@@ -298,10 +312,6 @@ with open(SCRIMS_JSON_PATH, 'w') as f:
     json.dump(scrim_dict, f)
 
 
-# if len(unknown_teams) != 0:
-#     print("None matched teams: ")
-#     print(', '.join(unknown_teams))
-
 if meta_path.exists():
     with open(meta_path, 'r') as f:
         meta_json = json.load(f)
@@ -315,24 +325,24 @@ seen_missing = set(meta_json.get("seen_missing", set()))
 
 missing_teams_diff = missing_teams - seen_missing_teams
 if missing_teams_diff:
-    print(f"New missing teams: {', '.join(missing_teams_diff)}")
+    LOG.info(f"New missing teams: {', '.join(missing_teams_diff)}")
     meta_json["missing_teams"] = list(seen_missing_teams | missing_teams_diff)
 
 
 fixed_diff = fixed_replays - seen_fixed_replays
 if fixed_diff:
-    print(f"New fixed replays: {', '.join(fixed_diff)}")
+    LOG.info(f"New fixed replays: {', '.join(fixed_diff)}")
     meta_json["fixed_replays"] = list(seen_unfixed_replays | fixed_diff)
 
 
 unfixed_diff = unfixed_replays - seen_unfixed_replays
 if unfixed_diff:
-    print(f"New unfixable replays: {', '.join(unfixed_diff)}")
+    LOG.info(f"New unfixable replays: {', '.join(unfixed_diff)}")
     meta_json["bad_replays"] = list(seen_unfixed_replays | unfixed_diff)
 
 missing_diff = missing - seen_missing
 if missing_diff:
-    print(f"New missing replays: {', '.join(missing_diff)}")
+    LOG.info(f"New missing replays: {', '.join(missing_diff)}")
     meta_json["seen_missing"] = list(seen_missing | missing_diff)
 
 
