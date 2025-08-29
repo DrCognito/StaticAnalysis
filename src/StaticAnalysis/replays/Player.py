@@ -134,6 +134,12 @@ class Player(Base):
             nw = nw.networth
         return nw
     
+    def get_final_networth(self) -> int:
+        nw = self.net_worth.order_by(NetWorth.game_time.desc()).first()
+        if nw is not None:
+            return nw.networth
+
+        return 0
 
     def is_smoked_at(self, time, relative_to_match_time=True):
         if not relative_to_match_time:
