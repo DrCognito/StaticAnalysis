@@ -720,7 +720,7 @@ def draw_tournament_linebreak(text: str, width: int, height: int = 30, font_size
 def replay_draft_image(
     replays: List[Replay], team: TeamInfo, team_name: str,
     first_pick=True, second_pick=True, line_limit=9,
-    scrim_list: list=None, scrims_last: bool = True):
+    scrim_list: list=[], scrims_last: bool = True):
     line_sets = list()
     line_lengths = list()
     max_width = 0
