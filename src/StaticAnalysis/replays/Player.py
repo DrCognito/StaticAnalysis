@@ -82,7 +82,7 @@ class Player(Base):
                              '''and_(LastHits.steam_ID == Player.steamID,
                              LastHits.replay_ID == Player.replayID)'''
                              )
-    net_worth = relationship("NetWorth", lazy="select",
+    net_worth = relationship("NetWorth", lazy="dynamic",
                              cascade="all, delete-orphan", primaryjoin=
                              '''and_(NetWorth.steamID == Player.steamID,
                              NetWorth.replayID == Player.replayID)''',
@@ -126,6 +126,14 @@ class Player(Base):
         # Time is inclusive
         return self.status.filter(PlayerStatus.game_time >= t1,
                                   PlayerStatus.game_time <= t2)
+    
+    
+    def get_networth_at(self, game_time: int) -> int | None:
+        nw = self.net_worth.filter(NetWorth.game_time == game_time).one_or_none()
+        if nw is not None:
+            nw = nw.networth
+        return nw
+    
 
     def is_smoked_at(self, time, relative_to_match_time=True):
         if not relative_to_match_time:
