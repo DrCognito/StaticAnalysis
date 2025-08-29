@@ -5,13 +5,14 @@ from PIL.Image import open as Image_open
 
 import StaticAnalysis
 from StaticAnalysis import LOG
-from StaticAnalysis.analysis.draft_vis import process_team_portrait
+from StaticAnalysis.analysis.draft_vis import process_team_portrait, process_team_picks
 from StaticAnalysis.analysis.visualisation import dataframe_xy
 from StaticAnalysis.analysis.ward_vis import (build_ward_table, colour_list,
                                               plot_image_scatter)
 from StaticAnalysis.analysis.smoke_vis import build_smoke_table, plot_smoke_scatter, plot_circle_scatter
-from StaticAnalysis.lib.Common import add_map, get_player_name, EXTENT, seconds_to_nice, get_player_name_simple
-from StaticAnalysis.lib.team_info import TeamInfo
+from StaticAnalysis.lib.Common import (
+    add_map, get_player_name, EXTENT, seconds_to_nice, get_player_name_simple, decorate_pos_estimate)
+from StaticAnalysis.lib.team_info import TeamInfo, get_team
 from StaticAnalysis.replays.Player import Player, PlayerStatus, Kills, Deaths
 from StaticAnalysis.lib.metadata import has_picks
 from StaticAnalysis.replays.Replay import Replay, Team
@@ -191,6 +192,33 @@ def add_nice_time(x, y, ax_in: Axes, time, font_size=12):
         color='black')
     
     return
+
+
+def add_drafts_simple(replay: Replay, team_session: Session, ax_in: Axes) -> Axes:
+    dire_team = get_team(replay.dire_id)
+    dire_heroes = [
+        p.hero for _, p in sorted(decorate_pos_estimate(replay, Team.DIRE, dire_team))]
+    dire_line = process_team_picks(dire_heroes)
+    
+    radiant_team =get_team(replay.radiant_id)
+    radiant_heroes = [
+        p.hero for _, p in sorted(decorate_pos_estimate(replay, Team.RADIANT, radiant_team))]
+    radiant_line = process_team_picks(radiant_heroes)
+    
+
+    rad_axis = ax_in.inset_axes(
+        bounds=[0, -0.125, 1.0, 0.1]
+    )
+    rad_axis.imshow(radiant_line)
+    rad_axis.axis('off')
+ 
+    dire_axis = ax_in.inset_axes(
+        bounds=[0.0, 1.0, 1.0, 0.1]
+    )
+    dire_axis.imshow(dire_line)
+    dire_axis.axis('off')
+
+    return ax_in
 
 
 def add_drafts(replay: Replay, ax_in: Axes):
@@ -386,7 +414,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
     #     colLabels=["Time", "Start Location", "End Location",]
     # )
     if has_picks(session, replay):
-        add_drafts(replay, axis)
+        add_drafts_simple(replay, team_session, axis)
 
     # Replay ID Text
     axis.text(s=str(replay.replayID), x=0, y=1.0,
