@@ -720,12 +720,18 @@ def draw_tournament_linebreak(text: str, width: int, height: int = 30, font_size
 def replay_draft_image(
     replays: List[Replay], team: TeamInfo, team_name: str,
     first_pick=True, second_pick=True, line_limit=9,
-    scrim_list: list=None):
+    scrim_list: list=None, scrims_last: bool = True):
     line_sets = list()
     line_lengths = list()
     max_width = 0
     vert_spacing = 3
 
+    # Asign to scrim list already so it can be sorted
+    deco_replays: list[tuple[int,Replay]] = [
+        (1 if str(r.replayID) in scrim_list else 0, r) for r in replays
+    ]
+    if scrims_last:
+        deco_replays = sorted(deco_replays, key=lambda x: x[0])
     # fig for networths
     fig = plt.gcf()
 
@@ -739,7 +745,7 @@ def replay_draft_image(
     lines = []
     tot_height = 0
     replay: Replay
-    for replay in replays:
+    for is_scrim, replay in deco_replays:
         # Check to see if our team is picked first
         # If it is our team then this is true if they had first pick too, else false
         if (replay.teams[0].teamID == team.team_id or
@@ -755,10 +761,8 @@ def replay_draft_image(
         if not is_first and not second_pick:
             continue
 
-        if scrim_list and str(replay.replayID) in scrim_list:
-            is_scrim = True
-        else:
-            is_scrim = False
+        # Unneccessary? But clarifying.
+        is_scrim = bool(is_scrim)
 
         line = pickban_line_image(replay, team, add_team_name=True,
                                   caching=True, fig=fig, is_scrim=is_scrim)
