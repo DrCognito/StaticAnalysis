@@ -343,9 +343,9 @@ def fig2img(fig):
     return img
 
 
-def decorate_networth_rank(players:Iterable["Player"], time: int):
+def decorate_networth_rank(players:Iterable["Player"]):
     decorated = [
-        (-1*p.get_networth_at(time), p) for p in players
+        (-1*p.get_final_networth(), p) for p in players
     ]
 
     return decorated
@@ -362,7 +362,7 @@ def decorate_player_position(players: Iterable["Player"], team: "TeamInfo"):
     return decorated
 
 
-def decorate_pos_estimate(replay: "Replay", side: Team, team: "TeamInfo" | None):
+def decorate_pos_estimate(replay: "Replay", side: Team, team):
     # Get the pos ranked player list
     players = set(replay.get_players(side))
     
@@ -379,7 +379,7 @@ def decorate_pos_estimate(replay: "Replay", side: Team, team: "TeamInfo" | None)
                 positions.remove(pos)
 
     # Rank remaining by networth
-    nw_rank = sorted(decorate_networth_rank(players, replay.gameEnd))
+    nw_rank = sorted(decorate_networth_rank(players))
     for pos, (_, p) in zip(positions, nw_rank):
         output.append((pos, p))
         
