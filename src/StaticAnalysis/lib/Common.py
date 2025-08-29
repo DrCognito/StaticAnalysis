@@ -1,6 +1,6 @@
 import io
 from math import sqrt
-from typing import List, Callable
+from typing import List, Callable, Iterable
 
 import matplotlib.image as mpimg
 import pandas as pd
@@ -341,3 +341,46 @@ def fig2img(fig):
     img = Image.open(buf)
 
     return img
+
+
+def decorate_networth_rank(players:Iterable["Player"], time: int):
+    decorated = [
+        (-1*p.get_networth_at(time), p) for p in players
+    ]
+
+    return decorated
+
+
+
+def decorate_player_position(players: Iterable["Player"], team: "TeamInfo"):
+    # Map steam id to pos
+    positions = {v.player_id:k for k,v in enumerate(team.players)}
+    decorated = [
+        (positions.get(p.steamID, 999), p) for p in players
+    ]
+    
+    return decorated
+
+
+def decorate_pos_estimate(replay: "Replay", side: Team, team: "TeamInfo" | None):
+    # Get the pos ranked player list
+    players = set(replay.get_players(side))
+    
+    positions = [0,1,2,3,4]
+    output = []
+    if team is not None:
+        pos_rank = decorate_player_position(players, team)
+        for i, (pos, player) in enumerate(pos_rank):
+            if pos in positions:
+                # Add decorated to the output
+                output.append((pos, player))
+                # Remove found players
+                players.remove(player)
+                positions.remove(pos)
+
+    # Rank remaining by networth
+    nw_rank = sorted(decorate_networth_rank(players, replay.gameEnd))
+    for pos, (_, p) in zip(positions, nw_rank):
+        output.append((pos, p))
+        
+    return output
