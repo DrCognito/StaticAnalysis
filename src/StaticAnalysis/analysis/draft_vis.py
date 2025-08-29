@@ -255,6 +255,34 @@ def add_draft_axes(draft: Image.Image, ax_in: Axes,
     return box
 
 
+def process_team_picks(heroes: list[str], spacing=5):
+    portraits = [
+        hero_box_image_portrait(
+            hero=h, is_pick=True, pick_num=99, add_order=False, add_textbox=False) for h in heroes
+    ]
+
+    tot_width = spacing
+    # Add the portrait widths
+    tot_width += sum(x + spacing for x,_ in map(lambda x: x.size, portraits))
+    # Get the max height
+    height = max(y + 2*spacing for _,y in map(lambda x: x.size, portraits))
+    b_colour = (255, 255, 255, 0)
+    out_box = Image.new('RGBA', (tot_width, height), b_colour)
+
+    processed_size = spacing
+    extras = 0
+    for i, hbox in enumerate(portraits):
+        # Initial offset starts after the border (+spacing)
+
+        x_off = processed_size + extras
+        out_box.paste(hbox,
+                      (x_off, spacing),
+                      hbox)
+        processed_size += hbox.size[0]
+
+    return out_box
+
+
 def process_team_portrait(replay: Replay, team: TeamSelections, spacing=5):
     hero_boxes = []
     tot_width = spacing
