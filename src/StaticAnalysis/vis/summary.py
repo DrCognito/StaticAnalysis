@@ -78,13 +78,37 @@ def pick_pairs(
     return None
 
 
+from functools import partial
+from herotools.HeroTools import HeroIDType, convertName, FullNameMap, HeroIconPrefix
+from StaticAnalysis.analysis.visualisation import plot_winpick_rate
 def hero_win_rate_plot(team: TeamInfo, r_query: Query, limit=None):
-    hero_win_rate_df = hero_win_rate(r_query, team, limit=limit)
+    df = hero_win_rate(r_query, team, limit=limit)
+    df = df.reset_index()
+    df['full_name'] = df['index'].map(FullNameMap)
+    # Add icon
+    iconographer = partial(
+        convertName, input_format = HeroIDType.NPC_NAME, output_format = HeroIDType.ICON_FILENAME)
+    df['icon'] = df['index'].apply(iconographer)
     
     win = plt.figure(constrained_layout=True)
-    win, _ = plot_hero_winrates(hero_win_rate_df, win)
+    axe = win.subplots(ncols=2)
+    y_size = len(df) / 3.0
+    win.set_size_inches(6, max(y_size, 6))
+
+
+    # fig.tight_layout()
+    plot_winpick_rate(
+        table=df, axes=axe, pick_col="Total",
+        index_col="full_name", winrate_col="Rate", nHeroes=None,
+        min_picks=0
+    )
+    
+    # win = plt.figure(constrained_layout=True)
+    # win, _ = plot_hero_winrates(hero_win_rate_df, win)
     loss = plt.figure(constrained_layout=True)
-    loss, _ = plot_hero_lossrates(hero_win_rate_df, loss)
+    # Reset this to the old index
+    df = df.set_index('index')
+    loss, _ = plot_hero_lossrates(df, loss)
 
     return win, loss
 
