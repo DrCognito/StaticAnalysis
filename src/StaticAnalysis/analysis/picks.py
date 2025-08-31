@@ -55,7 +55,7 @@ def plot_winpick_rate(table: DataFrame, axes,
         # Icons
         icon = HeroIconPrefix / t[icon_col]
         make_image_annotation_flex(icon, axes[1], 0, y, icon_size)
-    axes[1].set_title(f"Loss Rate Vs (P>50% sorted)")
+    axes[1].set_title(f"Loss Rate Vs (Confidence >50% sorted)")
 
     table = table.loc[table[pick_col] >= min_picks]
     if table.empty:
