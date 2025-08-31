@@ -21,6 +21,7 @@ from StaticAnalysis.analysis.Player import pick_context
 from StaticAnalysis.lib.Common import EXTENT, ChainedAssignment, colours
 from StaticAnalysis.lib.team_info import TeamInfo
 import matplotlib.patches as mpatches
+from typing import List
 
 
 colour_list = ['cool', 'summer', 'winter', 'spring', 'copper']
@@ -645,6 +646,62 @@ def plot_object_position(query_data: DataFrame, bins=64,
     return ax_in
 
 
+def plot_winpick_rate(table: DataFrame, axes: List[Axes],
+                      pick_col: str = "picks", index_col: str = "heroName",
+                      icon_col: str = "icon", winrate_col: str = "winrate",
+                      nHeroes=10, min_picks=0):
+    """
+    Plot hero pick and win rates in a more DotaBuff style long column sorted by picks.
+    """
+    icon_size = 0.5
+    if table.empty:
+        for a in axes:
+            a.text(0.5, 0.5, "No Data", fontsize=14,
+                        horizontalalignment='center',
+                        verticalalignment='center')
+            a.yaxis.set_major_locator(MaxNLocator(integer=True))
+            
+            return axes
+    # Table setup
+    table = table.set_index(index_col)
+    table = table.sort_values(by=[pick_col, winrate_col], ascending=True)
+    if nHeroes is not None:
+        table = table.tail(nHeroes)
+    ax = table[pick_col].plot.barh(ax=axes[0], width=-0.2, align='edge', ylabel="")
+    axes[0].set_ylim(-0.2, len(table))
+    for y, (_, t) in enumerate(table.iterrows()):
+        coords = (0, y)
+        label = f" {t[pick_col]}"
+        axes[0].annotate(label, coords, ha='left', va='bottom')
+        # Icons
+        icon = HeroIconPrefix / t[icon_col]
+        make_image_annotation_flex(icon, axes[0], 0, y, icon_size)
+    axes[0].set_title(f"Picks")
+
+    table = table.loc[table[pick_col] >= min_picks]
+
+    table = table.sort_values(by=[pick_col, winrate_col])
+    ax = table[winrate_col].plot.barh(xlim=(0, 1.1), ax=axes[1], width=-0.2, align='edge', ylabel="")
+    # axes[1].set_ylim(-0.1, len(table))
+    for y, (_, t) in enumerate(table.iterrows()):
+        coords = (0, y)
+        label = f" {t[winrate_col]*100:.0f}%"
+        axes[1].annotate(label, coords, ha='left', va='bottom')
+        # Icons
+        icon = HeroIconPrefix / t[icon_col]
+        make_image_annotation_flex(icon, axes[0], 0, y, icon_size)
+    
+    axes[0].yaxis.set_tick_params(pad=15.0)
+    axes[0].set_yticks(axes[0].get_yticks(), axes[0].get_yticklabels(), va='bottom')
+    for a in axes[1:]:
+        a.sharey(axes[0])
+        a.get_yaxis().set_visible(False)
+
+    axes[1].set_title(f"Win Rate")
+    
+    return axes
+
+
 def plot_hero_winrates(data: DataFrame, fig: Figure, mingames=3, min_rate=0.6):
     '''Plots hero win rate over all and with a minimum games required.'''
 
@@ -723,6 +780,9 @@ def plot_hero_lossrates(data: DataFrame, fig: Figure, mingames=3, max_rate=0.5):
     axes[0].set_title('Win Rate (<50%)')
     axes[0].set_ylabel('All')
     axes[1].set_ylabel('Min {} games'.format(mingames))
+    
+    axes[0].set_xlabel('')
+    axes[1].set_xlabel('')
 
     return fig, axes
 
