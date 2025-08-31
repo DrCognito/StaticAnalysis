@@ -21,6 +21,7 @@ from StaticAnalysis.replays.TeamSelections import TeamSelections
 from StaticAnalysis.analysis.networth import get_laning_image
 from StaticAnalysis import session, FONT_CACHE
 import matplotlib.pyplot as plt
+from loguru import logger as LOG
 
 scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
 try:
@@ -727,9 +728,15 @@ def replay_draft_image(
     vert_spacing = 3
 
     # Asign to scrim list already so it can be sorted
-    deco_replays: list[tuple[int,Replay]] = [
-        (1 if str(r.replayID) in scrim_list else 0, r) for r in replays
-    ]
+    if scrim_list:
+        deco_replays: list[tuple[int,Replay]] = [
+            (1 if str(r.replayID) in scrim_list else 0, r) for r in replays
+        ]
+    else:
+        LOG.debug(f"scrim_list is empty for team {team.name}")
+        deco_replays: list[tuple[int,Replay]] = [
+            (0, r) for r in replays
+        ]
     if scrims_last:
         deco_replays = sorted(deco_replays, key=lambda x: x[0])
     # fig for networths
