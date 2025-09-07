@@ -1382,6 +1382,14 @@ def make_report(team: TeamInfo, metadata: dict, output: Path):
         pdf.image(
             Path(PLOT_BASE_PATH) / plot_hero_pubs,
             keep_aspect_ratio=True, y=5, w=180, h=290)
+    # Loss/Win-rate vs heroes
+    # plot_lossvs_opp = metadata.get('lossvs_opp')
+    # if plot_lossvs_opp:
+    #     pdf.add_page()
+    #     pdf.image(
+    #         Path(PLOT_BASE_PATH) / plot_lossvs_opp,
+    #         keep_aspect_ratio=True, y=5, w=180, h=290)
+
     # Flex pubs
     # plot_flex_pubs = metadata.get('plot_flex_pubs')
     # if plot_flex_pubs:
