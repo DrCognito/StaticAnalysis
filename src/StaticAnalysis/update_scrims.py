@@ -211,7 +211,7 @@ for scrim_id, name in tqdm(zip(scrim_ids[2:], team_names[2:]), desc="Sheet"):
         scrim_dict[team_id][int(scrim_id)] = main_team_name
     else:
         scrim_dict[team_id] = {int(scrim_id): main_team_name}
-    # Do OG also
+    # Do Main also
     if main_team_id in scrim_dict:
         scrim_dict[main_team_id][int(scrim_id)] = name
     else:
