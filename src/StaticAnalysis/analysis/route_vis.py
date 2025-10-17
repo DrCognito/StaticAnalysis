@@ -425,7 +425,7 @@ def plot_pregame_players(replay: Replay, team: TeamInfo, side: Team,
               transform=axis.transAxes)
 
     axis.patch.set_edgecolor('black')
-    axis.patch.set_linewidth('1')
+    axis.patch.set_linewidth(1)
     
     # Summary line
     summary_dict = make_summary(
