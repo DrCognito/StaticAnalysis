@@ -58,7 +58,7 @@ def get_smoked_player_table_replay(
             name = get_player_name(team_session, player.steamID, team)
             order.append(player_list.index(name))
         except ValueError:
-            name = convert_to_32_bit(player.steamID)
+            # name = convert_to_32_bit(player.steamID)
             LOG.debug(f"[Smoke] Player {player.steamID} ({convert_to_32_bit(player.steamID)}) not found in {replay.replayID}")
             order.append(-1*player.steamID)
         names.append(name)
