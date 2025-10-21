@@ -302,12 +302,12 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
         'plot_hatching':{
             '<3 days':'/',
             '3 to 7 days':'x',
-            '7 to 30 days':'o'},
+            '7 to 31 days':'o'},
         'colour_float':{
             '<3 days':0.2,
             '3 to 7 days':0.4,
-            '7 to 30 days':0.6},
-        'plot_column':['<3 days', '3 to 7 days', '7 to 30 days'],
+            '7 to 31 days':0.6},
+        'plot_column':['<3 days', '3 to 7 days', '7 to 31 days'],
     }
 
     flex_count = get_flex_totals(pubs_df, contexts)

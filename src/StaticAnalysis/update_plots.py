@@ -929,7 +929,8 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
 
-    flex_pubs_df = get_team_df(team, pub_session, min_time,
+    pub_time = ImportantTimes['PreviousMonth']
+    flex_pubs_df = get_team_df(team, pub_session, pub_time,
         post_process=process_dataframe_timeplit, maxtime=end_time)
     # Fix me chain with post_process?
     flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
@@ -948,14 +949,14 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     fig.set_size_inches(8.27, 11.69)
     axes = fig.subplots(5)
     # Limit max time to a month or Important time
-    pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) > min_time else min_time
+    # pro_pub_time = month if (month := ImportantTimes['PreviousMonth']) < min_time else min_time
     # plot_team_pubs_timesplit(
     #     team, axes_second, pub_session,
     #     mintime=pro_pub_time, maxtime=maxtime,
     #     pos_requirements=strict_pos)
     plot_team_pubs_timesplit(
         team, axes, pub_session,
-        mintime=pro_pub_time, maxtime=end_time,)
+        mintime=pub_time, maxtime=end_time,)
     axes[0].set_title('Pubs')
     output = team_path / f'hero_pubs.png'
     fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
