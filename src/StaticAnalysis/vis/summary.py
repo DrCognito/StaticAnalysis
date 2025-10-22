@@ -2,7 +2,7 @@ import StaticAnalysis
 from StaticAnalysis import LOG
 from StaticAnalysis.lib.Common import ChainedAssignment
 from StaticAnalysis.lib.team_info import TeamInfo
-from StaticAnalysis.analysis.Player import player_heroes
+from StaticAnalysis.analysis.Player import player_heroes, player_heroes_independent
 from StaticAnalysis.analysis.Replay import (
     draft_summary, pair_rate, hero_win_rate, get_rune_control
     )
@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from sqlalchemy.orm import Query, Session
 from pandas import DataFrame
 import concurrent.futures
+from datetime import datetime
 
 
 PLOT_BASE_PATH = StaticAnalysis.CONFIG['output']['PLOT_OUTPUT']
@@ -45,15 +46,18 @@ def pick_context(team: TeamInfo, r_query: Query, limit, draft_summary_df):
 
 
 def hero_flex(
-    team: TeamInfo, r_filter, limit=None) -> Figure:
+    team: TeamInfo, mintime: datetime, maxtime: datetime, session: Session) -> Figure:
     def _is_flex(*args):
         pass_count = 0
         for p in args:
             if p >= 1:
                 pass_count += 1
         return pass_count
-    flex_picks = player_heroes(
-        StaticAnalysis.session, team, r_filt=r_filter, limit=limit, nHeroes=200)
+    # flex_picks = player_heroes(
+    #     StaticAnalysis.session, team, r_filt=r_filter, limit=limit, nHeroes=200)
+    flex_picks = player_heroes_independent(
+        team, mintime, maxtime, session
+    )
     flex_picks['Counts'] = flex_picks.apply(lambda x: _is_flex(*x), axis=1)
     flex_picks = flex_picks.query('Counts > 1')
     with ChainedAssignment():
@@ -133,7 +137,10 @@ def log_future(future: concurrent.futures.Future):
 
     return
 
-def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, postfix=''):
+def do_summary(
+    team: TeamInfo, r_query, metadata: dict, r_filter,
+    mintime: datetime, maxtime: datetime,
+    limit=None, postfix=''):
     '''Plots draft summary, player picks, pick pairs and hero win rates
        for the replays in r_query.'''
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
@@ -157,12 +164,6 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             fremtiden = executor.submit(_save_plot, fig, output)
             fremtiden.add_done_callback(log_future)
 
-        output = team_path / f'hero_flex{postfix}.png'
-        relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
-        metadata[f'plot_hero_flex{postfix}'] = relpath
-        fig = hero_flex(team, r_filter, limit)
-        fremtiden = executor.submit(_save_plot, fig, output)
-        fremtiden.add_done_callback(log_future)
 
         output = team_path / f'pick_pairs{postfix}.png'
         relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
@@ -199,6 +200,13 @@ def do_summary(team: TeamInfo, r_query, metadata: dict, r_filter, limit=None, po
             fremtiden.add_done_callback(log_future)
 
         if limit is None:
+            output = team_path / f'hero_flex.png'
+            relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
+            metadata[f'plot_hero_flex{postfix}'] = relpath
+            fig = hero_flex(team, mintime, maxtime, StaticAnalysis.session)
+            fremtiden = executor.submit(_save_plot, fig, output)
+            fremtiden.add_done_callback(log_future)
+            
             output = team_path / "pick_tables.png"
             relpath = str(output.relative_to(Path(PLOT_BASE_PATH)))
             metadata['plot_picktables'] = relpath
