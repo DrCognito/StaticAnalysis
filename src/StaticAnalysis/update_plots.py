@@ -30,7 +30,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from StaticAnalysis.analysis.draft_vis import replay_draft_image
-from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id, Player, get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process, get_hero_winrate, get_hero_picks
+from StaticAnalysis.analysis.Player import player_heroes, player_position, player_position_replays, player_position_replay_id, Player, get_player_dataframe, _heroes_post_process, get_team_dataframes, get_team_dataframes_rquery, _update_post_process, get_hero_winrate, get_hero_picks, player_heroes_independent
 from StaticAnalysis.analysis.priority_picks import (priority_picks,
                                                     priority_picks_double)
 from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
@@ -897,7 +897,7 @@ def do_portrait_picks(
 
 
 def do_player_picks(team: TeamInfo, metadata: dict,
-                    r_filter, limit=None, postfix='',
+                    postfix='',
                     mintime=None, maxtime=None):
     team_path = Path(PLOT_BASE_PATH) / team.name / metadata['name']
     team_path.mkdir(parents=True, exist_ok=True)
@@ -905,7 +905,8 @@ def do_player_picks(team: TeamInfo, metadata: dict,
     fig = plt.figure()
     fig.set_size_inches(8.27, 11.69)
 
-    hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=False)
+    # hero_picks_df = player_heroes(session, team, r_filt=r_filter, limit=limit, summarise=False)
+    hero_picks_df = player_heroes_independent(team, mintime, maxtime, session)
     axes_first = fig.subplots(5)
 
     extra = plot_player_heroes(hero_picks_df, axes_first)
@@ -1784,14 +1785,16 @@ def process_team(team: TeamInfo, metadata, time: datetime,
     tp_bar.set_description('Summary')
     if args.summary:
         start = t.process_time()
-        metadata = do_summary(team, r_query, metadata, r_filter)
-        metadata = do_summary(team, r_query, metadata, r_filter, limit=5, postfix="limit5")
+        metadata = do_summary(team, r_query, metadata, r_filter, mintime=time, maxtime=end_time)
+        metadata = do_summary(
+            team, r_query, metadata, r_filter, mintime=time, maxtime=end_time,
+            limit=5, postfix="limit5")
         # metadata = do_summary(team, l_query, metadata, r_filter, postfix="limit5")
         LOG.debug(f"Processed summary in {t.process_time() - start} ({metadata['name']})")
         start = t.process_time()
-        metadata = do_player_picks(team, metadata, r_filter, mintime=stat_time, maxtime=end_time)
-        metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
-                                   mintime=stat_time, maxtime=end_time)
+        metadata = do_player_picks(team, metadata, mintime=time, maxtime=end_time)
+        # metadata = do_player_picks(team, metadata, r_filter, limit=5, postfix="limit5",
+        #                            mintime=stat_time, maxtime=end_time)
         LOG.debug(f"Processed player picks in {t.process_time() - start} ({metadata['name']})")
         metadata = do_player_pubs(team, metadata, time, end_time)
         LOG.debug(f"Processed player pubs in {t.process_time() - start} ({metadata['name']})")

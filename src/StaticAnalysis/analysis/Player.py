@@ -15,6 +15,7 @@ from herotools.HeroTools import FullNameMap
 from herotools.important_times import MAIN_TIME, ImportantTimes
 from herotools.util import convert_to_64_bit
 from datetime import datetime
+from functools import partial
 
 
 def cumulative_player(session, prop_name, team, filt):
@@ -41,13 +42,19 @@ def cumulative_player(session, prop_name, team, filt):
 
 
 def player_heroes(session, team, nHeroes=10, summarise=False,
-                  r_filt=None, p_filt=None, limit=None):
+                  r_filt=None, p_filt=None, limit=None, enforce_team=False):
     player_series = []
 
-    if r_filt is None:
-        r_filt = team.filter
-    else:
-        r_filt = and_(team.filter, r_filt)
+    # if r_filt is None:
+    #     r_filt = team.filter
+    # else:
+    #     r_filt = and_(team.filter, r_filt)
+
+    if enforce_team:
+        if r_filt is not None:
+            r_filt = and_(team.filter, r_filt)
+        else:
+            r_filt = team.filter
 
     for player in team.players:
 
@@ -58,7 +65,10 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
         else:
             p_f = and_(Player.steamID == pid, p_filt)
 
-        replays = session.query(Replay).filter(r_filt)
+        replays = session.query(Replay)
+        if r_filt is not None:
+            replays = replays.filter(r_filt)
+
         if limit is not None:
             replays = replays.order_by(Replay.replayID.desc()).limit(limit)
         p_picks = session.query(Player.hero).filter(p_f)\
@@ -92,6 +102,36 @@ def player_heroes(session, team, nHeroes=10, summarise=False,
         player_series.append(p_res)
 
     return concat(player_series, axis=1, sort=True).fillna(0)
+
+
+def player_heroes_independent(team: TeamInfo, min_time: datetime, max_time, session: Session) -> DataFrame:
+    '''
+    Get an rquery independant dataframe for hero counts.
+    '''
+    def _simple_count_timecut(df: DataFrame, min_time: datetime, max_time: datetime):
+        '''
+        Post processing helper for the team
+        '''
+        df['count'] = 1
+        if max_time is None:
+            df = df.loc[df.loc[:, 'endGameTime'] >= min_time]
+        else:
+            df = df.loc[df.loc[:, 'endGameTime'].between(min_time, max_time)]
+        df = df[['hero', 'count']].groupby(['hero']).sum()
+        # df.columns = df.columns.droplevel(1)
+
+        return df
+    player_proc = partial(_simple_count_timecut, min_time=min_time, max_time=max_time)
+
+    comp_df = get_team_dataframes(
+        team,
+        [Player.hero, Player.endGameTime, Player.win], post_process = player_proc,
+        session=session
+    )
+    comp_df = concat(comp_df, axis=1).fillna(0)
+    comp_df.columns = comp_df.columns.droplevel(1)
+    
+    return comp_df
 
 
 def pick_context(hero, team, r_query, extra_p_filt=None, limit=None):
