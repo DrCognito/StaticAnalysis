@@ -224,6 +224,7 @@ def plot_player_heroes(data: DataFrame, axes: list):
         column.sort_values(ascending=False, inplace=True)
         ax: Axes = column.plot.bar(ax=axis, colormap=colour)
         ax.set_ylabel(name)
+        ax.set_xlabel('')
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         extra_artists = x_label_icon(ax, y_pos=-0.1, size=icon_size)
         ax.xaxis.set_ticks([])
