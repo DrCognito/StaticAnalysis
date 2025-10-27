@@ -841,22 +841,34 @@ def do_portrait_picks(
 
     def add_extra_cols(
         player: TeamPlayer | int, df: DataFrame, session: Session = session,
-        r_query: Query = None, time_list=default_time_list) -> DataFrame:
+        r_query: Query = None, time_list=default_time_list, min_time=None) -> DataFrame:
         if df.empty:
             return df
+        if min_time is not None:
+            if time_list[1] < min_time:
+                min1 = min_time
+            else:
+                min1 = time_list[1]
+            if time_list[0] < min_time:
+                min0 = min_time
+            else:
+                min0 = time_list[0]
+        else:
+            min1 = time_list[1]
+            min0 = time_list[2]
         # Currently hardcoded as:
         # 0: Oldest, 1: Mid value: 2: Now
         df['1bin winrate'] = df.index.map(
             lambda x : get_hero_winrate(
                 player, x, session,
-                time_list[1], time_list[2],
+                min1, time_list[2],
                 r_query
                 )
         )
         df['1bin picks'] = df.index.map(
         lambda x : get_hero_picks(
             player, x, session,
-            time_list[1], time_list[2],
+            min1, time_list[2],
             r_query
             )
         )
@@ -864,7 +876,7 @@ def do_portrait_picks(
         df['2bin winrate'] = df.index.map(
             lambda x : get_hero_winrate(
                 player, x, session,
-                time_list[0], time_list[2],
+                min0, time_list[2],
                 r_query
                 )
         )
@@ -877,7 +889,7 @@ def do_portrait_picks(
             if use_team:
                 add_extra_cols(p, df, r_query=r_query)
             else:
-                add_extra_cols(p, df)
+                add_extra_cols(p, df, min_time=min_time)
 
     # Uses MAIN_TIME to get the missing comp heroes
     update_df = get_team_dataframes(
