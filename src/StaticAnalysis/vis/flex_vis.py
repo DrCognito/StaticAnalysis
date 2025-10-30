@@ -316,7 +316,7 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
     # fig.set_size_inches(6, max(1.0*len(flex_count[20:]), 6))
     fig.set_size_inches(6, max(1.0*len(flex_count[20:]), 10))
     axe = fig.subplots()
-    axe.set_title("Pubs")
+    axe.set_title("Ranked")
     if flex_count.empty:
         axe.text(0.5, 0.5, "No Data", fontsize=14,
             horizontalalignment='center',
