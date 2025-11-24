@@ -1628,6 +1628,8 @@ def process_team(team: TeamInfo, metadata, time: datetime,
 
     r_filter = and_(Replay.replayID.not_in([8178449560,]),
                     r_filter)
+    r_filter = and_(Replay.league_ID.not_in([18769,]),
+                    r_filter)
     try:
         r_query = team.get_replays(session).filter(r_filter)
     except SQLAlchemyError as e:
