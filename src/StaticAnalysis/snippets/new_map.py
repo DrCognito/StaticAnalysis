@@ -32,11 +32,20 @@ tower_coordinates = [
 # Extent calibration
 # Bottom Right Twin gate 738
 object_1_coords = (8896.000000, 23296.000000)
+# 7_40
+object_1_coords = (8896.000000, 23296.000000)
 object_1_pixel = (58, 155) # From top left
+# 7_40
+object_1_pixel = (105, 119) # From top left
 # Top Left Twin Gate 738
 object_2_coords = (23744.000000, 9856.000000)
+# 7_40
+object_2_coords = (23744.000000, 9856.000000)
 object_2_pixel = (894, 910) # From top left
-image_pixel_size = (1000, 1040)
+# 7_40
+object_2_pixel = (992, 921) # From top left
+image_pixel_size = (1100, 1048)
+image_pixel_size_739 = (1000, 1040)
 image_pixel_size_738 = (1000, 1034)
 
 def scale_axis(pmin, pmax, cmin, cmax, axis_length):
@@ -63,7 +72,7 @@ y0, y1 = scale_axis(
     object_1_coords[1], object_2_coords[1],
     image_pixel_size[1]
 )
-y_tweak_off = 550
+y_tweak_off = -200
 x_tweak_off = 0
 new_extent = [x0 + x_tweak_off, x1 + x_tweak_off, y0 + y_tweak_off, y1 + y_tweak_off]
 print(f"Extents {new_extent}")
@@ -118,7 +127,29 @@ tower_7_39 = [
     (14840.000000, 14976.000000),
     (22653.343750, 14144.000000),
 ]
-
+tower_7_40 = [(12432.000000, 10272.000000),
+    (11744.000000, 12240.000000),
+    (9792.000000, 12976.000000), 
+    (16024.000000, 10128.000000),
+    (21287.500000, 10185.718750),
+    (13193.656250, 13457.750000),
+    (9883.000000, 15512.000000), 
+    (10048.000000, 18240.000000),
+    (10672.000000, 11520.000000),
+    (21328.000000, 21160.000000),
+    (16256.000000, 22400.000000),
+    (11108.937500, 22312.437500),
+    (18880.000000, 18496.000000),
+    (16908.000000, 17036.000000),
+    (22784.000000, 16768.000000),
+    (22720.000000, 19416.000000),
+    (19936.000000, 22160.000000),
+    (20656.000000, 20143.000000),
+    (21664.000000, 20816.000000),
+    (10992.000000, 11192.000000),
+    (14840.000000, 14976.000000),
+    (22653.343750, 14144.000000),
+]
 fig = plt.figure(figsize=(7, 7))
 axis = fig.subplots()
 add_map(axis, extent=new_extent)
@@ -141,8 +172,8 @@ m2, c2 = np.polyfit(y2, y1, 1)
 xscale = list(map(lambda l: m1*l + c1, x))
 yscale = list(map(lambda l: m2*l + c2, y))
 
-x = [i[0] for i in tower_7_39]
-y = [i[1] for i in tower_7_39]
+x = [i[0] for i in tower_7_40]
+y = [i[1] for i in tower_7_40]
 axis.scatter(x, y)
 
 # for i, txt in enumerate(name):
