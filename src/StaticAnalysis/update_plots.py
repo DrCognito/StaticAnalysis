@@ -15,7 +15,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF, Align
-from herotools.important_times import ImportantTimes, nice_time_names, new_patch_time_list, new_patch_labels
+from herotools.important_times import ImportantTimes, nice_time_names, new_patch_time_list, new_patch_labels, default_time_labels, default_time_list
 from herotools.HeroTools import FullNameMap
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
@@ -98,8 +98,8 @@ rcParams.update({'figure.max_open_warning': 0})
 LOG.enable('herotools')
 LOG.enable('propubs')
 # Time setup for use in the draft sections
-DRAFT_TIME_LABELS = new_patch_labels
-DRAFT_TIME_LIST = new_patch_time_list
+DRAFT_TIME_LABELS = default_time_labels
+DRAFT_TIME_LIST = default_time_list
 # Time list for pubs
 PUB_TIME_LIST = [
                 datetime.now() - timedelta(days=31),
@@ -913,8 +913,9 @@ def do_portrait_picks(
         team,
         comp_df,
         update_df,
-        time_labels=DRAFT_TIME_LABELS,
-        time_list=DRAFT_TIME_LIST
+        time_labels=PUB_TIME_LABELS,
+        time_list=PUB_TIME_LIST,
+        comp_time_label=DRAFT_TIME_LABELS
     )
     output = team_path / f'hero_picks_portrait.png'
     full_table.save(output)
