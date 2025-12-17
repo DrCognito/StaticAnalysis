@@ -104,11 +104,11 @@ DRAFT_TIME_LIST = new_patch_time_list
 PUB_TIME_LIST = [
                 datetime.now() - timedelta(days=31),
                 datetime.now() - timedelta(days=7),
-                datetime.now() - timedelta(days=3),
-                # ImportantTimes['7_40'],
+                # datetime.now() - timedelta(days=3),
+                ImportantTimes['7_40'],
                 datetime.now(),
             ]
-PUB_TIME_LABELS = ['7 to 31 days', '3 to 7 days', '<3 days']
+PUB_TIME_LABELS = ['7 to 31 days', 'Patch 7.40 to 7 days', 'Patch 7.40']
 LOG.debug(f"Draft times: {[f"{s}: {t} " for s,t in zip(DRAFT_TIME_LABELS, DRAFT_TIME_LIST)]}")
 LOG.debug(f"Pub times: {[f"{s}: {t} " for s,t in zip(PUB_TIME_LABELS, PUB_TIME_LIST)]}")
 
