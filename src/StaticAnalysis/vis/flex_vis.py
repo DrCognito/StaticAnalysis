@@ -299,15 +299,18 @@ def plot_flexstack_pub(pubs_df: dict, contexts: list, fig: Figure, limit=20):
         'barh':1.0,
         'bargap':0.1,
         'colour_map':{p:c for p, c in zip(pubs_df, colour_map)},
-        'plot_hatching':{
-            '<3 days':'/',
-            '3 to 7 days':'x',
-            '7 to 31 days':'o'},
-        'colour_float':{
-            '<3 days':0.2,
-            '3 to 7 days':0.4,
-            '7 to 31 days':0.6},
-        'plot_column':['<3 days', '3 to 7 days', '7 to 31 days'],
+        # 'plot_hatching':{
+        #     '<3 days':'/',
+        #     '3 to 7 days':'x',
+        #     '7 to 31 days':'o'},
+        'plot_hatching':{l:s for l,s in zip(contexts, ['/','x','o'])},
+        # 'colour_float':{
+        #     '<3 days':0.2,
+        #     '3 to 7 days':0.4,
+        #     '7 to 31 days':0.6},
+        'colour_float':{l:s for l,s in zip(contexts, [0.2,0.4,0.6])},
+        'plot_column':contexts,
+        # 'plot_column':['<3 days', '3 to 7 days', '7 to 31 days'],
     }
 
     flex_count = get_flex_totals(pubs_df, contexts)

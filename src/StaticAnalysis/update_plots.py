@@ -15,7 +15,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pytz
 from fpdf import FPDF, Align
-from herotools.important_times import ImportantTimes, nice_time_names, default_time_list
+from herotools.important_times import ImportantTimes, nice_time_names, new_patch_time_list, new_patch_labels
 from herotools.HeroTools import FullNameMap
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
@@ -97,6 +97,20 @@ rcParams.update({'figure.max_open_warning': 0})
 # Make sure were also logging libraries
 LOG.enable('herotools')
 LOG.enable('propubs')
+# Time setup for use in the draft sections
+DRAFT_TIME_LABELS = new_patch_labels
+DRAFT_TIME_LIST = new_patch_time_list
+# Time list for pubs
+PUB_TIME_LIST = [
+                datetime.now() - timedelta(days=31),
+                datetime.now() - timedelta(days=7),
+                # datetime.now() - timedelta(days=3),
+                ImportantTimes['7_40'],
+                datetime.now(),
+            ]
+PUB_TIME_LABELS = ['7 to 31 days', 'Patch 7.40 to 7 days', 'Patch 7.40']
+LOG.debug(f"Draft times: {[f"{s}: {t} " for s,t in zip(DRAFT_TIME_LABELS, DRAFT_TIME_LIST)]}")
+LOG.debug(f"Pub times: {[f"{s}: {t} " for s,t in zip(PUB_TIME_LABELS, PUB_TIME_LIST)]}")
 
 #region argparse
 arguments = ArgumentParser()
@@ -826,7 +840,7 @@ def do_portrait_picks(
     
     # Set our comp post proc with a minimum time!
     # This sets the limit for table, 14 days, 31 days etc.
-    hero_proc = partial(_heroes_post_process, min_time=default_time_list[0])
+    hero_proc = partial(_heroes_post_process, min_time=DRAFT_TIME_LIST[0])
     table_cols = [Player.hero, Player.win, Player.endGameTime]
     if use_team:
         comp_df = get_team_dataframes_rquery(
@@ -841,7 +855,7 @@ def do_portrait_picks(
 
     def add_extra_cols(
         player: TeamPlayer | int, df: DataFrame, session: Session = session,
-        r_query: Query = None, time_list=default_time_list, min_time=None) -> DataFrame:
+        r_query: Query = None, time_list=DRAFT_TIME_LIST, min_time=None) -> DataFrame:
         if df.empty:
             return df
         if min_time is not None:
@@ -898,7 +912,9 @@ def do_portrait_picks(
     full_table = process_team_portraits(
         team,
         comp_df,
-        update_df
+        update_df,
+        time_labels=DRAFT_TIME_LABELS,
+        time_list=DRAFT_TIME_LIST
     )
     output = team_path / f'hero_picks_portrait.png'
     full_table.save(output)
@@ -943,14 +959,17 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     team_path.mkdir(parents=True, exist_ok=True)
 
     pub_time = ImportantTimes['PreviousMonth']
+
+    df_process = partial(
+        process_dataframe_timeplit, time_list=PUB_TIME_LIST, labels=PUB_TIME_LABELS)
     flex_pubs_df = get_team_df(team, pub_session, pub_time,
-        post_process=process_dataframe_timeplit, maxtime=end_time)
+        post_process=df_process, maxtime=end_time,)
     # Fix me chain with post_process?
     flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
     
     output = team_path / f'hero_flex_pubs.png'
     fig = plt.figure()
-    fig = plot_flexstack_pub(flex_pubs_df, contexts=TIME_LABELS, fig=fig)
+    fig = plot_flexstack_pub(flex_pubs_df, contexts=PUB_TIME_LABELS, fig=fig)
     # fig.savefig(output, bbox_inches='tight', dpi=150)
     fig.savefig(output, bbox_inches='tight')
     fig.clf()
@@ -969,7 +988,7 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     #     pos_requirements=strict_pos)
     plot_team_pubs_timesplit(
         team, axes, pub_session,
-        mintime=pub_time, maxtime=end_time,)
+        mintime=pub_time, maxtime=end_time, labels=PUB_TIME_LABELS, time_list=PUB_TIME_LIST)
     axes[0].set_title('Pubs')
     output = team_path / f'hero_pubs.png'
     fig.subplots_adjust(wspace=0.04, left=0.06, right=0.94, top=0.97, bottom=0.04)
