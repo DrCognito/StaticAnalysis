@@ -100,6 +100,8 @@ LOG.enable('propubs')
 # Time setup for use in the draft sections
 DRAFT_TIME_LABELS = default_time_labels
 DRAFT_TIME_LIST = default_time_list
+PORTAIT_PUB_LABELS = new_patch_labels
+PORTAIT_PUB_LIST = new_patch_time_list
 # Time list for pubs
 PUB_TIME_LIST = [
                 datetime.now() - timedelta(days=31),
@@ -913,8 +915,8 @@ def do_portrait_picks(
         team,
         comp_df,
         update_df,
-        time_labels=PUB_TIME_LABELS,
-        time_list=PUB_TIME_LIST,
+        time_labels=PORTAIT_PUB_LABELS,
+        time_list=PORTAIT_PUB_LIST,
         comp_time_label=DRAFT_TIME_LABELS
     )
     output = team_path / f'hero_picks_portrait.png'
