@@ -380,7 +380,7 @@ def decorate_pos_estimate(replay: "Replay", side: Team, team):
                 positions.remove(pos)
 
     # Rank remaining by networth
-    nw_rank = sorted(decorate_networth_rank(players))
+    nw_rank = sorted(decorate_networth_rank(players), key=lambda x: x[0])
     for pos, (_, p) in zip(positions, nw_rank):
         output.append((pos, p))
         
