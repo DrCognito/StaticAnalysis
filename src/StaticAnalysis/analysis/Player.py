@@ -125,7 +125,7 @@ def player_heroes_independent(team: TeamInfo, min_time: datetime, max_time, sess
 
     comp_df = get_team_dataframes(
         team,
-        [Player.hero, Player.endGameTime, Player.win], post_process = player_proc,
+        [Player.hero, Player.endGameTime, Player.win], time_cut=min_time, post_process = player_proc,
         session=session
     )
     comp_df = concat(comp_df, axis=1).fillna(0)
