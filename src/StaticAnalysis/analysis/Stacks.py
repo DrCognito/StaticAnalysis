@@ -261,9 +261,15 @@ def do_stacks(team: TeamInfo, r_query, metadata: dict):
     _process_side(r_dict, r_replays, "Radiant", axes[0])
     _process_side(d_dict, d_replays, "Dire", axes[1])
     destination = team_path / "summary_stack.png"
-    ymin, ymax = axes[0].get_ylim()
-    axes[0].set_ylim(ymin, 1.05*ymax)
-    axes[0].legend(loc='upper left', ncols=3)
+    if r_replays.count() != 0:
+        ymin, ymax = axes[0].get_ylim()
+        axes[0].set_ylim(ymin, 1.05*ymax)
+        axes[0].legend(loc='upper left', ncols=3)
+    else:
+        # Render the info on the dire axis if no radiant replays.
+        ymin, ymax = axes[1].get_ylim()
+        axes[1].set_ylim(ymin, 1.05*ymax)
+        axes[1].legend(loc='upper left', ncols=3)
     fig.savefig(destination)
     metadata['plot_summary_stacks'] = str(destination.relative_to(plot_base))
     
