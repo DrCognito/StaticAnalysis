@@ -210,4 +210,31 @@ axis.scatter(x, y)
 # for i, txt in enumerate(name):
 #     axis.annotate(txt, (x[i], y[i]))
 
-plt.show()
+# plt.show()
+
+# Tormentor locations
+from StaticAnalysis.vis.tormentor import top_left, bottom_right, top_left_wards, bottom_right_wards, heatmap
+fig = plt.figure(figsize=(7, 7))
+axis = fig.subplots()
+add_map(axis, extent=new_extent)
+
+from copy import copy
+axis.add_patch(copy(top_left))
+axis.add_patch(copy(top_left_wards))
+axis.add_patch(copy(bottom_right))
+axis.add_patch(copy(bottom_right_wards))
+
+# plt.show()
+
+from pandas import DataFrame
+df = DataFrame([
+    {'xCoordinate': object_1_coords[0], 'yCoordinate': object_1_coords[0]},
+    {'xCoordinate': object_2_coords[0], 'yCoordinate': object_2_coords[0]},
+])
+
+fig = plt.figure(figsize=(7, 7))
+axis = fig.subplots(2)
+add_map(axis[0], extent=new_extent)
+add_map(axis[1], extent=new_extent)
+heatmap(df, axis[0], top_left)
+heatmap(df, axis[1], bottom_right)
