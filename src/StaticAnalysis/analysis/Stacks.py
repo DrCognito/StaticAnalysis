@@ -215,8 +215,8 @@ def do_stacks(team: TeamInfo, r_query, metadata: dict):
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     
-    times = [(None, 8*60), (9*60, 15*60)]
-    labels = ('Before 8mins', '9 to 15mins')
+    times = [(None, 8*60), (9*60, 15*60), (15*60, 200*60)]
+    labels = ('Before 8mins', '9 to 15mins', '≥ 15mins')
 
     r_dict = build_stack_dict(team, r_replays, session, times, labels)
     d_dict = build_stack_dict(team, d_replays, session, times, labels)
@@ -292,7 +292,7 @@ def plot_stack_data(
             axe.bar_label(rects, fmt='%.1f')
             multiplier += 1
 
-    axe.set_xticks(x + width*0.5, names)
+    axe.set_xticks(x + width, names)
     axe.set_ylabel('Average Stacks')
     axe.set_title('Radiant')
 
