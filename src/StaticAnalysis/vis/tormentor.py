@@ -32,7 +32,7 @@ mag_y = EXTENT[3] - EXTENT[2]
 # Drawing area
 top_left = Rectangle(
     xy=(EXTENT[0], EXTENT[2] + 0.75*mag_y),
-    width = mag_x*0.2,
+    width = mag_x*0.25,
     height = mag_y*0.2,
     alpha=0.5
 )
@@ -45,16 +45,18 @@ bottom_right = Rectangle(
 
 # Ward sample area
 top_left_wards = Rectangle(
-    xy=(EXTENT[0], EXTENT[2] + 0.8*mag_y),
-    width = mag_x*0.15,
-    height = mag_y*0.15,
-    alpha=0.5
+    xy=(EXTENT[0], EXTENT[2] + 0.75*mag_y),
+    width = mag_x*0.23,
+    height = mag_y*0.2,
+    alpha=0.5,
+    fc="red"
 )
 bottom_right_wards = Rectangle(
-    xy=(EXTENT[0] + 0.81*mag_x, EXTENT[2]),
-    width = mag_x*0.15,
-    height = mag_y*0.15,
-    alpha=0.5
+    xy=(EXTENT[0] + 0.76*mag_x, EXTENT[2]),
+    width = mag_x*0.21,
+    height = mag_y*0.18,
+    alpha=0.5,
+    fc="red"
 )
 # Filter for the tormentor corners
 bottom_right_filter = and_(
