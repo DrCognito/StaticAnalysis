@@ -47,8 +47,3 @@ def stack_stats(stack_id: TeamInfo | str, team_match: TeamInfo | int):
     )
     LOG.info(f"Total stack matches: {query_all.count()}. With wrong team ID: {query_mismatch.count()}")
     
-navi = get_team(36)
-og = get_team(2586976)
-aureus = get_team(9885654)
-remap_team(aureus, og, session)
-stack_stats(og, og)
