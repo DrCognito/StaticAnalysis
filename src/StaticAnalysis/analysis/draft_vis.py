@@ -779,7 +779,7 @@ def replay_draft_image(
         # Check our time now so we have a width reference to work with!
         try:
             t_time = ImportantTimes[tournaments[-1]]
-            if replay.endTimeUTC < t_time:
+            while replay.endTimeUTC < t_time:
                 # Replay was after the tournament start
                 t_name = tournaments.pop()
                 try:
@@ -790,6 +790,7 @@ def replay_draft_image(
                 t_break = draw_tournament_linebreak(text=t_text, width=max_width)
                 lines.append(t_break)
                 tot_height += t_break.size[1]
+                t_time = ImportantTimes[tournaments[-1]]
         except IndexError:
             pass
         lines.append(line)
