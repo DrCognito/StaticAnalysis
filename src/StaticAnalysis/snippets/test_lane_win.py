@@ -1,4 +1,4 @@
-from StaticAnalysis.tests.minimal_db import session, team_session, TeamInfo
+from StaticAnalysis.snippets.minimal_db import session, team_session, TeamInfo
 from StaticAnalysis.replays.Replay import Replay, Team
 from StaticAnalysis.replays.Player import Player, NetWorth, PlayerStatus
 from StaticAnalysis.analysis.Player import player_positioning_replay, closest_tower
