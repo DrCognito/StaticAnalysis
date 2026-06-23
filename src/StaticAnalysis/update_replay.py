@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 import StaticAnalysis
 from StaticAnalysis import session
 from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
+from StaticAnalysis.replays.Position import add_replay_positions
 from StaticAnalysis.lib.metadata import has_picks
 
 import time
@@ -55,6 +56,7 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
     replays_start = time.perf_counter()
     replay_times = []
     # json_files = list(Path(base_path).glob('*.json'))
+    processed_ids = list()
     for j in json_files[:limit]:
         j_start = time.perf_counter()
 
@@ -63,7 +65,8 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
             LOG.info(f"File already processed and exists in archive! {archive}")
             continue
         try:
-            populate_from_JSON_file(j, session, skip_existing=skip_existing)
+            r = populate_from_JSON_file(j, session, skip_existing=skip_existing)
+            processed_ids.append(r.replayID)
         except SQLAlchemyError as e:
             LOG.opt(exception=True).error("Failed to process {}".format(j))
             session.rollback()
@@ -78,13 +81,18 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
         LOG.info(f"{j} ({time.perf_counter() - j_start})")
         replay_times.append(time.perf_counter() - j_start)
 
+    session.commit()
     if replay_times:
         LOG.info(
             f"Average time per replay: {fmean(replay_times)}. Maximum: {max(replay_times)}"
         )
+    # Add position info
+    LOG.info(f"Processing role positions for {len(processed_ids)} processed ids.")
+    for ir in processed_ids:
+        LOG.debug(f"Processing positioning for {ir}")
+        add_replay_positions(session, ir)
     total_seconds = time.perf_counter() - replays_start
     LOG.info(f"Total time taken: {timedelta(seconds = total_seconds)}")
-    session.commit()
 
 
 def reprocess_replay(replays):
@@ -95,7 +103,7 @@ def reprocess_replay(replays):
         if process_file.exists():
             LOG.info("Reprocessing ", process_file)
             try:
-                populate_from_JSON_file(process_file, session, skip_existing=False)
+                r = populate_from_JSON_file(process_file, session, skip_existing=False)
             except SQLAlchemyError as e:
                 LOG.opt(exception=True).error("Failed to process {}".format(j))
                 session.rollback()
@@ -105,6 +113,9 @@ def reprocess_replay(replays):
                 session.rollback()
                 exit(3)
         session.commit()
+        # Add position info
+        LOG.debug(f"Processing positioning for {r.replayID}")
+        add_replay_positions(session, r.replayID)
 
 
 
