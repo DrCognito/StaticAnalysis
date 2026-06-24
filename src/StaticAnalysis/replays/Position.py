@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import MappedAsDataclass
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, select, distinct
+from sqlalchemy import create_engine, select, distinct, BigInteger
 from herotools.lib.position import Position
 from StaticAnalysis import CONFIG, LOG
 from StaticAnalysis.analysis.Player import player_positioning_replay, closest_tower
@@ -24,8 +24,9 @@ class RolePosition(DataClassBase):
     __tablename__ = "role_position"
     
     replayID: Mapped[int] = mapped_column(primary_key=True)
-    steamID: Mapped[int] = mapped_column(primary_key=True)
+    steamID: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     position: Mapped[Position] = mapped_column(nullable=True)
+    side: Mapped[Team]
 
 
 def get_unique_replayids(session: Session) -> set[int]:
@@ -93,7 +94,7 @@ def pos_team_whole(df: DataFrame):
         LOG.error("Incorrect number of players to assign potion!")
         return output
     
-    df = df.sort_values(['1st', 'NetWorth'])
+    df = df.sort_values(['1st', 'NetWorth'], ascending=False)
     # Assign the carries to each lane as top networth
     # Mid
     try:
@@ -124,6 +125,14 @@ def pos_team_whole(df: DataFrame):
     return output
 
 
+def get_player_position(session: Session, steamID: int, replay_id: int):
+    qry = select(RolePosition).where(
+        RolePosition.steamID == steamID,
+        RolePosition.replayID == replay_id
+        )
+    
+    return session.execute(qry).scalar_one_or_none()
+
 def add_replay_positions(
     session: Session, replay_id:int, time_limit: int = 7*60) -> list[RolePosition] | None:
     '''
@@ -133,6 +142,8 @@ def add_replay_positions(
     LOG.debug(f"Processing role positions for {replay_id}")
     # Get initial results
     lane_results = get_lane_info(session, replay_id, time_limit)
+    if lane_results.empty:
+        return
     # Estimate positions for each team
     radiant = pos_team_whole(lane_results.loc[Team.RADIANT])
     dire = pos_team_whole(lane_results.loc[Team.DIRE])
@@ -146,8 +157,12 @@ def add_replay_positions(
     
     try:
         positions = [
-            RolePosition(replay_id, p, pos) for p, pos in
-            chain(radiant.items(), dire.items())
+            RolePosition(replay_id, int(p), pos, Team.RADIANT) for p, pos in
+            radiant.items()
+        ]
+        positions += [
+            RolePosition(replay_id, int(p), pos, Team.DIRE) for p, pos in
+            dire.items()
         ]
         assert len(positions) == 10
         session.add_all(positions)

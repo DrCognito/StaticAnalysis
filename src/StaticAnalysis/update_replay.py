@@ -91,6 +91,7 @@ def processing_to_db(skip_existing=True, json_files:list[Path]=[], limit=None):
     for ir in processed_ids:
         LOG.debug(f"Processing positioning for {ir}")
         add_replay_positions(session, ir)
+    session.commit()
     total_seconds = time.perf_counter() - replays_start
     LOG.info(f"Total time taken: {timedelta(seconds = total_seconds)}")
 
@@ -116,6 +117,7 @@ def reprocess_replay(replays):
         # Add position info
         LOG.debug(f"Processing positioning for {r.replayID}")
         add_replay_positions(session, r.replayID)
+        session.commit()
 
 
 
