@@ -107,7 +107,7 @@ ymin, ymax = axes[1].get_ylim()
 axes[1].set_ylim(ymin, 1.05*ymax)
 
 # plt.show()
-fig.savefig('stack_test.png')
+# fig.savefig('stack_test.png')
 
 # Standard error of the mean
 # https://www.statology.org/standard-error-of-mean-python/

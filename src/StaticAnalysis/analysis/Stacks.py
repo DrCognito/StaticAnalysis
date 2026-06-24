@@ -9,9 +9,11 @@ from herotools.util import convert_to_64_bit
 from StaticAnalysis.analysis.Replay import get_side_replays
 import matplotlib.pyplot as plt
 from pathlib import Path
-from pandas import option_context, DataFrame
+from pandas import option_context, DataFrame, IntervalIndex
 import numpy as np
 from matplotlib.axes import Axes
+from sqlalchemy import select
+from pandas import read_sql, read_sql_query, cut
 
 PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
 
@@ -207,6 +209,26 @@ def build_stack_dict(
     return out_dict
 
 
+def build_stack_dict_global(
+    r_query: Query, session: Session, times: tuple[tuple[int, int]]
+    ):
+    from StaticAnalysis.replays.Position import get_unique_replayids
+    
+    min_time = min(t[0] for t in times)
+    max_time = max(t[1] for t in times)
+    time_bins = IntervalIndex(times, closed="right")
+    # Get an extra row in the range as we deduct the minimum so this should be close enough.
+    stack_query = (
+        select(PlayerStack)
+        .where(PlayerStack.game_time > min_time, PlayerStack.game_time <= max_time)
+        .join(r_query.subquery())
+    )
+    stack_df = read_sql(stack_query, session.bind)
+    stack_df['tBin'] = cut(stack_df['game_time'], time_bins)
+    # stack_df = read_sql(stack_query, session.bind)
+
+
+
 def do_stacks(team: TeamInfo, r_query, metadata: dict):
     d_replays, r_replays = get_side_replays(r_query, session, team)
     plot_base = Path(PLOT_BASE_PATH)
@@ -215,7 +237,7 @@ def do_stacks(team: TeamInfo, r_query, metadata: dict):
     (team_path / 'dire').mkdir(parents=True, exist_ok=True)
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     
-    times = [(None, 8*60), (9*60, 15*60), (15*60, 200*60)]
+    times = [(None, 9*60), (9*60, 15*60), (15*60, 200*60)]
     labels = ('Before 8mins', '9 to 15mins', '≥ 15mins')
 
     r_dict = build_stack_dict(team, r_replays, session, times, labels)
