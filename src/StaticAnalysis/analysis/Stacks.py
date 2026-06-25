@@ -238,7 +238,7 @@ def do_stacks(team: TeamInfo, r_query, metadata: dict):
     (team_path / 'radiant').mkdir(parents=True, exist_ok=True)
     
     times = [(None, 9*60), (9*60, 15*60), (15*60, 200*60)]
-    labels = ('Before 8mins', '9 to 15mins', '≥ 15mins')
+    labels = ('Before 9mins', '9 to 15mins', '≥ 15mins')
 
     r_dict = build_stack_dict(team, r_replays, session, times, labels)
     d_dict = build_stack_dict(team, d_replays, session, times, labels)
