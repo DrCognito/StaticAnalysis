@@ -40,7 +40,7 @@ from StaticAnalysis.analysis.Replay import (counter_picks, draft_summary,
                                             get_smoke, hero_win_rate,
                                             pair_rate, win_rate_table)
 from StaticAnalysis.analysis.route_vis import plot_pregame_players
-from StaticAnalysis.analysis.Stacks import do_stacks
+from StaticAnalysis.analysis.Stacks import do_stacks_team, do_stacks_global
 # from StaticAnalysis.analysis.table_picks import create_tables
 from StaticAnalysis.analysis.table_picks_panda import create_tables
 from StaticAnalysis.analysis.visualisation import (
@@ -162,6 +162,7 @@ arguments.add_argument("--counters", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--runes", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--tormentors", action=argparse.BooleanOptionalAction)
 arguments.add_argument("--twin_gates", action=argparse.BooleanOptionalAction)
+arguments.add_argument("--do_global", action=argparse.BooleanOptionalAction)
 
 arguments.add_argument('--default_off', action='store_true', default=False)
 arguments.add_argument('--pubs_updated', action='store_true', default=False)
@@ -1645,6 +1646,40 @@ def make_mini_report(team: TeamInfo, metadata: dict, output: Path):
     metadata['pdf_mini_report'] = str(output)
 
 
+def process_global(global_json: dict, time: datetime, args: argparse.Namespace):
+    dataset = global_json['name']
+    r_filter = Replay.endTimeUTC >= time
+    r_query = session.query(Replay).filter(r_filter)
+    rids = {r.replayID for r in r_query}
+    
+    if not args.reprocess:
+        try:
+            existing = set(global_json['replays'])
+            new_replays = existing != rids
+        except KeyError:
+            new_replays = True
+        
+        if not new_replays:
+            LOG.info(f"No new replays for global dataset {dataset}, skipping.")
+            
+            return global_json
+
+    LOG.info(f"Processing global plots for {dataset} @ {time}")
+    output_path = Path(StaticAnalysis.CONFIG['output']['SUMMARY_PLOT_PATH'])
+    # Progress bar
+    tp_bar = tqdm(total=2, position=2, desc='Stacks', leave=False)
+    # Stacks
+    global_json['stacks'] = do_stacks_global(r_query, dataset, output_path)
+    tp_bar.update()
+    # Twin gate movement
+    tp_bar.set_description('Gating')
+    # global_json['gates'] = do_gates_global(r_query, dataset, output_path)
+    
+    # Save processed replays as a list!
+    global_json['replays'] = list(rids)
+    return global_json
+
+
 def process_team(team: TeamInfo, metadata, time: datetime,
                  args: argparse.Namespace, end_time: datetime = None, extra_replay_list=None,
                  scrim_list=None):
@@ -1866,7 +1901,7 @@ def process_team(team: TeamInfo, metadata, time: datetime,
         metadata = do_portrait_picks(team, metadata, r_query, min_time=time)
         LOG.debug(f"Processed portrait picks in {t.process_time() - start} ({metadata['name']})")
         start = t.process_time()
-        metadata = do_stacks(team, r_query, metadata)
+        metadata = do_stacks_team(team, r_query, metadata)
         LOG.debug(f"Processed stacks in {t.process_time() - start} ({metadata['name']})")
         plt.close('all')
     tp_bar.update()
@@ -2107,6 +2142,8 @@ def main(arguments):
         args.tormentors = default_process
     if args.twin_gates is None:
         args.twin_gates = default_process
+    if args.do_global is None:
+        args.do_global = default_process
 
     scims_json = StaticAnalysis.CONFIG['scrims']['SCRIMS_JSON']
     try:
@@ -2178,6 +2215,29 @@ def main(arguments):
                     process_team(team, metadata, ImportantTimes[args.scrim_time],
                                  args, end_time=end_time, extra_replay_list=scrim_list,
                                  scrim_list=scrim_list)
+
+    if args.do_global:
+        LOG.debug(f"Processing global plots for datasets {args.use_time}")
+        global_path = Path(StaticAnalysis.CONFIG['output']['SUMMARY_PLOT_PATH']) / "global_plots.json"
+        if not global_path.exists():
+            global_json = {}
+        else:
+            with open(global_path, 'r') as jfile:
+                global_json = json.load(jfile)
+        for t in args.use_time:
+            if t in global_json:
+                LOG.debug(f"Loading existing dataset json for {t}")
+                dataset_json = global_json[t]
+            else:
+                LOG.debug(f"Creating a new dataset json for {t}")
+                dataset_json = {
+                    "name": t,
+                    "replays": [],
+                    "time_cut": f"{ImportantTimes[t]}"
+                }
+            global_json[t] = process_global(dataset_json, ImportantTimes[t], args)
+        with open(global_path, 'w') as file:
+            json.dump(global_json, file)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
