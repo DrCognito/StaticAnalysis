@@ -9,8 +9,11 @@ from sqlalchemy import select
 from pandas import read_sql, read_sql_query, cut, IntervalIndex, Series, DataFrame, option_context
 from herotools.lib.position import Position
 from typing import Iterable
+import numpy as np
+from herotools.important_times import ImportantTimes
 
-r_filter = Replay.endTimeUTC >= MAIN_TIME
+# r_filter = Replay.endTimeUTC >= MAIN_TIME
+r_filter = Replay.endTimeUTC >= ImportantTimes['BLAST_S7']
 r_query = session.query(Replay).filter(r_filter)
 
 
@@ -59,6 +62,43 @@ def proc_global_stack_df(
     return output
 
 
+def proc_global_stack_df2(
+    df: DataFrame, total_replays: int, time_bins: Iterable, time_names: Iterable[str]):
+
+    # Build table for each position
+    positions = [
+        Position.SAFE, Position.MID, Position.OFF,
+        Position.P4, Position.P5
+    ]
+    from collections import defaultdict
+    output = defaultdict(list)
+
+    for tn, tb in zip(time_names, time_bins):
+        for pos in positions:
+            # Filter to position and game time then group by replay, take the maximum (cumulative here)
+            # Then sum over the replays.
+            # This is 0 result safe
+            prior_stacks = (
+                df[(df['game_time'] < tb[0]) & (df['pos'] == pos)]
+                [['replayID','stacks']].groupby('replayID')
+                .max().sum().iloc[0]
+            )
+            max_stacks = (
+                df[(df['game_time'] <= tb[1]) & (df['pos'] == pos)]
+                [['replayID','stacks']].groupby('replayID')
+                .max().sum().iloc[0]
+            )
+            output[tn].append(
+                float(max_stacks - prior_stacks)/total_replays
+            )
+    
+    # Append the total for the team contribution as well. Not as complicated as with actual teams!
+    for t in output:
+        output[t].append(sum(output[t]))
+    
+    return output
+
+
 def build_stack_dict_global(
     r_query: Query, session: Session, times: tuple[tuple[int, int], ...],
     labels: Iterable[str]
@@ -97,14 +137,14 @@ def build_stack_dict_global(
     # Both doubles replays as two sides a replay!
     both = proc_global_stack_df(stack_df, tot_replays*2, time_bins, labels)
     radiant = (
-        proc_global_stack_df(
+        proc_global_stack_df2(
             stack_df.loc[stack_df['team'] == Team.RADIANT],
-            tot_replays, time_bins, labels)
+            tot_replays, times, labels)
         )
     dire = (
-        proc_global_stack_df(
+        proc_global_stack_df2(
             stack_df.loc[stack_df['team'] == Team.DIRE],
-            tot_replays, time_bins, labels)
+            tot_replays, times, labels)
         )
     
     return both, radiant, dire, stack_df
@@ -118,12 +158,23 @@ both, radiant, dire, df = build_stack_dict_global(r_query, session, times, label
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from StaticAnalysis.analysis.Stacks import plot_stack_data
-def do_stacks(result_dict: dict[str,list[int]], names:list[str], title:str, total_games: int):
-
+def plot_stacks(
+    result_dict: dict[str,list[int]], names:list[str], title:str, total_games: int,
+    width: float = 0.25) -> tuple[Figure, Axes]:
     fig, axe = plt.subplots(figsize=(7, 3.5), layout='constrained')
     if total_games != 0:
-        axe = plot_stack_data(result_dict, axe, names)
+        multiplier = 0
+        x = np.arange(6) # 5 Players and a Total
+        for label, stacks in result_dict.items():
+                offset = width * multiplier
+                rects = axe.bar(x + offset, stacks, width, label=label)
+                axe.bar_label(rects, fmt='%.1f')
+                multiplier += 1
+
+        axe.set_xticks(x + width, names)
+        axe.set_ylabel('Average Stacks')
         axe.set_title(f"{title} ({total_games} games)")
     else:
         axe.text(
@@ -134,14 +185,13 @@ def do_stacks(result_dict: dict[str,list[int]], names:list[str], title:str, tota
         axe.xaxis.set_ticks([])
         axe.set_title(f"{title}")
 
-        return axe
+        return fig, axe
 
-    # Radiant
     ymin, ymax = axe.get_ylim()
     axe.set_ylim(ymin, 1.05*ymax)
     axe.legend(loc='upper left', ncols=3)
     
-    return axe
+    return fig, axe
 
 
 def stack_html_table(result_dict: dict[str,list[int]], names=Iterable[str]):
@@ -151,6 +201,6 @@ def stack_html_table(result_dict: dict[str,list[int]], names=Iterable[str]):
 
 tot_replays = df['replayID'].nunique()
 names = ["P1", "P2", "P3", "P4", "P5", "Total"]
-both_plot = do_stacks(both, names, "Combined", tot_replays)
-radiant_plot = do_stacks(radiant, names, "Radiant", tot_replays)
-dire_plot = do_stacks(dire, names, "Dire", tot_replays)
+# both_plot = plot_stacks(both, names, "Combined", tot_replays)
+# radiant_plot = plot_stacks(radiant, names, "Radiant", tot_replays)
+dire_plot = plot_stacks(dire, names, "Dire", tot_replays)
