@@ -1,6 +1,5 @@
 from StaticAnalysis.replays.TwinGate import TwinGate
 from pandas import DataFrame, IntervalIndex, cut
-from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 import seaborn as sns
 from StaticAnalysis.lib.team_info import TeamInfo
@@ -12,6 +11,9 @@ from sqlalchemy.orm import Query, Session
 from pathlib import Path
 from StaticAnalysis import CONFIG
 import matplotlib.pyplot as plt
+from sqlalchemy import select
+from herotools.lib.position import Position
+from StaticAnalysis.replays.Position import RolePosition
 
 PLOT_BASE_PATH = CONFIG['output']['PLOT_OUTPUT']
 sns.set_theme(font_scale=1.0)
@@ -54,6 +56,68 @@ def get_dataframe_counts(r_query: Query, team, session) -> tuple[DataFrame, dict
         ]
 
     return DataFrame(gate_list), counts
+
+
+def get_dataframe_counts_global(
+    r_query: Query, session: Session,
+    pos_dict: dict[tuple[int,int], Position] | None = None) -> tuple[DataFrame, int]:
+    '''
+    Builds a set of gate transitions from the set of replays requiring team matching to team in
+    TwinGate so the team should be correct!
+    Returns DataFrame and team specific player game counts.
+    '''
+    # Replay ids for joining
+    rids = [r.replayID for r in r_query.all()]
+    if pos_dict is None:
+        # Get the position dictionary for available replays from r_query dataset
+        qry = select(RolePosition).where(RolePosition.replayID.in_(rids))
+        role_pos = session.execute(qry).all()
+        p: RolePosition
+        pos_dict = {
+            (p[0].replayID, p[0].steamID):p[0].position for p in role_pos
+        }
+    pos_map = {
+        Position.SAFE: "P1",
+        Position.MID: "P2",
+        Position.OFF: "P3",
+        Position.P4: "P4",
+        Position.P5: "P5",
+    }
+    count = 0
+    gate_list = []
+    gate_query = select(TwinGate).where(
+        TwinGate.hero != 'npc_dota_hero_meepo',
+        TwinGate.replayID.in_(rids))
+    for g in session.scalars(gate_query):
+        pos = pos_dict.get((g.replayID, g.steamID))
+        if pos is None:
+            continue
+        gate_list += [
+           {'pos': pos, 'time':g.channel_start, 'gate side':g.side_pos,
+            'name': pos_map[pos], 'replayID': g.replayID}
+        ]
+
+    df = DataFrame(gate_list)
+    count = df['replayID'].nunique() * 2 # For two teams
+    
+    # Setup the DataFrame
+    df['tBin'] = cut(df['time'], tg_time_binning)
+    # Remove any null values outside tbin range
+    df = df[~df['tBin'].isnull()]
+    # Labels wont work on IntervalIndex
+    df['tBin'] = df['tBin'].map(tg_time_map)
+    df['count'] = 1
+    
+    # Pivot table to per time interval representation
+    df = (df[['name', 'tBin', 'count']]
+        .pivot_table(index='tBin', columns='name', aggfunc='sum', observed=True)
+        )
+    # Remove extraneous count multicol
+    df.columns = list(zip(*df.columns))[1]
+    # Some times NaNs can show up for some reason, handle them
+    df = df.fillna(0).astype(int)
+
+    return df, count
 
 
 def add_count(ax: Axes, count: dict[str, int], offset = -0.1) -> Axes:
@@ -121,6 +185,8 @@ def do_twin_gates(
 
     # Setup the DataFrame
     df['tBin'] = cut(df['time'], tg_time_binning)
+    # Remove any null values outside tbin range
+    df = df[~df['tBin'].isnull()]
     # Labels wont work on IntervalIndex
     df['tBin'] = df['tBin'].map(tg_time_map)
     df['name'] = df['steamID'].map(pid_map)
@@ -157,3 +223,34 @@ def do_twin_gates(
     metadata['plot_twingate_move'] = str(destination.relative_to(plot_base))
     
     return metadata
+
+    
+def do_twin_gates_global(
+    r_query: Query, session: Session, dataset: str, global_path: Path) -> dict:
+    # Ensure path exists
+    output_path = global_path / f"{dataset}"
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Count is doubled from thw two teams!
+    gate_df, count = get_dataframe_counts_global(r_query, session)
+    # Use just average for global
+    for col in gate_df.columns:
+        gate_df[col] = gate_df[col] / count
+    # Radiant
+    fig, axe = plt.subplots(figsize=(8, 4), layout='constrained')
+    axe = plot_twingate_table(axe, gate_df, ".2f")
+    # axe = add_count(axe, count)
+    axe.set_title("Global Dataset Average", pad=20)
+    y_font = axe.get_yticklabels()[0].get_fontproperties()
+    axe.text(
+        x=0.5*5, y=-0.1, s=f'{count} (team) Games',
+        ha='center', va='baseline',
+        fontproperties=y_font)
+    
+    global_json = {}
+    destination = output_path / "global_twin_gate_transitions.png"
+    global_json['global_twingate_move'] = f"{dataset}/global_twin_gate_transitions.png"
+    fig.savefig(destination)
+    fig.clf()
+    
+    return global_json
