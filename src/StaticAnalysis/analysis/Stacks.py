@@ -454,9 +454,11 @@ def plot_stacks(
 
 
 def stack_html_table(result_dict: dict[str,list[int]], names=Iterable[str]):
-    result_df = DataFrame(result_dict)
-    result_df.index = names
-    return result_df.to_html()
+    with option_context('display.precision', 2):
+        result_df = DataFrame(result_dict)
+        result_df.index = names
+        html = result_df.to_html()
+    return html
 
 
 def plot_stack_data(
