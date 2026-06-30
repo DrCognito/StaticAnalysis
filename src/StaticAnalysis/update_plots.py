@@ -67,7 +67,7 @@ from StaticAnalysis.replays.Ward import Ward, WardType
 from StaticAnalysis.replays.Tormentor import TormentorSpawn, TormentorKill
 from StaticAnalysis.vis.tormentor import plot_tormentor_kill_players, plot_tormentor_sentries, plot_tormie_sentries_heatmap
 from StaticAnalysis.vis.summary import do_summary
-from StaticAnalysis.vis.twin_gate import do_twin_gates
+from StaticAnalysis.vis.twin_gate import do_twin_gates, do_twin_gates_global
 import StaticAnalysis
 from StaticAnalysis import session, team_session, pub_session, LOG
 from StaticAnalysis.analysis.rune import plot_player_routes, plot_player_positions, wisdom_rune_times, wisdom_rune_table, build_wisdom_rune_summary, plot_wisdom_table
@@ -1667,13 +1667,13 @@ def process_global(global_json: dict, time: datetime, args: argparse.Namespace):
     LOG.info(f"Processing global plots for {dataset} @ {time}")
     output_path = Path(StaticAnalysis.CONFIG['output']['SUMMARY_PLOT_PATH'])
     # Progress bar
-    tp_bar = tqdm(total=2, position=2, desc='Stacks', leave=False)
+    tp_bar = tqdm(total=2, position=1, desc='Stacks', leave=False)
     # Stacks
     global_json['stacks'] = do_stacks_global(r_query, dataset, output_path)
     tp_bar.update()
     # Twin gate movement
     tp_bar.set_description('Gating')
-    # global_json['gates'] = do_gates_global(r_query, dataset, output_path)
+    global_json['gates'] = do_twin_gates_global(r_query, session, dataset, output_path)
     
     # Save processed replays as a list!
     global_json['replays'] = list(rids)
