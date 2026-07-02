@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 import StaticAnalysis
 from StaticAnalysis import session
-from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file
+from StaticAnalysis.replays.Replay import InitDB, populate_from_JSON_file, Replay
 from StaticAnalysis.replays.Position import add_replay_positions
 from StaticAnalysis.lib.metadata import has_picks
 
@@ -157,6 +157,7 @@ if __name__ == '__main__':
     if args.process_drafts:
         # Get a list of drafts and see if we have the full process already
         # drafts_to_db(skip_existing=False, base_path=DRAFT_PROCESSING_PATH)
+        db_ids = {r.replayID for r in session.query(Replay).all()}
         file_names = {f.name for f in json_files}
         json_draft = []
         for j in list(Path(DRAFT_PROCESSING_PATH).glob('*.json')):
@@ -167,6 +168,11 @@ if __name__ == '__main__':
                 continue
             if j.name in archive_files:
                 LOG.info(f"Skipping draft for {j.name} as it has a full replay in archive.")
+                archive = Path(DRAFT_ARCHIVE_PATH) / j.name
+                rename(j, archive)
+                continue
+            if j.name in db_ids:
+                LOG.info(f"Skipping draft for {j.name} as it has a matching replay ID in the database already.")
                 archive = Path(DRAFT_ARCHIVE_PATH) / j.name
                 rename(j, archive)
                 continue
