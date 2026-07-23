@@ -15,14 +15,14 @@ description = "Data analytics for Dota 2 replay data."
 authors = ["Matthew Chadwick"]
 
 [tool.poetry.dependencies]
-python = ">=3.11, <4.0"
+python = ">=3.12, <4.0"
 adjusttext = "1.*"
 "dogpile.cache" = "1.*"
 flake8 = "7.*"
 fpdf2 = "2.*"
 matplotlib = ">=3.8,<3.9"
 pandas = "2.*"
-pillow = "11.*"
+pillow = "12.*"
 pygsheets = "2.*"
 python-dotenv = "1.*"
 pytz = "2024.*"
