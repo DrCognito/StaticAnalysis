@@ -17,6 +17,7 @@ import pytz
 from fpdf import FPDF, Align
 from herotools.important_times import ImportantTimes, nice_time_names, new_patch_time_list, new_patch_labels, default_time_labels, default_time_list
 from herotools.HeroTools import FullNameMap
+from herotools.lib.position import strict_pos, loose_pos, mixed_pos
 from matplotlib import rcParams, ticker
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -985,8 +986,9 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
 
     df_process = partial(
         process_dataframe_timeplit, time_list=PUB_TIME_LIST, labels=PUB_TIME_LABELS)
+    # strict_pos, loose_pos, mixed_pos
     flex_pubs_df = get_team_df(team, pub_session, pub_time,
-        post_process=df_process, maxtime=end_time,)
+        post_process=df_process, maxtime=end_time, pos_requirements=loose_pos)
     # Fix me chain with post_process?
     flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
     
