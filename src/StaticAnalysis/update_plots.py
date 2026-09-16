@@ -26,6 +26,7 @@ from propubs.libs.vis import plot_team_pubs, plot_team_pubs_timesplit, get_team_
 from propubs.model.pub_heroes import InitDB as InitPubDB
 from propubs.model.team_info import (BAD_TEAM_TIME_SENTINEL,
                                      get_team_last_result)
+from pubeyes_db import Session as pubeyes_Session
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -82,6 +83,7 @@ from sqlalchemy.orm import Query
 from tqdm import tqdm, trange
 from tqdm.contrib.logging import logging_redirect_tqdm
 import concurrent.futures
+pubeyes_session = pubeyes_Session()
 
 import warnings
 warnings.filterwarnings(
@@ -987,7 +989,7 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     df_process = partial(
         process_dataframe_timeplit, time_list=PUB_TIME_LIST, labels=PUB_TIME_LABELS)
     # strict_pos, loose_pos, mixed_pos
-    flex_pubs_df = get_team_df(team, pub_session, pub_time,
+    flex_pubs_df = get_team_df(team, pub_session, pubeyes_session, pub_time,
         post_process=df_process, maxtime=end_time, pos_requirements=loose_pos)
     # Fix me chain with post_process?
     flex_pubs_df = fix_pubs_df_index(flex_pubs_df)
@@ -1012,7 +1014,7 @@ def do_player_pubs(team: TeamInfo, metadata: dict, min_time: datetime, end_time:
     #     mintime=pro_pub_time, maxtime=maxtime,
     #     pos_requirements=strict_pos)
     plot_team_pubs_timesplit(
-        team, axes, pub_session,
+        team, axes, pub_session, pubeyes_session,
         mintime=pub_time, maxtime=end_time, labels=PUB_TIME_LABELS, time_list=PUB_TIME_LIST)
     axes[0].set_title('Pubs')
     output = team_path / f'hero_pubs.png'
@@ -2226,20 +2228,21 @@ def main(arguments):
         else:
             with open(global_path, 'r') as jfile:
                 global_json = json.load(jfile)
-        for t in args.use_time:
-            if t in global_json:
-                LOG.debug(f"Loading existing dataset json for {t}")
-                dataset_json = global_json[t]
-            else:
-                LOG.debug(f"Creating a new dataset json for {t}")
-                dataset_json = {
-                    "name": t,
-                    "replays": [],
-                    "time_cut": f"{ImportantTimes[t]}"
-                }
-            global_json[t] = process_global(dataset_json, ImportantTimes[t], args)
-        with open(global_path, 'w') as file:
-            json.dump(global_json, file)
+        if args.use_time is not None:
+            for t in args.use_time:
+                if t in global_json:
+                    LOG.debug(f"Loading existing dataset json for {t}")
+                    dataset_json = global_json[t]
+                else:
+                    LOG.debug(f"Creating a new dataset json for {t}")
+                    dataset_json = {
+                        "name": t,
+                        "replays": [],
+                        "time_cut": f"{ImportantTimes[t]}"
+                    }
+                global_json[t] = process_global(dataset_json, ImportantTimes[t], args)
+            with open(global_path, 'w') as file:
+                json.dump(global_json, file)
 
     if args.process_all:
         for team in team_session.query(TeamInfo):
